@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string; explanationId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string; explanationId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { heading, code, explanation } = await req.json();
@@ -46,8 +47,9 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string; explanationId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string; explanationId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 
@@ -82,8 +84,9 @@ export async function DELETE(
 
 export async function GET(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string; explanationId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string; explanationId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 

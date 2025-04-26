@@ -4,8 +4,9 @@ import { currentUser } from "@/lib/auth";
 
 export async function PUT(
   req: Request,
-  { params }: { params: { courseId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { videoId, completed } = await req.json();

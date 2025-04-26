@@ -8,10 +8,11 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { SidebarDemo } from "@/components/ui/sidebar-demo";
 
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function StudentDashboard({ searchParams }: PageProps) {
+export default async function StudentDashboard(props: PageProps) {
+  const searchParams = await props.searchParams;
   const user = await currentUser();
 
   if (!user?.id) {

@@ -20,63 +20,64 @@ import { cn } from "@/lib/utils";
 import { CodeExplanationForm } from "./_components/_explanations/code-explanation-form";
 import { ExplanationActions } from "./_components/explanation-actions";
 
-const SectionIdPage = async ({
-  params
-}: {
-  params: { courseId: string; chapterId: string; sectionId: string }
-}) => {
-    const user = await currentUser();
+const SectionIdPage = async (
+  props: {
+    params: Promise<{ courseId: string; chapterId: string; sectionId: string }>
+  }
+) => {
+  const params = await props.params;
+  const user = await currentUser();
 
 
-    if (!user?.id) {
-        return redirect("/");
+  if (!user?.id) {
+      return redirect("/");
+    }
+
+
+  const section = await db.section.findFirst({
+    where: {
+      id: params.sectionId,
+      chapterId: params.chapterId,
+    },
+    include: {
+      videos: true,
+      blogs: true,
+      articles: true,
+      notes: true,
+      codeExplanations: {
+        select: {
+          id: true,
+          heading: true,
+          code: true,
+          explanation: true,
+        }
       }
-  
+    },
+  });
 
-      const section = await db.section.findFirst({
-        where: {
-          id: params.sectionId,
-          chapterId: params.chapterId,
+  const chapter = await db.chapter.findFirst({
+    where: {
+      id: params.chapterId,
+      courseId: params.courseId,
+    },
+    include: {
+      sections: {
+        orderBy: {
+          position: "asc",
         },
         include: {
           videos: true,
           blogs: true,
           articles: true,
           notes: true,
-          codeExplanations: {
-            select: {
-              id: true,
-              heading: true,
-              code: true,
-              explanation: true,
-            }
-          }
+          codeExplanations: true,
         },
-      });
+      },
+    },
+  });
 
-      const chapter = await db.chapter.findFirst({
-        where: {
-          id: params.chapterId,
-          courseId: params.courseId,
-        },
-        include: {
-          sections: {
-            orderBy: {
-              position: "asc",
-            },
-            include: {
-              videos: true,
-              blogs: true,
-              articles: true,
-              notes: true,
-              codeExplanations: true,
-            },
-          },
-        },
-      });
-      
 
-      //console.log(section)
+  //console.log(section)
 
 
   if (!section) {

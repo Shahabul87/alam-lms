@@ -24,48 +24,49 @@ import { WhatYouWillLearnForm } from "./_components/what-you-will-learn-form";
 
 
 
-const CourseIdPage = async ({params}:{params:{courseId:string}})=> {
+const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
+  const params = await props.params;
 
 
-   const user:any = await currentUser();
+  const user:any = await currentUser();
 
-   if(!user?.id){
-       return redirect("/");
-   }
-   
-   const userId = user?.id;
+  if(!user?.id){
+      return redirect("/");
+  }
 
-   const course = await db.course.findUnique({
-    where: {
-      id: params.courseId,
-      userId
-    },
-    include: {
-      chapters: {
-        orderBy: {
-          position: "asc",
-        },
-      },
-      attachments: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
-  });
+  const userId = user?.id;
+
+  const course = await db.course.findUnique({
+   where: {
+     id: params.courseId,
+     userId
+   },
+   include: {
+     chapters: {
+       orderBy: {
+         position: "asc",
+       },
+     },
+     attachments: {
+       orderBy: {
+         createdAt: "desc",
+       },
+     },
+   },
+ });
 
   //console.log(course)
 
-   const categories = await db.category.findMany({
-    orderBy: {
-      name: "asc",
-    },
-  });
+  const categories = await db.category.findMany({
+   orderBy: {
+     name: "asc",
+   },
+ });
 
-   if (!course) {
-    return redirect("/");
-  }
-  
+  if (!course) {
+   return redirect("/");
+ }
+
   const requiredFields = [
     course.title,
     course.description,
@@ -76,12 +77,12 @@ const CourseIdPage = async ({params}:{params:{courseId:string}})=> {
   ];
   // 
 
- //console.log(requiredFields)
+  //console.log(requiredFields)
   const totalFields = requiredFields.length;
   const completedFields = requiredFields.filter(Boolean).length;
 
   const completionText = `(${completedFields}/${totalFields})`;
- 
+
 
   const isComplete = requiredFields.every(Boolean);
 

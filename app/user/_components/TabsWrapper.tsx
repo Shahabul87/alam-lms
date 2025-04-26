@@ -15,7 +15,7 @@ export const TabsWrapper = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get('tab') || defaultValue;
+  const currentTab = searchParams?.get('tab') || defaultValue;
   
   return (
     <Tabs 

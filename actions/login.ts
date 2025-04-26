@@ -38,7 +38,13 @@ export const login = async (
 
   try {
     const existingUser = await getUserByEmail(email);
-    console.log("Found user:", existingUser);
+    console.log("Found user:", existingUser ? {
+      id: existingUser.id,
+      email: existingUser.email,
+      emailVerified: existingUser.emailVerified,
+      hasPassword: !!existingUser.password,
+      isTwoFactorEnabled: existingUser.isTwoFactorEnabled
+    } : null);
 
     if (!existingUser || !existingUser.email || !existingUser.password) {
       console.log("Invalid credentials - user not found or missing email/password");
@@ -100,16 +106,22 @@ export const login = async (
           }
         });
 
-        return signIn("credentials", {
-          email,
-          password,
-          redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
-        });
+        try {
+          console.log("Attempting signIn with credentials after 2FA...");
+          return await signIn("credentials", {
+            email,
+            password,
+            redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
+          });
+        } catch (signInError) {
+          console.error("SignIn error after 2FA:", signInError);
+          return { error: "Authentication failed after 2FA validation" };
+        }
       } else {
         try {
           console.log("Generating 2FA token for:", existingUser.email);
           const twoFactorToken = await generateTwoFactorToken(existingUser.email);
-          console.log("Generated token:", twoFactorToken);
+          console.log("Generated token:", twoFactorToken.token);
           
           await sendTwoFactorTokenEmail(
             twoFactorToken.email,
@@ -124,22 +136,36 @@ export const login = async (
       }
     }
 
-    return signIn("credentials", {
-      email,
-      password,
-      redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
-    });
+    try {
+      console.log("Attempting signIn with credentials...");
+      return await signIn("credentials", {
+        email,
+        password,
+        redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
+      });
+    } catch (signInError) {
+      console.error("Direct SignIn error:", signInError);
+      if (signInError instanceof AuthError) {
+        switch (signInError.type) {
+          case "CredentialsSignin":
+            return { error: "Invalid credentials! Please check your email and password." }
+          default:
+            return { error: `Auth error: ${signInError.type}` }
+        }
+      }
+      return { error: "Authentication failed. Check server logs for details." };
+    }
   } catch (error) {
     console.error("Login error:", error);
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          return { error: "Invalid credentials!" }
+          return { error: "Invalid credentials! Authentication failed." }
         default:
-          return { error: "Something went wrong!" }
+          return { error: `Something went wrong! Error type: ${error.type}` }
       }
     }
 
-    throw error;
+    return { error: "An unexpected error occurred. Please try again later." };
   }
 };

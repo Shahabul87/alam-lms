@@ -29,13 +29,16 @@ type CourseReview = {
 };
 
 type Props = {
-  params: { courseId: string }
+  params: Promise<{ courseId: string }>
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
+  const courseId = await Promise.resolve(params.courseId);
+
   const course = await db.course.findUnique({
     where: {
-      id: params.courseId,
+      id: courseId,
     }
   });
 
@@ -45,11 +48,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const CourseIdPage = async ({params}: {params: { courseId: string; }}) => {
-  
+const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => {
+  const params = await props.params;
+  const courseId = await Promise.resolve(params.courseId);
+
   const course = await db.course.findUnique({
     where: {
-      id: params.courseId,
+      id: courseId,
     },
     include: {
       category: true,
@@ -72,15 +77,15 @@ const CourseIdPage = async ({params}: {params: { courseId: string; }}) => {
       },
     },
   });
-  
-  
-  
- //console.log(course?.chapters)
+
+
+
+  //console.log(course?.chapters)
 
 
 
 
- const user:any =await currentUser();
+  const user:any =await currentUser();
 
   if (!course) {
     return redirect("/");
@@ -95,7 +100,7 @@ const CourseIdPage = async ({params}: {params: { courseId: string; }}) => {
   try {
     reviews = await db.courseReview.findMany({
       where: {
-        courseId: params.courseId,
+        courseId: courseId,
       },
       include: {
         user: true,
@@ -182,7 +187,7 @@ const CourseIdPage = async ({params}: {params: { courseId: string; }}) => {
           />
           
           <div className="mt-8">
-            <CourseReviews courseId={params.courseId} initialReviews={reviews} />
+            <CourseReviews courseId={courseId} initialReviews={reviews} />
           </div>
         </div>
       
@@ -190,8 +195,6 @@ const CourseIdPage = async ({params}: {params: { courseId: string; }}) => {
     <Footer />
     </>
   )
-
- 
 }
  
 export default CourseIdPage;

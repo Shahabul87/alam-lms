@@ -18,18 +18,19 @@ import { cn } from "@/lib/utils";
 
 
 
-const ChapterIdPage = async ({
-  params
-}: {
-  params: { courseId: string; chapterId: string }
-}) => {
-    const user = await currentUser();
+const ChapterIdPage = async (
+  props: {
+    params: Promise<{ courseId: string; chapterId: string }>
+  }
+) => {
+  const params = await props.params;
+  const user = await currentUser();
 
-    if (!user?.id) {
-        return redirect("/");
-      }
+  if (!user?.id) {
+      return redirect("/");
+    }
 
-  
+
 
 
 
@@ -74,7 +75,7 @@ const ChapterIdPage = async ({
 
   //const isComplete = requiredFields.every(Boolean);
   const isComplete = requiredFields.filter(item=>item==true)
- 
+
 
   return (
     <>

@@ -4,8 +4,9 @@ import { currentUser } from "@/lib/auth";
 
 export async function POST(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { title, description, url, author, category } = await req.json();
@@ -97,8 +98,9 @@ export async function POST(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { blogId, title, description, url, author, category, isPublished } = await req.json();
@@ -166,8 +168,9 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { blogId } = await req.json(); // Extract blogId from the request payload

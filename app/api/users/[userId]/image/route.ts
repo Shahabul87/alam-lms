@@ -9,10 +9,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function POST(
-  req: Request,
-  { params }: { params: { userId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
 

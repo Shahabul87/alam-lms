@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { postId?: string; postchapterId?: string } }
+  props: { params: Promise<{ postId?: string; postchapterId?: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 

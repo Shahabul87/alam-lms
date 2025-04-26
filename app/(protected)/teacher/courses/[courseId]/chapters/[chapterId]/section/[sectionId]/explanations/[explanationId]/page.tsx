@@ -5,18 +5,18 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { toast } from "sonner";
 
 import { ExplanationForm } from "../../_components/_explanations/components/explanation-form";
 
 interface ExplanationEditPageProps {
-  params: {
+  params: Promise<{
     courseId: string;
     chapterId: string;
     sectionId: string;
     explanationId: string;
-  };
+  }>;
 }
 
 const formSchema = z.object({
@@ -25,7 +25,8 @@ const formSchema = z.object({
   explanation: z.string().optional(),
 });
 
-const ExplanationEditPage = ({ params }: ExplanationEditPageProps) => {
+const ExplanationEditPage = (props: ExplanationEditPageProps) => {
+  const params = use(props.params);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [explanationData, setExplanationData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -12,7 +12,8 @@ import { PostMetadata } from "./_components/post-metadata";
 import { getPostData } from "@/app/actions/get-post-data";
 import { CommentModal } from "./_components/comment-modal";
 
-const PostIdPage = async ({params}: {params: { postId: string; }}) => {
+const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
+  const params = await props.params;
   const user = await currentUser();
   const post = await getPostData(params.postId);
 
@@ -97,7 +98,8 @@ const PostIdPage = async ({params}: {params: { postId: string; }}) => {
 
 export default PostIdPage;
 
-export async function generateMetadata({ params }: { params: { postId: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ postId: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const post = await getPostData(params.postId);
 
   return {

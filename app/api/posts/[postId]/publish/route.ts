@@ -3,10 +3,8 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { postId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ postId: string }> }) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 
@@ -50,5 +48,5 @@ export async function PATCH(
   } catch (error) {
     console.log("[POST_ID_PUBLISH]", error);
     return new NextResponse("Internal Error", { status: 500 });
-  } 
+  }
 }

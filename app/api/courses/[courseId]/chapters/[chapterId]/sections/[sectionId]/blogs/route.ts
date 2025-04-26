@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 
 export async function POST(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const session = await auth();
     const { title, blogUrl, description, rating } = await req.json();
@@ -50,10 +51,8 @@ export async function POST(
   }
 }
 
-export async function GET(
-  req: Request,
-  { params }: { params: { sectionId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ sectionId: string }> }) {
+  const params = await props.params;
   try {
     const blogs = await db.blog.findMany({
       where: {

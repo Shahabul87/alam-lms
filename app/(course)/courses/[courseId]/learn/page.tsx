@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
-const CourseLearningPage = async ({
-  params
-}: {
-  params: { courseId: string }
-}) => {
+const CourseLearningPage = async (
+  props: {
+    params: Promise<{ courseId: string }>
+  }
+) => {
+  const params = await props.params;
   const user = await currentUser();
 
   if (!user?.id) {

@@ -4,20 +4,54 @@ import { SectionSidebar } from "./section-sidebar";
 import { Header } from "@/app/(homepage)/header";
 import { HeaderAfterLogin } from "@/app/(homepage)/header-after-login";
 import { currentUser } from '@/lib/auth'
+import { Metadata } from "next";
 
+interface SectionPageProps {
+  params: Promise<{
+    courseId: string;
+    sectionId: string;
+  }>;
+}
 
-const sectionIdPage = async ({params}: {params: { courseId: string; sectionId: string; }}) => {
+export async function generateMetadata({ params }: SectionPageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  const courseId = resolvedParams.courseId;
+  const sectionId = resolvedParams.sectionId;
   
-  const user =await currentUser();
   const section = await db.section.findUnique({
     where: {
-      id: params.sectionId,
+      id: sectionId,
+    }
+  });
+
+  if (!section) {
+    return {
+      title: "Not Found",
+      description: "The section you're looking for doesn't exist."
+    };
+  }
+
+  return {
+    title: section.title,
+    description: `Section: ${section.title}`
+  };
+}
+
+const sectionIdPage = async (props: {params: Promise<{courseId: string; sectionId: string}>}) => {
+  const params = await props.params;
+  const courseId = await Promise.resolve(params.courseId);
+  const sectionId = await Promise.resolve(params.sectionId);
+
+  const user = await currentUser();
+  const section = await db.section.findUnique({
+    where: {
+      id: sectionId,
     },
   });
 
-const course = await db.course.findUnique({
+  const course = await db.course.findUnique({
     where: {
-      id: params.courseId,
+      id: courseId,
     },
     include: {
       chapters: {
@@ -40,12 +74,12 @@ const course = await db.course.findUnique({
       },
     },
   });
-  
- //console.log(course)
- 
- if (!section) {
-    return redirect("/");
-  }
+
+  //console.log(course)
+
+  if (!section) {
+     return redirect("/");
+   }
 
   if (!course) {
     return redirect("/");
@@ -116,8 +150,6 @@ const course = await db.course.findUnique({
     </div>
     </>
   )
-
- 
 }
  
 export default sectionIdPage;

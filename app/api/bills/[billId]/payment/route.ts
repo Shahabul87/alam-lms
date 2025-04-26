@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { billId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ billId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {

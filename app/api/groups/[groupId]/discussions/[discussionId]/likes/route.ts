@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 
 export async function POST(
   req: Request,
-  { params }: { params: { groupId: string; discussionId: string } }
+  props: { params: Promise<{ groupId: string; discussionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {

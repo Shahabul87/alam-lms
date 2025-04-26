@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { userId: string; subscriptionId: string } }
+  props: { params: Promise<{ userId: string; subscriptionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 
@@ -42,8 +43,9 @@ export async function DELETE(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { userId: string; subscriptionId: string } }
+  props: { params: Promise<{ userId: string; subscriptionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const {

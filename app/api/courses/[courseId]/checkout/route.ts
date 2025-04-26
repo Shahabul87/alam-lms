@@ -4,10 +4,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 

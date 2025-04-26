@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { videoId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ videoId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
 

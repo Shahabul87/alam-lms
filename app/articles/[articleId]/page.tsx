@@ -22,12 +22,13 @@ async function getArticle(articleId: string) {
 }
 
 interface ArticlePageProps {
-  params: {
+  params: Promise<{
     articleId: string;
-  };
+  }>;
 }
 
-export default async function ArticlePage({ params }: ArticlePageProps) {
+export default async function ArticlePage(props: ArticlePageProps) {
+  const params = await props.params;
   const article = await getArticle(params.articleId);
 
   return (

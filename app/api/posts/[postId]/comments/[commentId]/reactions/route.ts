@@ -4,8 +4,9 @@ import { currentUser } from "@/lib/auth";
 
 export async function POST(
   req: Request,
-  { params }: { params: { postId: string; commentId: string } }
+  props: { params: Promise<{ postId: string; commentId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     if (!user?.id) {

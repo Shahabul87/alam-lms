@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
-export async function POST(req: Request, { params }: { params: { userId: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { title, platform, url, category } = await req.json();

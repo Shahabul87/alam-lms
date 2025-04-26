@@ -20,10 +20,10 @@ const CATEGORIES = [
 export const GroupFilters = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentCategory = searchParams.get("category");
+  const currentCategory = searchParams?.get("category");
 
   const onCategoryChange = (category: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     if (category === currentCategory) {
       params.delete("category");
     } else {
@@ -60,7 +60,7 @@ export const GroupFilters = () => {
           variant="outline"
           className="w-full"
           onClick={() => {
-            const params = new URLSearchParams(searchParams.toString());
+            const params = new URLSearchParams(searchParams?.toString() || '');
             params.delete("category");
             router.push(`/groups?${params.toString()}`);
           }}

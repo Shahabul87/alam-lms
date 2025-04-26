@@ -8,13 +8,14 @@ import ConditionalHeader from "@/app/(homepage)/user-header";
 import { getCourse } from "@/actions/get-course";
 
 interface ChapterPageProps {
-  params: {
+  params: Promise<{
     courseId: string;
     chapterId: string;
-  };
+  }>;
 }
 
-const ChapterIdPage = async ({ params }: ChapterPageProps) => {
+const ChapterIdPage = async (props: ChapterPageProps) => {
+  const params = await props.params;
   const user = await currentUser();
 
   if (!user?.id) {

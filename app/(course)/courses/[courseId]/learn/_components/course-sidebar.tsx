@@ -38,7 +38,7 @@ export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) 
                 "flex items-center p-3 text-sm transition-all rounded-lg hover:bg-gray-100/80 dark:hover:bg-gray-800/80",
                 "border border-transparent hover:border-gray-200 dark:hover:border-gray-700",
                 "group relative",
-                pathname.includes(chapter.id) && 
+                pathname && pathname.includes(chapter.id) &&
                 "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
               )}
             >
@@ -46,7 +46,7 @@ export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) 
                 {chapter.isPublished ? (
                   <CheckCircle className={cn(
                     "h-5 w-5 transition-colors",
-                    pathname.includes(chapter.id) 
+                    pathname && pathname.includes(chapter.id) 
                       ? "text-purple-600 dark:text-purple-400" 
                       : "text-emerald-500"
                   )} />
@@ -56,7 +56,7 @@ export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) 
                 <div className="flex flex-col">
                   <span className={cn(
                     "font-medium transition-colors",
-                    pathname.includes(chapter.id) 
+                    pathname && pathname.includes(chapter.id) 
                       ? "text-purple-700 dark:text-purple-300" 
                       : "text-gray-700 dark:text-gray-300"
                   )}>

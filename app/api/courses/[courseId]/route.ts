@@ -3,10 +3,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
 
@@ -41,10 +39,8 @@ export async function DELETE(
 }
 
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     const { description } = await req.json();

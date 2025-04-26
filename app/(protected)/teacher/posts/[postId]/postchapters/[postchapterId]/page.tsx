@@ -15,13 +15,14 @@ import ConditionalHeader from "@/app/(homepage)/user-header";
 import { SidebarDemo } from "@/components/ui/sidebar-demo";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     postId: string;
     postchapterId: string;
-  };
+  }>;
 }
 
-const PostChapterIdPage = async ({ params }: PageProps) => {
+const PostChapterIdPage = async (props: PageProps) => {
+  const params = await props.params;
   const user = await currentUser();
 
   if (!user?.id) {

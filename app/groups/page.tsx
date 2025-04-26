@@ -12,15 +12,14 @@ import { GroupFiltersSelect } from "./_components/group-filters-select";
 export const revalidate = 0;
 
 interface GroupsPageProps {
-  searchParams: {
+  searchParams: Promise<{
     category?: string;
     query?: string;
-  }
+  }>
 }
 
-export default async function GroupsPage({
-  searchParams
-}: GroupsPageProps) {
+export default async function GroupsPage(props: GroupsPageProps) {
+  const searchParams = await props.searchParams;
   const user = await currentUser();
 
   if (!user) {

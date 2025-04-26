@@ -19,18 +19,19 @@ import { NavigationArrows } from "./_components/NavigationArrows";
 import { TodoList } from "./_components/todo/TodoList";
 
 type Props = {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-const User = async ({ searchParams }: Props) => {
+const User = async (props: Props) => {
+  const searchParams = await props.searchParams;
   const user = await currentUser();
-  
+
   if(!user?.id){
     return redirect("/");
   }
 
   const userData = await getUserData(user.id);
-  
+
   if (!userData) {
     return <div>Failed to load user data</div>;
   }

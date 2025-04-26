@@ -7,6 +7,7 @@ import { auth } from '@/auth'
 import { Toaster } from "@/components/ui/sonner";
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
+import { PageBackground } from '@/components/ui/page-background';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -38,15 +39,17 @@ export default async function RootLayout({
       </head>
       <body className={clsx(
         dmSans.className,
-        "min-h-screen bg-white/30 dark:bg-gray-900 transition-colors duration-300"
+        "min-h-screen transition-colors duration-300"
       )}>
         <SessionProvider session={session}>
           <Providers>
             <ConfettiProvider />
             <Toaster />
-            <main className="min-h-screen">
+            <PageBackground>
+              <main className="min-h-screen">
                 {children}
-            </main> 
+              </main>
+            </PageBackground>
           </Providers>
         </SessionProvider>
       </body>

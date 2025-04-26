@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const session = await auth();
 

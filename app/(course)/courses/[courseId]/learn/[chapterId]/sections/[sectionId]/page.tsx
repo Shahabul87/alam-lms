@@ -8,14 +8,15 @@ import { getSection } from "@/actions/get-section";
 import { db } from "@/lib/db";
 
 interface SectionPageProps {
-  params: {
+  params: Promise<{
     courseId: string;
     chapterId: string;
     sectionId: string;
-  };
+  }>;
 }
 
-const SectionPage = async ({ params }: SectionPageProps) => {
+const SectionPage = async (props: SectionPageProps) => {
+  const params = await props.params;
   const user = await currentUser();
 
   if (!user?.id) {
@@ -38,14 +39,14 @@ const SectionPage = async ({ params }: SectionPageProps) => {
 
   // Fetch course, chapter and section data using actions
   const { course, error: courseError } = await getCourse(params.courseId);
-  
+
   if (courseError) {
     console.error("[COURSE_ERROR]", courseError);
     return redirect("/error");
   }
 
   const { chapter, error: chapterError } = await getChapter(params.chapterId, params.courseId);
-  
+
   if (chapterError) {
     console.error("[CHAPTER_ERROR]", chapterError);
     return redirect("/error");

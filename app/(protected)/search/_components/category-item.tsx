@@ -21,15 +21,15 @@ export const CategoryItem = ({label, value, icon: Icon,}: CategoryItemProps) => 
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentCategoryId = searchParams.get("categoryId");
+  const currentCategoryId = searchParams?.get("categoryId") || null;
   
-  const currentTitle = searchParams.get("title");
+  const currentTitle = searchParams?.get("title") || null;
 
   const isSelected = currentCategoryId === value;
 
   const onClick = () => {
     const url = qs.stringifyUrl({
-      url: pathname,
+      url: pathname || "",
       query: {
         title: currentTitle,
         categoryId: isSelected ? null : value,

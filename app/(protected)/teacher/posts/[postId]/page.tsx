@@ -14,7 +14,8 @@ import { PostCategory } from "./_components/post-category";
 import { PostDescription } from "./_components/post-description";
 import { Layout, BookOpen, FileText, ImageIcon } from "lucide-react";
 
-const PostEditPage = async ({params}: {params: { postId: string; }}) => {
+const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
+  const params = await props.params;
   const post = await db.post.findUnique({
     where: {
       id: params.postId,
@@ -48,7 +49,7 @@ const PostEditPage = async ({params}: {params: { postId: string; }}) => {
   });
 
   const user = await currentUser();
-  
+
   if(!user?.id) return redirect("/");
   if (!post) return redirect("/");
 
@@ -59,7 +60,7 @@ const PostEditPage = async ({params}: {params: { postId: string; }}) => {
     post.category,
     post.postchapter.some(chapter => chapter.isPublished),
   ];
-  
+
   const totalFields = requiredFields.length;
   const completedFields = requiredFields.filter(Boolean).length;
   const completionText = `(${completedFields}/${totalFields})`;

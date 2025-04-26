@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -32,10 +30,8 @@ export async function POST(
   }
 }
 
-export async function GET(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   try {
     const resources = await db.groupResource.findMany({
       where: {

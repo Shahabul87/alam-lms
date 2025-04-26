@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { userId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
     const userDetails = await db.user.findUnique({
       where: {
@@ -23,10 +21,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { userId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     

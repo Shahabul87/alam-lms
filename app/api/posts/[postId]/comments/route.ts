@@ -2,10 +2,8 @@ import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { postId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ postId: string }> }) {
+  const params = await props.params;
   try {
     // Authenticate the user
     const user = await currentUser();

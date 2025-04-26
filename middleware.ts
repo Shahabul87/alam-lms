@@ -7,20 +7,28 @@ import {
   publicRoutes,
   getRedirectUrl,
 } from "@/routes";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
 export default auth((req, ctx) => {
   const { nextUrl } = req;
+  const { pathname } = nextUrl;
   const isLoggedIn = !!req.auth;
 
-  const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
+  // Allow search API routes to bypass auth completely
+  if (pathname.startsWith('/api/search')) {
+    return NextResponse.next();
+  }
+
+  const isApiAuthRoute = pathname.startsWith(apiAuthPrefix);
   const isPublicRoute = publicRoutes.some(route => {
     // Convert route to regex pattern
     const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
-    return pattern.test(nextUrl.pathname);
+    return pattern.test(pathname);
   });
-  const isAuthRoute = authRoutes.includes(nextUrl.pathname);
+  const isAuthRoute = authRoutes.includes(pathname);
 
   if (isApiAuthRoute) {
     return undefined;
@@ -36,7 +44,7 @@ export default auth((req, ctx) => {
   }
 
   if (!isLoggedIn && !isPublicRoute) {
-    let callbackUrl = nextUrl.pathname;
+    let callbackUrl = pathname;
     if (nextUrl.search) {
       callbackUrl += nextUrl.search;
     }
@@ -54,4 +62,4 @@ export default auth((req, ctx) => {
 
 export const config = {
   matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
-}
+};

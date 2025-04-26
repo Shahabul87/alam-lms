@@ -7,12 +7,13 @@ import { GroupHeader } from "./_components/group-header";
 import { GroupContent } from "./_components/group-content";
 
 interface GroupPageProps {
-  params: {
+  params: Promise<{
     groupId: string;
-  };
+  }>;
 }
 
-export default async function GroupPage({ params }: GroupPageProps) {
+export default async function GroupPage(props: GroupPageProps) {
+  const params = await props.params;
   const user = await currentUser();
 
   if (!user?.id) {

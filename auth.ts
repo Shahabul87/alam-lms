@@ -23,25 +23,62 @@ export const { handlers: { GET, POST }, auth, signIn, signOut, } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider !== "credentials") return true;
+      console.log("signIn callback triggered:", { 
+        provider: account?.provider,
+        userId: user?.id,
+        email: user?.email 
+      });
       
-      if (!user.id) return false;
-      
-      const existingUser = await getUserById(user.id);
-
-      if (!existingUser?.emailVerified) return false;
-
-      if (existingUser.isTwoFactorEnabled) {
-        const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(existingUser.id);
-
-        if (!twoFactorConfirmation) return false;
-
-        await db.twoFactorConfirmation.delete({
-          where: { id: twoFactorConfirmation.id }
-        });
+      if (account?.provider !== "credentials") {
+        console.log("OAuth login, allowing sign in");
+        return true;
       }
+      
+      if (!user.id) {
+        console.log("No user ID, rejecting sign in");
+        return false;
+      }
+      
+      try {
+        const existingUser = await getUserById(user.id);
+        console.log("Existing user in signIn callback:", existingUser ? {
+          id: existingUser.id,
+          emailVerified: !!existingUser.emailVerified,
+          isTwoFactorEnabled: existingUser.isTwoFactorEnabled
+        } : null);
 
-      return true;
+        if (!existingUser?.emailVerified) {
+          console.log("Email not verified, rejecting sign in");
+          return false;
+        }
+
+        if (existingUser.isTwoFactorEnabled) {
+          console.log("2FA is enabled, checking confirmation");
+          try {
+            const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(existingUser.id);
+            console.log("2FA confirmation:", !!twoFactorConfirmation);
+
+            if (!twoFactorConfirmation) {
+              console.log("No 2FA confirmation found, rejecting sign in");
+              return false;
+            }
+
+            await db.twoFactorConfirmation.delete({
+              where: { id: twoFactorConfirmation.id }
+            });
+            console.log("2FA confirmation deleted, allowing sign in");
+          } catch (twoFactorError) {
+            console.error("Error during 2FA check:", twoFactorError);
+            return false;
+          }
+        }
+
+        console.log("Authentication successful, allowing sign in");
+        return true;
+      } catch (error) {
+        console.error("Error in signIn callback:", error);
+        return false;
+      }
     },
     async session({ token, session }) {
       if (token.sub && session.user) {
@@ -83,6 +120,10 @@ export const { handlers: { GET, POST }, auth, signIn, signOut, } = NextAuth({
     }
   },
   adapter: PrismaAdapter(db),
-  session: { strategy: "jwt" },
+  session: { 
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
   ...authConfig,
 });

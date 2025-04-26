@@ -33,13 +33,13 @@ export const CalendarLayout = ({ userId }: CalendarLayoutProps) => {
 
   // Get filters from URL
   const filters = {
-    categories: searchParams.get("categories")?.split(",") || [],
-    status: searchParams.get("status")?.split(",") || [],
+    categories: searchParams?.get("categories")?.split(",") || [],
+    status: searchParams?.get("status")?.split(",") || [],
     dateRange: {
-      start: searchParams.get("dateRangeStart") ? new Date(searchParams.get("dateRangeStart")!) : null,
-      end: searchParams.get("dateRangeEnd") ? new Date(searchParams.get("dateRangeEnd")!) : null,
+      start: searchParams?.get("dateRangeStart") ? new Date(searchParams?.get("dateRangeStart") || "") : null,
+      end: searchParams?.get("dateRangeEnd") ? new Date(searchParams?.get("dateRangeEnd") || "") : null,
     },
-    searchQuery: searchParams.get("query") || "",
+    searchQuery: searchParams?.get("query") || "",
   };
 
   return (

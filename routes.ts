@@ -16,10 +16,9 @@ export const publicRoutes = [
   "/about",
   "/dashboard",
   "http://localhost:3000/",
-  
-  
-   
-
+  "/api/search",
+  "/api/search/mock",
+  "/api/db-check",
 ];
 
 /**

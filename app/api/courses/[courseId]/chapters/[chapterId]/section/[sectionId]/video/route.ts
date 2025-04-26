@@ -4,8 +4,9 @@ import { currentUser } from "@/lib/auth";
 
 export async function POST(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { title, description, url, duration, rating } = await req.json();
@@ -85,8 +86,9 @@ export async function POST(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { videoId, title, description, url, duration, rating, position, category, isPublished } = await req.json();
@@ -154,8 +156,9 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string; sectionId: string } }
+  props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     const { videoId } = await req.json(); // Extract videoId from the request payload

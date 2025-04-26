@@ -9,8 +9,9 @@ const createCommentSchema = z.object({
 
 export async function POST(
   req: Request,
-  { params }: { params: { groupId: string; discussionId: string } }
+  props: { params: Promise<{ groupId: string; discussionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -60,8 +61,9 @@ export async function POST(
 
 export async function GET(
   req: Request,
-  { params }: { params: { groupId: string; discussionId: string } }
+  props: { params: Promise<{ groupId: string; discussionId: string }> }
 ) {
+  const params = await props.params;
   try {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");

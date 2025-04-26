@@ -3,10 +3,8 @@ import { db } from "@/lib/db";
 
 import { currentUser } from "@/lib/auth";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params;
   try {
     const user = await currentUser();
     
@@ -78,10 +76,8 @@ export async function POST(
 }
 
 // Get all reviews for a course
-export async function GET(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params;
   try {
     const reviews = await db.courseReview.findMany({
       where: {

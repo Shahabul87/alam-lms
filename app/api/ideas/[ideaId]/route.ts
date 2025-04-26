@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { ideaId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ ideaId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -37,10 +35,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { ideaId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ ideaId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {

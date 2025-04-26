@@ -8,12 +8,13 @@ import { CallToAction } from "./calltoaction";
 import { currentUser } from '@/lib/auth'
 import { MainFooter } from "./main-footer";
 import { FeatureAction } from "./feature-action";
-import ConditionalHeader from "./user-header";
+import { HeaderAfterLogin } from "./header-after-login";
 import { getPostsForHomepage } from "@/actions/get-all-posts";
 import MyPostCard from "@/app/blog/blog-card";
 import HomeHeroSection from "./home-hero-section";
 import { HomeFooter } from "./HomeFooter";
 import { WhatInspiredMe } from "./what-inspired-me";
+import Image from "next/image";
 
 const Home = async () => {
   const user = await currentUser();
@@ -22,7 +23,7 @@ const Home = async () => {
 
   return (
     <>
-      <ConditionalHeader user={user} />
+      <HeaderAfterLogin user={user} />
       <HomeHeroSection />
       <div className="min-h-screen">
         <div className="px-4 py-16 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20">
@@ -78,7 +79,10 @@ const Home = async () => {
           </div>
           <div className="grid gap-5 mb-8 md:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => (
-              <MyPostCard key={post.id} post={post} />
+              <MyPostCard 
+                key={post.id}
+                post={post}
+              />
             ))}
           </div>
         </div>

@@ -27,10 +27,10 @@ export function GroupFiltersSelect() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const currentCategory = searchParams.get("category") || "All Categories";
+  const currentCategory = searchParams?.get("category") || "All Categories";
 
   const onValueChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || "");
     if (value === "All Categories") {
       params.delete("category");
     } else {

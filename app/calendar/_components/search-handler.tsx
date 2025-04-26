@@ -12,7 +12,7 @@ export const SearchHandler = () => {
   const handleSearch = useCallback((searchTerm: string) => {
     setIsSearching(true);
     try {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       if (searchTerm) {
         params.set('query', searchTerm);
       } else {
@@ -25,7 +25,7 @@ export const SearchHandler = () => {
   }, [router, searchParams]);
 
   const handleFilter = useCallback((filters: any) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     
     Object.entries(filters).forEach(([key, value]) => {
       if (Array.isArray(value) && value.length) {

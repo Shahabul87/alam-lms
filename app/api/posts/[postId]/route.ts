@@ -2,10 +2,8 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { postId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ postId: string }> }) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 
@@ -30,47 +28,45 @@ export async function DELETE(
 
 
 
-export async function PATCH(
-    req: Request,
-    { params }: { params: { postId: string } }
-  ) {
-    try {
-      const user = await currentUser();
-      const { postId } = params;
-      const values = await req.json();
+export async function PATCH(req: Request, props: { params: Promise<{ postId: string }> }) {
+  const params = await props.params;
+  try {
+    const user = await currentUser();
+    const { postId } = params;
+    const values = await req.json();
 
-     
-  
-      if (!user?.id) {
-        return new NextResponse("Unauthorized", { status: 401 });
-      }
+   
 
-      const userId = user?.id;
-      // Check if the post exists and belongs to the user
-    const postExists = await db.post.findFirst({
-      where: {
-        id: postId,
-        userId: userId,
-      },
-    });
-
-    if (!postExists) {
-      return new NextResponse("Post not found or unauthorized", { status: 404 });
+    if (!user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const userId = user?.id;
+    // Check if the post exists and belongs to the user
+  const postExists = await db.post.findFirst({
+    where: {
+      id: postId,
+      userId: userId,
+    },
+  });
+
+  if (!postExists) {
+    return new NextResponse("Post not found or unauthorized", { status: 404 });
+  }
+
+  // Proceed to update the post
+  const updatedPost = await db.post.update({
+    where: { id: postId },
+    data: {
+      ...values,
+    },
+  });
+
   
-    // Proceed to update the post
-    const updatedPost = await db.post.update({
-      where: { id: postId },
-      data: {
-        ...values,
-      },
-    });
 
-    
-
-    return NextResponse.json(updatedPost);
-  } catch (error) {
-    console.log("[POST_ID]", error);
-    return new NextResponse("Internal Error", { status: 500 });
-  }
-  }
+  return NextResponse.json(updatedPost);
+} catch (error) {
+  console.log("[POST_ID]", error);
+  return new NextResponse("Internal Error", { status: 500 });
+}
+}

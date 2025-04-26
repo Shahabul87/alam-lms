@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -28,10 +26,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   try {
     const session = await auth();
     if (!session?.user?.id) {

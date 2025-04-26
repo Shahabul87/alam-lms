@@ -3,17 +3,18 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
 interface SectionPageProps {
-  params: {
+  params: Promise<{
     sectionId: string;
-  };
+  }>;
 }
 
-export async function generateMetadata({
-  params
-}: SectionPageProps): Promise<Metadata> {
+export async function generateMetadata(props: SectionPageProps): Promise<Metadata> {
+  const params = await props.params;
+  const sectionId = await Promise.resolve(params.sectionId);
+
   const section = await db.section.findUnique({
     where: {
-      id: params.sectionId
+      id: sectionId
     }
   });
 
@@ -42,12 +43,13 @@ export async function generateStaticParams() {
   }));
 }
 
-export default async function SectionPage({
-  params
-}: SectionPageProps) {
+export default async function SectionPage(props: SectionPageProps) {
+  const params = await props.params;
+  const sectionId = await Promise.resolve(params.sectionId);
+
   const section = await db.section.findUnique({
     where: {
-      id: params.sectionId
+      id: sectionId
     },
     include: {
       chapter: {

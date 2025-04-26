@@ -9,22 +9,21 @@ import { CoursesList } from "@/components/courses-list";
 import { Categories } from "./_components/categories";
 
 interface SearchPageProps {
-  searchParams: {
+  searchParams: Promise<{
     title: string;
     categoryId: string;
-  }
+  }>
 };
 
-const SearchPage = async ({
-  searchParams
-}: SearchPageProps) => {
-    const user = await currentUser();
+const SearchPage = async (props: SearchPageProps) => {
+  const searchParams = await props.searchParams;
+  const user = await currentUser();
 
-    if(!user?.id){
-        return redirect("/");
-    }
-    
-    const userId = user?.id;
+  if(!user?.id){
+      return redirect("/");
+  }
+
+  const userId = user?.id;
 
   const categories = await db.category.findMany({
     orderBy: {

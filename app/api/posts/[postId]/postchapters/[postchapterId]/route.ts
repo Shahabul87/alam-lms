@@ -7,8 +7,9 @@ import { db } from "@/lib/db";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { postId: string; postchapterId: string } }
+  props: { params: Promise<{ postId: string; postchapterId: string }> }
 ) {
+  const params = await props.params;
   try {
     const user = await currentUser();
 
@@ -79,8 +80,9 @@ export async function DELETE(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { postId: string; postchapterId: string } }
+  props: { params: Promise<{ postId: string; postchapterId: string }> }
 ) {
+  const params = await props.params;
   try {
     // Validate user
     const user = await currentUser();
