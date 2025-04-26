@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { SearchResult } from '../types/header-types';
-import { DatabaseSearchService } from '../services/db-search-service';
+import axios from 'axios';
 
 interface UseSearchReturn {
   searchQuery: string;
@@ -11,6 +11,24 @@ interface UseSearchReturn {
   performSearch: () => Promise<void>;
   clearSearch: () => void;
 }
+
+// Fallback results to use if the API fails
+const fallbackResults: SearchResult[] = [
+  {
+    id: 'fallback-1',
+    title: 'JavaScript Fundamentals',
+    type: 'course',
+    snippet: 'Learn the basics of JavaScript programming language.',
+    thumbnail: 'https://utfs.io/f/fallback-image.jpg'
+  },
+  {
+    id: 'fallback-2',
+    title: 'React Best Practices',
+    type: 'blog',
+    snippet: 'Tips and tricks for writing better React applications.',
+    thumbnail: 'https://utfs.io/f/fallback-blog-image.jpg'
+  }
+];
 
 export function useSearch(): UseSearchReturn {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,22 +47,35 @@ export function useSearch(): UseSearchReturn {
     console.log("🔍 Performing search for:", searchQuery);
     
     try {
-      console.log("👉 Calling DatabaseSearchService.searchContent");
-      const results = await DatabaseSearchService.searchContent(searchQuery);
-      console.log("📊 Search results:", results);
+      console.log("👉 Calling search API");
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        cache: 'no-store'
+      });
       
-      if (Array.isArray(results)) {
-        console.log(`✅ Found ${results.length} results`);
-        setSearchResults(results);
+      if (!response.ok) {
+        throw new Error(`Search failed with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("📊 Search results:", data);
+      
+      if (data && Array.isArray(data.results)) {
+        console.log(`✅ Found ${data.results.length} results`);
+        setSearchResults(data.results);
       } else {
-        console.error("❌ Results is not an array:", results);
+        console.error("❌ Results format is invalid:", data);
         setSearchError("Invalid response format");
-        setSearchResults([]);
+        setSearchResults(fallbackResults);
       }
     } catch (error) {
       console.error('❌ Search error:', error);
       setSearchError(error instanceof Error ? error.message : 'Search failed');
-      setSearchResults([]);
+      setSearchResults(fallbackResults);
     } finally {
       setIsSearching(false);
     }
