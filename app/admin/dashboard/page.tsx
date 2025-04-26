@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { UserRole } from "@/lib/prisma-types";
 
 export default async function AdminDashboard() {
   const stats = await db.user.count();

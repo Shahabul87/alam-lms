@@ -83,6 +83,13 @@ const nextConfig = {
       chunkIds: 'deterministic',
     };
 
+    // Add aliases for Prisma browser imports
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '.prisma/client/index-browser': require.resolve('./lib/prisma-browser.js'),
+      '.prisma/client/edge-browser': require.resolve('./lib/prisma-browser.js'),
+    };
+
     return config;
   },
 
