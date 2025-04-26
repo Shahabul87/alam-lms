@@ -52,6 +52,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
       }
     ],
     dangerouslyAllowSVG: true,
@@ -88,17 +93,12 @@ const nextConfig = {
       chunkIds: 'deterministic',
     };
 
-    // Add aliases for Prisma browser imports
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '.prisma/client/index-browser': require.resolve('./lib/prisma-browser.js'),
-      '.prisma/client/edge-browser': require.resolve('./lib/prisma-browser.js'),
-    };
-
     return config;
   },
 
   eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
 
@@ -108,6 +108,9 @@ const nextConfig = {
     optimizeCss: true,
     serverMinification: true,
     serverSourceMaps: false,
+    serverActions: {
+      allowedOrigins: ['localhost:3000']
+    }
   },
 
   // Add bcryptjs to external packages for server components
@@ -127,7 +130,10 @@ const nextConfig = {
   poweredByHeader: false,
 
   typescript: {
-    // For build to succeed with dynamic params awaiting
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
     ignoreBuildErrors: true,
   },
 };

@@ -1,49 +1,6 @@
-// This file exports Prisma types and enums that can be safely used
-// in client components without triggering browser client imports
+import { UserRole as PrismaUserRole } from "@prisma/client";
 
-// UserRole enum definition (must match the schema)
-export enum UserRole {
-  USER = "USER",
-  ADMIN = "ADMIN"
-}
+// Re-export the UserRole enum from Prisma
+export type UserRole = PrismaUserRole;
 
-// ReactionType enum definition (must match the schema)
-export enum ReactionType {
-  LIKE = "LIKE",
-  LAUGH = "LAUGH",
-  HEART = "HEART",
-  SAD = "SAD",
-  ANGRY = "ANGRY"
-}
-
-// BillCategory enum definition (must match the schema)
-export enum BillCategory {
-  UTILITIES = "UTILITIES",
-  RENT = "RENT",
-  MORTGAGE = "MORTGAGE",
-  GROCERIES = "GROCERIES",
-  TRANSPORTATION = "TRANSPORTATION",
-  EDUCATION = "EDUCATION",
-  ENTERTAINMENT = "ENTERTAINMENT",
-  HEALTHCARE = "HEALTHCARE",
-  INSURANCE = "INSURANCE",
-  OTHER = "OTHER"
-}
-
-// BillStatus enum definition (must match the schema)
-export enum BillStatus {
-  PENDING = "PENDING",
-  PAID = "PAID",
-  OVERDUE = "OVERDUE",
-  CANCELLED = "CANCELLED"
-}
-
-// RecurringType enum definition (must match the schema)
-export enum RecurringType {
-  DAILY = "DAILY",
-  WEEKLY = "WEEKLY",
-  MONTHLY = "MONTHLY",
-  QUARTERLY = "QUARTERLY",
-  YEARLY = "YEARLY",
-  NONE = "NONE"
-} 
+// Add any additional types that were in the original file but are still needed 

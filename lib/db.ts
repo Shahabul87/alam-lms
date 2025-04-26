@@ -1,11 +1,9 @@
-// Re-export the prisma client from our centralized location
-import prisma from './prisma';
+import { PrismaClient } from "@prisma/client";
 
-// Export the db instance
-export const db = prisma;
+declare global {
+  var prisma: PrismaClient | undefined;
+}
 
-// For convenience, also export as prismadb
-export const prismadb = prisma;
+export const db = globalThis.prisma || new PrismaClient();
 
-// Export as default
-export default prisma;
+if (process.env.NODE_ENV !== "production") globalThis.prisma = db; 
