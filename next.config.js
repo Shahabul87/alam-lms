@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
   images: {
     remotePatterns: [
       {
@@ -46,6 +48,11 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     minimumCacheTTL: 60 * 60 * 24, // 24 hours
+    domains: [
+      'res.cloudinary.com',
+      'avatars.githubusercontent.com',
+      'lh3.googleusercontent.com'
+    ]
   },
 
   webpack(config) {
@@ -107,7 +114,6 @@ const nextConfig = {
   
   // Add additional performance optimizations
   poweredByHeader: false,
-  reactStrictMode: true,
 
   typescript: {
     // For build to succeed with dynamic params awaiting
