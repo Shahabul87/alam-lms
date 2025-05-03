@@ -64,7 +64,7 @@ export default async function RootLayout({
           <Toaster />
           <PageBackground>
             {/* Fixed header */}
-            <div className="fixed top-0 left-0 right-0 z-50">
+            <div className="fixed top-0 left-0 right-0 z-[40]">
               <MainHeader user={user} />
             </div>
             

@@ -22,6 +22,7 @@ import { NotificationsPopover } from './_components/notifications-popover';
 import { MessagesPopover } from './_components/messages-popover';
 import { UserMenu } from './_components/user-menu';
 import { SearchOverlay } from './components/search-overlay';
+import './styles/user-menu.css';
 
 // Types and utils
 import { HeaderAfterLoginProps, SearchResult } from './types/header-types';
@@ -120,7 +121,7 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
+      <header className="fixed top-0 left-0 right-0 w-full z-[40] bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full relative overflow-hidden">
           {/* Subtle header glow effects to match PageBackground */}
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
