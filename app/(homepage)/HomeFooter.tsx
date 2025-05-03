@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import logo from "@/assets/logo.png";
-import { Heart, MessageCircle, Github, Twitter, Linkedin, BookOpen } from "lucide-react";
+import { Heart, MessageCircle, Github, Twitter, Linkedin, BookOpen, ArrowRight } from "lucide-react";
 
 export const HomeFooter = () => {
   return (
@@ -45,23 +45,28 @@ export const HomeFooter = () => {
             <p className="text-gray-300 text-lg mb-8 leading-relaxed">
               Join thousands of learners who have already transformed their careers through our platform.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4 items-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-medium text-lg hover:from-cyan-400 hover:to-purple-400 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 relative overflow-hidden group w-full sm:w-auto"
-              >
-                <span className="relative z-10">Get Started Free</span>
-                <span className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-r from-cyan-400 to-purple-400 
-                  transform scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500"></span>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-3 rounded-full border border-cyan-500/30 text-cyan-400 font-medium text-lg hover:bg-slate-800/40 transition-all duration-300 w-full sm:w-auto"
-              >
-                View Courses
-              </motion.button>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 items-center relative z-20 mt-8">
+              <Link href="/get-started" className="relative z-20 w-full sm:w-auto">
+                <motion.button
+                  className="w-full sm:w-auto bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-bold py-4 px-8 rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(120,0,255,0.3)] transition-all duration-300"
+                  whileHover={{ y: -5 }}
+                  whileTap={{ y: 0 }}
+                >
+                  <div className="flex items-center justify-center">
+                    <span className="mr-2">Get Started Free</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </div>
+                </motion.button>
+              </Link>
+              <Link href="/courses" className="relative z-20 w-full sm:w-auto">
+                <motion.button
+                  className="w-full sm:w-auto bg-transparent border-2 border-cyan-500 text-cyan-400 font-bold py-4 px-8 rounded-lg hover:bg-cyan-500/10 transition-colors duration-300"
+                  whileHover={{ y: -5 }}
+                  whileTap={{ y: 0 }}
+                >
+                  View Courses
+                </motion.button>
+              </Link>
             </div>
           </motion.div>
         </div>
