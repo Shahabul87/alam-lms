@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Remove these animation keyframes since they're now in the tailwind config */
+
 html,
 body,
 :root {
@@ -39,7 +41,7 @@ body,
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --ring: 215 20.2% 65.1%;
+    --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
   }
@@ -70,9 +72,9 @@ body,
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 85.7% 97.3%;
+    --destructive-foreground: 210 40% 98%;
 
-    --ring: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -250,8 +252,40 @@ body,
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
+/* Drag and Drop Styles */
+body.dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  overflow: hidden !important; /* Prevents scrolling during drag operations */
+}
+
+/* Apply grabbing cursor during drag */
+body.dragging * {
+  cursor: grabbing !important;
+}
+
+/* Ensure we don't accidentally select text during drag */
+body.dragging *::selection {
+  background: transparent !important;
+}
+
+/* Make pointer events work better on touch devices */
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Specific iOS fix */
+@supports (-webkit-touch-callout: none) {
+  [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
   }
 }

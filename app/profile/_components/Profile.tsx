@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { SidebarDemo } from "@/components/ui/sidebar-demo";
-import { AnimatedContent } from "./AnimatedContent";
-import { AnimatedHeader } from "./AnimatedHeader";
-import { ProfileNavigation } from "./ProfileNavigation";
-import TabContent from "./TabContent";
+import { AnimatedHeader } from "./header/AnimatedHeader";
+import { ProfileNavigation } from "./navigation/ProfileNavigation";
+import { TabContent } from "./tabs/TabContent";
+import { AnimatedContent } from "./common/AnimatedContent";
 import type { ProfileProps } from "./types";
 
 export function Profile({
@@ -31,6 +31,7 @@ export function Profile({
           username={name || undefined}
           avatarUrl={image || undefined}
           joinDate={createdAt?.toISOString()}
+          profileLinks={profileLinks || []}
         />
         
         <ProfileNavigation 

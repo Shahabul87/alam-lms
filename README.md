@@ -34,3 +34,25 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+# Facebook API Integration
+
+Follow these steps to set up Facebook API integration:
+
+1. Go to [Facebook Developers](https://developers.facebook.com/) and create a new app
+2. Choose "Business" type app
+3. Set up "Facebook Login" product
+4. Add the following settings in Facebook Login setup:
+   - Valid OAuth Redirect URIs: `http://localhost:3000/api/auth/facebook/callback` 
+   - (Add your production URL too when deploying)
+5. In Basic Settings, note your App ID and App Secret
+6. Add to your .env.local file:
+
+```
+FACEBOOK_CLIENT_ID=your_app_id_here
+FACEBOOK_CLIENT_SECRET=your_app_secret_here
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+7. Restart your development server
+8. Test connecting your Facebook account in the profile page

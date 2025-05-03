@@ -40,6 +40,7 @@ export const ChaptersForm = ({
 }: ChaptersFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -71,7 +72,8 @@ export const ChaptersForm = ({
       });
       toast.success("Chapters reordered");
       router.refresh();
-    } catch {
+    } catch (error) {
+      console.error("Error reordering chapters:", error);
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);
@@ -80,6 +82,20 @@ export const ChaptersForm = ({
 
   const onEdit = (id: string) => {
     router.push(`/teacher/courses/${courseId}/chapters/${id}`);
+  };
+
+  const onDelete = async (id: string) => {
+    try {
+      setIsDeleting(true);
+      await axios.delete(`/api/courses/${courseId}/chapters/${id}`);
+      toast.success("Chapter deleted");
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting chapter:", error);
+      toast.error("Something went wrong");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -91,7 +107,7 @@ export const ChaptersForm = ({
       "backdrop-blur-sm",
       "transition-all duration-200"
     )}>
-      {isUpdating && (
+      {(isUpdating || isDeleting) && (
         <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
           <Loader2 className="h-6 w-6 animate-spin text-purple-600 dark:text-purple-400" />
         </div>
@@ -211,6 +227,7 @@ export const ChaptersForm = ({
           <ChaptersList
             onEdit={onEdit}
             onReorder={onReorder}
+            onDelete={onDelete}
             items={initialData.chapters || []}
           />
           {initialData.chapters.length === 0 && (

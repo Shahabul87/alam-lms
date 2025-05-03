@@ -1,17 +1,33 @@
 "use client";
 
 import { FavoriteArticle } from "@prisma/client";
-import { useEffect, useState } from "react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
-import { Grip, Pencil, Trash, FileText, BookOpen } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { 
+  Pencil, 
+  Trash, 
+  FileText, 
+  Calendar, 
+  Layout, 
+  ArrowUpDown,
+  ExternalLink,
+  Info
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface FavoriteArticleListProps {
   items: FavoriteArticle[];
@@ -25,6 +41,181 @@ interface FavoriteArticleListProps {
   onDelete: (id: string) => void;
 }
 
+// Platform-specific color mappings with contrasting text colors
+const platformColors = {
+  "Medium": { 
+    dotColor: "bg-green-500", 
+    textColor: "text-green-700 dark:text-green-400",
+    badgeBg: "bg-green-100 dark:bg-green-900/40", 
+    badgeText: "text-green-800 dark:text-green-300",
+  },
+  "Substack": { 
+    dotColor: "bg-orange-500", 
+    textColor: "text-orange-700 dark:text-orange-400",
+    badgeBg: "bg-orange-100 dark:bg-orange-900/40", 
+    badgeText: "text-orange-800 dark:text-orange-300",
+  },
+  "DEV Community": { 
+    dotColor: "bg-indigo-500", 
+    textColor: "text-indigo-700 dark:text-indigo-400",
+    badgeBg: "bg-indigo-100 dark:bg-indigo-900/40", 
+    badgeText: "text-indigo-800 dark:text-indigo-300",
+  },
+  "Hashnode": { 
+    dotColor: "bg-blue-500", 
+    textColor: "text-blue-700 dark:text-blue-400",
+    badgeBg: "bg-blue-100 dark:bg-blue-900/40", 
+    badgeText: "text-blue-800 dark:text-blue-300",
+  },
+  "TechCrunch": { 
+    dotColor: "bg-emerald-500", 
+    textColor: "text-emerald-700 dark:text-emerald-400",
+    badgeBg: "bg-emerald-100 dark:bg-emerald-900/40", 
+    badgeText: "text-emerald-800 dark:text-emerald-300",
+  },
+  "WIRED": { 
+    dotColor: "bg-red-500", 
+    textColor: "text-red-700 dark:text-red-400",
+    badgeBg: "bg-red-100 dark:bg-red-900/40", 
+    badgeText: "text-red-800 dark:text-red-300",
+  },
+  "The Verge": { 
+    dotColor: "bg-purple-500", 
+    textColor: "text-purple-700 dark:text-purple-400",
+    badgeBg: "bg-purple-100 dark:bg-purple-900/40", 
+    badgeText: "text-purple-800 dark:text-purple-300",
+  },
+  "default": { 
+    dotColor: "bg-gray-500", 
+    textColor: "text-gray-700 dark:text-gray-400",
+    badgeBg: "bg-gray-100 dark:bg-gray-800/40", 
+    badgeText: "text-gray-800 dark:text-gray-300",
+  }
+};
+
+// Get platform colors or use default if not found
+const getPlatformColors = (platform: string) => {
+  return platformColors[platform as keyof typeof platformColors] || platformColors.default;
+};
+
+// Article item component
+const ArticleItem = ({ 
+  article, 
+  onEdit, 
+  onDelete, 
+  confirmDelete
+}: { 
+  article: FavoriteArticle; 
+  onEdit: (id: string, data: {
+    title: string;
+    platform: string;
+    url: string;
+    category?: string;
+  }) => void;
+  onDelete: (id: string) => void;
+  confirmDelete: (id: string) => void;
+}) => {
+  // Get platform-specific colors
+  const { dotColor, textColor, badgeBg, badgeText } = getPlatformColors(article.platform);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className={cn(
+        "flex items-center py-2.5 px-4 border-b",
+        "border-gray-200/50 dark:border-gray-700/50",
+        "hover:bg-gray-50/50 dark:hover:bg-gray-800/50",
+        "transition-colors duration-150 group"
+      )}
+    >
+      <div className={cn(
+        "w-3 h-3 rounded-full mr-3", 
+        dotColor
+      )}></div>
+      
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <a 
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "font-medium flex-grow hover:underline truncate",
+                "text-gray-900 dark:text-gray-100"
+              )}
+            >
+              {article.title}
+            </a>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="p-4 max-w-sm" align="start">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm">{article.title}</h4>
+              <div className="flex flex-wrap gap-2">
+                <span 
+                  className={cn(
+                    "text-xs py-1 px-2 rounded-full font-medium",
+                    badgeBg,
+                    badgeText
+                  )}
+                >
+                  {article.platform}
+                </span>
+                {article.category && (
+                  <Badge variant="secondary" className="text-xs py-0.5 px-2">
+                    {article.category}
+                  </Badge>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 flex items-center gap-2">
+                <Calendar className="h-3 w-3" />
+                {new Date(article.createdAt).toLocaleDateString()}
+              </div>
+              <div className="text-xs text-blue-500 flex items-center gap-2">
+                <ExternalLink className="h-3 w-3" />
+                <span className="truncate">{article.url}</span>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      
+      <div className={cn("text-xs mr-4 font-medium", textColor)}>
+        {article.platform}
+      </div>
+      
+      <div className="ml-auto flex items-center gap-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          onClick={() => onEdit(article.id, {
+            title: article.title,
+            platform: article.platform,
+            url: article.url,
+            category: article.category || undefined,
+          })}
+          className="h-8 w-8 p-0 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+        >
+          <Pencil className="h-4 w-4" />
+          <span className="sr-only">Edit</span>
+        </Button>
+        
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          onClick={() => confirmDelete(article.id)}
+          className="h-8 w-8 p-0 text-red-600 dark:text-rose-400 hover:text-red-700 dark:hover:text-rose-300"
+        >
+          <Trash className="h-4 w-4" />
+          <span className="sr-only">Delete</span>
+        </Button>
+      </div>
+    </motion.div>
+  );
+};
+
 export const FavoriteArticleList = ({
   items,
   onReorder,
@@ -32,35 +223,66 @@ export const FavoriteArticleList = ({
   onDelete,
 }: FavoriteArticleListProps) => {
   const [isMounted, setIsMounted] = useState(false);
-  const [favoriteArticles, setFavoriteArticles] = useState<FavoriteArticle[]>([]);
+  const [articles, setArticles] = useState<FavoriteArticle[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"date" | "title" | "platform">("date");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+
+  // Get unique platforms for legend
+  const uniquePlatforms = useMemo(() => {
+    if (!items || items.length === 0) return [];
+    return Array.from(new Set(items.map(item => item.platform))).sort();
+  }, [items]);
 
   useEffect(() => {
     setIsMounted(true);
-    setFavoriteArticles(
-      [...items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    
+    // Default sort by date (newest first)
+    const sortedArticles = [...items].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+    
+    setArticles(sortedArticles);
   }, [items]);
 
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+  const toggleSortOrder = () => {
+    const newOrder = sortOrder === "asc" ? "desc" : "asc";
+    setSortOrder(newOrder);
+    sortArticles(articles, sortBy, newOrder);
+  };
 
-    const reorderedArticles = Array.from(favoriteArticles);
-    const [movedArticle] = reorderedArticles.splice(result.source.index, 1);
-    reorderedArticles.splice(result.destination.index, 0, movedArticle);
+  const changeSort = (newSortBy: "date" | "title" | "platform") => {
+    setSortBy(newSortBy);
+    // If changing sort field, reset to default order for that field
+    const defaultOrder = newSortBy === "date" ? "desc" : "asc";
+    setSortOrder(defaultOrder);
+    sortArticles(articles, newSortBy, defaultOrder);
+  };
 
-    const updatedArticles = reorderedArticles.map((article, index) => ({
-      ...article,
-      position: index,
-    }));
-    setFavoriteArticles(updatedArticles);
-
-    const bulkUpdateData = updatedArticles.map((article) => ({
-      id: article.id,
-      position: article.position,
-    }));
-    onReorder(bulkUpdateData);
+  const sortArticles = (
+    articlesToSort: FavoriteArticle[], 
+    by: "date" | "title" | "platform", 
+    order: "asc" | "desc"
+  ) => {
+    const sorted = [...articlesToSort].sort((a, b) => {
+      if (by === "date") {
+        return order === "asc" 
+          ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else if (by === "title") {
+        return order === "asc"
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title);
+      } else if (by === "platform") {
+        return order === "asc"
+          ? a.platform.localeCompare(b.platform)
+          : b.platform.localeCompare(a.platform);
+      }
+      return 0;
+    });
+    
+    setArticles(sorted);
   };
 
   const confirmDelete = (id: string) => {
@@ -82,104 +304,96 @@ export const FavoriteArticleList = ({
 
   return (
     <>
-      <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable droppableId="favoriteArticles">
-          {(provided) => (
-            <div {...provided.droppableProps} ref={provided.innerRef}>
-              <AnimatePresence>
-                {favoriteArticles.map((article, index) => (
-                  <Draggable key={article.id} draggableId={article.id} index={index}>
-                    {(provided) => (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className={cn(
-                          "flex items-center gap-x-2",
-                          "bg-white/60 dark:bg-gray-800/60",
-                          "border-gray-200/50 dark:border-gray-700/50 border",
-                          "rounded-lg mb-4 text-sm overflow-hidden backdrop-blur-sm",
-                          "transition-all duration-200 group",
-                          "hover:border-indigo-500/50 dark:hover:border-indigo-400/50"
-                        )}
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                      >
-                        <div
-                          className={cn(
-                            "px-2 py-3 border-r",
-                            "border-r-gray-200/50 dark:border-r-gray-700/50",
-                            "hover:bg-gray-100/50 dark:hover:bg-gray-700/50",
-                            "rounded-l-lg transition"
-                          )}
-                          {...provided.dragHandleProps}
-                        >
-                          <Grip className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300" />
-                        </div>
-                        <div className="flex flex-col lg:flex-row gap-4 px-4 py-3 flex-grow">
-                          <div className="flex flex-col gap-2">
-                            <span className="font-medium text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text">
-                              {article.title}
-                            </span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-gray-600 dark:text-gray-400">
-                                Platform: <span className="text-indigo-600 dark:text-indigo-400">{article.platform}</span>
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-500">
-                                {new Date(article.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <a
-                              href={article.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                            >
-                              <BookOpen className="h-3 w-3" />
-                              <span className="truncate">{article.url}</span>
-                            </a>
-                            {article.category && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-fit">
-                                {article.category}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="ml-auto pr-4 flex items-center gap-x-3">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => onEdit(article.id, {
-                              title: article.title,
-                              platform: article.platform,
-                              url: article.url,
-                              category: article.category || undefined,
-                            })}
-                            className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-                          >
-                            <Pencil className="w-4 h-4" />
-                            <span className="text-sm">Edit</span>
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => confirmDelete(article.id)}
-                            className="flex items-center gap-1.5 text-red-600 dark:text-rose-400 hover:text-red-700 dark:hover:text-rose-300 transition-colors"
-                          >
-                            <Trash className="w-4 h-4" />
-                            <span className="text-sm">Delete</span>
-                          </motion.button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </Draggable>
-                ))}
-              </AnimatePresence>
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-1">
+          <Info className="h-4 w-4 text-gray-400" />
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Hover over titles to see details or click to open
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                {sortBy === "date" && <Calendar className="h-4 w-4 mr-2" />}
+                {sortBy === "title" && <FileText className="h-4 w-4 mr-2" />}
+                {sortBy === "platform" && <Layout className="h-4 w-4 mr-2" />}
+                {sortBy === "date" && "Date"}
+                {sortBy === "title" && "Title"}
+                {sortBy === "platform" && "Platform"}
+                <ArrowUpDown className={cn(
+                  "h-4 w-4 ml-2 transition-transform",
+                  sortOrder === "desc" && "rotate-180"
+                )} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => changeSort("date")}>
+                <Calendar className="h-4 w-4 mr-2" />
+                Date Added
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => changeSort("title")}>
+                <FileText className="h-4 w-4 mr-2" />
+                Title
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => changeSort("platform")}>
+                <Layout className="h-4 w-4 mr-2" />
+                Platform
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={toggleSortOrder}
+            className="h-8 w-8 p-0"
+          >
+            <ArrowUpDown className={cn(
+              "h-4 w-4 transition-transform",
+              sortOrder === "desc" && "rotate-180"
+            )} />
+          </Button>
+        </div>
+      </div>
+      
+      {uniquePlatforms.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+          <div className="w-full text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+            Platforms:
+          </div>
+          {uniquePlatforms.map(platform => {
+            const { dotColor, textColor } = getPlatformColors(platform);
+            return (
+              <div key={platform} className="flex items-center gap-1.5 text-xs">
+                <div className={cn("w-2.5 h-2.5 rounded-full", dotColor)}></div>
+                <span className={cn(textColor, "font-medium")}>{platform}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      
+      <div className="border rounded-md border-gray-200 dark:border-gray-700 overflow-hidden">
+        <AnimatePresence>
+          {articles.map((article) => (
+            <ArticleItem
+              key={article.id}
+              article={article}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              confirmDelete={confirmDelete}
+            />
+          ))}
+        </AnimatePresence>
+        
+        {articles.length === 0 && (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            No articles found. Add some favorite articles to get started.
+          </div>
+        )}
+      </div>
 
       {/* Delete Modal */}
       {showDeleteModal && (

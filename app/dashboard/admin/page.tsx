@@ -11,17 +11,24 @@ export const metadata: Metadata = {
   description: "Admin dashboard for managing the learning platform",
 };
 
-// Auth protection
 export default async function AdminPage() {
   const session = await auth();
   
-  if (!session || !session.user || session.user.role !== UserRole.ADMIN) {
+  // Redirect if not logged in or not an admin
+  if (!session || !session.user) {
     redirect("/auth/login");
   }
   
+  if (session.user.role !== "ADMIN") {
+    redirect("/dashboard/user");
+  }
+  
   return (
-    <Suspense fallback={<AdminDashboardSkeleton />}>
-      <ClientAdminDashboard />
-    </Suspense>
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <Suspense fallback={<AdminDashboardSkeleton />}>
+        <ClientAdminDashboard />
+      </Suspense>
+    </div>
   );
 } 

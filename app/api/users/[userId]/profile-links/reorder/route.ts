@@ -3,6 +3,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export async function PUT(req: Request, props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
@@ -13,29 +14,46 @@ export async function PUT(req: Request, props: { params: Promise<{ userId: strin
     }
 
     const { list } = await req.json();
-    //console.log("Reorder list received:", list); // Log the received list
-
-    // Ensure `list` is non-empty and contains `id` and `position`
+    
+    // Validate input data
     if (!Array.isArray(list) || list.length === 0) {
       return new NextResponse("Invalid data: 'list' must be a non-empty array", { status: 400 });
     }
 
+    // Validate each item in the list
     for (const item of list) {
       if (typeof item.id !== "string" || typeof item.position !== "number") {
-        console.log("Invalid item in list:", item); // Log any invalid item
+        console.log("Invalid item in list:", item);
         return new NextResponse("Each item must have a valid 'id' (string) and 'position' (number)", { status: 400 });
       }
     }
 
-    const updatePromises = list.map((item) =>
-      db.profileLink.update({
-        where: { id: item.id },
-        data: { position: item.position },
-      })
-    );
+    // Extract IDs for validation
+    const linkIds = list.map(item => item.id);
+    
+    // Verify all links belong to this user
+    const existingLinks = await db.profileLink.findMany({
+      where: {
+        id: { in: linkIds },
+        userId: params.userId
+      },
+      select: { id: true }
+    });
+    
+    if (existingLinks.length !== linkIds.length) {
+      return new NextResponse("Some profile links don't exist or don't belong to this user", { status: 400 });
+    }
 
-    const result = await db.$transaction(updatePromises);
-    //console.log("Database update result:", result); // Log the result
+    // Performance optimization: Use Prisma transactions for bulk updates
+    // This creates a single transaction for all updates instead of separate queries
+    await db.$transaction(
+      list.map(item => 
+        db.profileLink.update({
+          where: { id: item.id },
+          data: { position: item.position }
+        })
+      )
+    );
 
     return new NextResponse("Profile links reordered successfully", { status: 200 });
   } catch (error) {

@@ -8,9 +8,6 @@ import { Pencil, AlignLeft, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
-
 import {
   Form,
   FormControl,
@@ -20,8 +17,8 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import TipTapEditor from "@/components/tiptap/editor";
+import ContentViewer from "@/components/tiptap/content-viewer";
 
 interface ChapterDescriptionFormProps {
   initialData: {
@@ -37,27 +34,6 @@ const formSchema = z.object({
   }),
 });
 
-const modules = {
-  toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    [{ 'color': [] }, { 'background': [] }],
-    ['blockquote', 'code-block'],
-    ['link', 'image'],
-    ['clean']
-  ],
-};
-
-const formats = [
-  'header',
-  'bold', 'italic', 'underline', 'strike',
-  'list', 'bullet',
-  'blockquote', 'code-block',
-  'color', 'background',
-  'link', 'image'
-];
-
 export const ChapterDescriptionForm = ({
   initialData,
   courseId,
@@ -66,7 +42,12 @@ export const ChapterDescriptionForm = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [truncatedContent, setTruncatedContent] = useState(initialData.description || "");
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const truncateHtml = (html: string, maxLength: number) => {
@@ -105,6 +86,10 @@ export const ChapterDescriptionForm = ({
     }
   };
 
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <div className={cn(
       "p-4 mt-6 rounded-xl",
@@ -133,23 +118,15 @@ export const ChapterDescriptionForm = ({
                 </p>
               ) : (
                 <div className="space-y-2">
-                  <div 
+                  <ContentViewer 
+                    content={truncatedContent}
                     className={cn(
                       "text-gray-700 dark:text-gray-300 prose prose-sm max-w-none",
                       "prose-headings:text-gray-900 dark:prose-headings:text-gray-100",
                       "prose-p:text-gray-700 dark:prose-p:text-gray-300",
                       "prose-strong:text-gray-900 dark:prose-strong:text-gray-100",
-                      "prose-ul:text-gray-700 dark:prose-ul:text-gray-300",
-                      "prose-blockquote:text-gray-900 dark:prose-blockquote:text-gray-100",
-                      "prose-blockquote:border-l-cyan-600 dark:prose-blockquote:border-l-cyan-400",
-                      "prose-blockquote:bg-cyan-50 dark:prose-blockquote:bg-cyan-500/5",
-                      "prose-code:text-gray-900 dark:prose-code:text-gray-100",
-                      "prose-pre:bg-gray-50 dark:prose-pre:bg-gray-900/50",
-                      "prose-a:text-cyan-600 dark:prose-a:text-cyan-400",
-                      "prose-img:rounded-lg",
-                      "prose-hr:border-gray-200 dark:prose-hr:border-gray-700"
+                      "prose-ul:text-gray-700 dark:prose-ul:text-gray-300"
                     )}
-                    dangerouslySetInnerHTML={{ __html: truncatedContent }}
                   />
                   {initialData.description.length > 150 && (
                     <Button
@@ -211,59 +188,10 @@ export const ChapterDescriptionForm = ({
                       "border border-gray-200 dark:border-gray-700/50",
                       "bg-white dark:bg-gray-900/50"
                     )}>
-                      <ReactQuill
-                        {...field}
-                        modules={modules}
-                        formats={formats}
-                        theme="snow"
-                        readOnly={isSubmitting}
+                      <TipTapEditor
+                        value={field.value}
+                        onChange={field.onChange}
                         placeholder="Write a detailed description of your chapter..."
-                        className={cn(
-                          "[&_.ql-editor]:min-h-[200px]",
-                          "[&_.ql-editor]:text-sm sm:[&_.ql-editor]:text-base",
-                          "[&_.ql-toolbar]:!border-gray-200 dark:[&_.ql-toolbar]:!border-gray-700/50",
-                          "[&_.ql-toolbar]:!bg-gray-50 dark:[&_.ql-toolbar]:!bg-gray-800",
-                          "[&_.ql-container]:!border-gray-200 dark:[&_.ql-container]:!border-gray-700/50",
-                          "[&_.ql-editor]:!text-gray-900 dark:[&_.ql-editor]:!text-gray-100",
-                          "[&_.ql-editor]:!prose [&_.ql-editor]:!prose-gray dark:[&_.ql-editor]:!prose-invert",
-                          "[&_.ql-editor]:!bg-white dark:[&_.ql-editor]:!bg-gray-900",
-                          "[&_.ql-editor]:!p-4",
-                          "[&_.ql-editor.ql-blank::before]:!text-gray-500 dark:[&_.ql-editor.ql-blank::before]:!text-gray-400",
-                          "[&_.ql-picker-label]:!text-gray-900 dark:[&_.ql-picker-label]:!text-gray-100",
-                          "[&_.ql-stroke]:!stroke-gray-900 dark:[&_.ql-stroke]:!stroke-gray-100",
-                          "[&_.ql-fill]:!fill-gray-900 dark:[&_.ql-fill]:!fill-gray-100",
-                          "[&_.ql-picker-item]:!text-gray-900 dark:[&_.ql-picker-item]:!text-gray-100",
-                          "[&_.ql-picker-options]:!bg-white dark:[&_.ql-picker-options]:!bg-gray-800",
-                          "[&_.ql-snow.ql-toolbar]:!rounded-t-lg",
-                          "[&_.ql-toolbar.ql-snow_.ql-formats]:!mr-2",
-                          "[&_.ql-snow_.ql-tooltip]:!bg-white dark:[&_.ql-snow_.ql-tooltip]:!bg-gray-800",
-                          "[&_.ql-snow_.ql-tooltip]:!text-gray-900 dark:[&_.ql-snow_.ql-tooltip]:!text-gray-100",
-                          "[&_.ql-snow]:!text-gray-900 dark:[&_.ql-snow]:!text-gray-100",
-                          "[&_.ql-editor_strong]:!text-cyan-700 dark:[&_.ql-editor_strong]:!text-cyan-300",
-                          "[&_.ql-editor_em]:!text-cyan-700 dark:[&_.ql-editor_em]:!text-cyan-300",
-                          "[&_.ql-editor_u]:!text-cyan-700 dark:[&_.ql-editor_u]:!text-cyan-300",
-                          "[&_.ql-editor_blockquote]:!text-cyan-700 dark:[&_.ql-editor_blockquote]:!text-cyan-300",
-                          "[&_.ql-editor_blockquote]:!border-l-4",
-                          "[&_.ql-editor_blockquote]:!border-cyan-600 dark:[&_.ql-editor_blockquote]:!border-cyan-400",
-                          "[&_.ql-editor_blockquote]:!bg-cyan-50 dark:[&_.ql-editor_blockquote]:!bg-cyan-500/5",
-                          "[&_.ql-editor_blockquote]:!px-4",
-                          "[&_.ql-editor_code-block]:!text-cyan-700 dark:[&_.ql-editor_code-block]:!text-cyan-300",
-                          "[&_.ql-editor_code-block]:!bg-gray-50 dark:[&_.ql-editor_code-block]:!bg-gray-800",
-                          "[&_.ql-editor_code-block]:!p-4",
-                          "[&_.ql-editor_code-block]:!rounded-md",
-                          "[&_.ql-editor_a]:!text-cyan-600 dark:[&_.ql-editor_a]:!text-cyan-400",
-                          "[&_.ql-editor_img]:!max-w-full",
-                          "[&_.ql-container.ql-snow]:!bg-white dark:[&_.ql-container.ql-snow]:!bg-gray-900",
-                          "[&_.ql-toolbar_.ql-formats_button]:!text-gray-900 dark:[&_.ql-toolbar_.ql-formats_button]:!text-gray-100",
-                          "[&_.ql-toolbar_.ql-formats_button:hover]:!text-cyan-600 dark:[&_.ql-toolbar_.ql-formats_button:hover]:!text-cyan-400",
-                          "[&_.ql-formats_button.ql-active]:!text-cyan-600 dark:[&_.ql-formats_button.ql-active]:!text-cyan-400",
-                          "[&_.ql-picker-label:hover]:!text-cyan-600 dark:[&_.ql-picker-label:hover]:!text-cyan-400",
-                          "[&_.ql-picker.ql-expanded_.ql-picker-label]:!text-cyan-600 dark:[&_.ql-picker.ql-expanded_.ql-picker-label]:!text-cyan-400",
-                          "[&_.ql-picker-item:hover]:!text-cyan-600 dark:[&_.ql-picker-item:hover]:!text-cyan-400",
-                          "[&_.ql-picker-item.ql-selected]:!text-cyan-600 dark:[&_.ql-picker-item.ql-selected]:!text-cyan-400",
-                          "hover:[&_.ql-stroke]:!stroke-cyan-600 dark:hover:[&_.ql-stroke]:!stroke-cyan-400",
-                          "hover:[&_.ql-fill]:!fill-cyan-600 dark:hover:[&_.ql-fill]:!fill-cyan-400"
-                        )}
                       />
                     </div>
                   </FormControl>

@@ -1,153 +1,135 @@
-
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
-
 import { db } from "@/lib/db";
 
 export async function DELETE(
   req: Request,
-  props: { params: Promise<{ courseId: string; chapterId: string, sectionId:string }> }
+  { params }: { params: { courseId: string; chapterId: string } }
 ) {
-  const params = await props.params;
   try {
     const user = await currentUser();
+    const userId = user?.id;
 
-    if (!user?.id) {
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Verify the user owns the course before proceeding
-    const ownCourse = await db.course.findUnique({
+    // First check if the authenticated user owns the course
+    const courseOwner = await db.course.findFirst({
       where: {
         id: params.courseId,
-        userId: user.id,
+        userId: userId,
       }
     });
 
-    if (!ownCourse) {
+    if (!courseOwner) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Verify the chapter exists before attempting to delete
-    const chapterExists = await db.chapter.findUnique({
+    // Find the chapter to be deleted
+    const chapter = await db.chapter.findUnique({
       where: {
         id: params.chapterId,
+        courseId: params.courseId,
       }
     });
 
-    if (!chapterExists) {
-      return new NextResponse("Not Found", { status: 404 });
-    }
-
-    const sectionExists = await db.section.findUnique({
-      where: {
-        id: params.sectionId,
-      }
-    });
-
-    if (!sectionExists) {
-      return new NextResponse("Not Found", { status: 404 });
+    if (!chapter) {
+      return new NextResponse("Chapter not found", { status: 404 });
     }
 
     // Delete the chapter
     const deletedChapter = await db.chapter.delete({
       where: {
-        id: params.chapterId,
+        id: params.chapterId
       }
     });
 
-    const deletedSection = await db.section.delete({
-      where: {
-        id: params.chapterId,
-      }
-    });
-
-    // After deleting the chapter, check if there are any published chapters left in the course
-    const publishedChaptersInCourse = await db.chapter.findMany({
+    // Reorder the remaining chapters
+    const remainingChapters = await db.chapter.findMany({
       where: {
         courseId: params.courseId,
-        isPublished: true,
-      }
-    });
-    const publishedSectionInChapters = await db.section.findMany({
-      where: {
-        chapterId: params.chapterId,
-        isPublished: true,
-      }
-    });
-
-    // If there are no published chapters left, update the course to be unpublished
-    if (publishedChaptersInCourse.length === 0) {
-      await db.course.update({
-        where: {
-          id: params.courseId,
-        },
-        data: {
-          isPublished: false,
+        position: {
+          gt: chapter.position
         }
-      });
-    }
+      },
+      orderBy: {
+        position: "asc"
+      }
+    });
 
-    if (publishedSectionInChapters.length === 0) {
+    // Update the positions of the remaining chapters
+    for (const item of remainingChapters) {
       await db.chapter.update({
         where: {
-          id: params.chapterId,
+          id: item.id
         },
         data: {
-          isPublished: false,
+          position: item.position - 1
         }
       });
     }
 
-    return NextResponse.json(deletedChapter) || NextResponse.json(deletedSection);
+    return NextResponse.json(deletedChapter);
   } catch (error) {
-    console.log("[DELETE_CHAPTER_ERROR]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("[CHAPTER_ID_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
-
 export async function PATCH(
   req: Request,
-  props: { params: Promise<{ courseId: string; chapterId: string }> }
+  { params }: { params: { courseId: string; chapterId: string } }
 ) {
-  const params = await props.params;
   try {
     const user = await currentUser();
-    const { videoUrl, ...values } = await req.json();
+    const userId = user?.id;
+    const { isPublished, ...values } = await req.json();
 
-    if (!user?.id) {
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Check if the current user owns the course
-    const ownCourse = await db.course.findUnique({
+    // First check if the authenticated user owns the course
+    const courseOwner = await db.course.findFirst({
       where: {
         id: params.courseId,
-        userId: user.id,
+        userId: userId,
       }
     });
 
-    if (!ownCourse) {
+    if (!courseOwner) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Update chapter with new values including videoUrl
-    const updatedChapter = await db.chapter.update({
+    // Update the chapter with the provided values
+    const chapter = await db.chapter.update({
       where: {
         id: params.chapterId,
+        courseId: params.courseId,
       },
       data: {
         ...values,
-        videoUrl, // This assumes videoUrl is part of your Chapter model
       }
     });
 
-    // Return the updated chapter information
-    return new NextResponse(JSON.stringify(updatedChapter), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    // If the publishing status was provided, handle that separately
+    if (isPublished !== undefined) {
+      await db.chapter.update({
+        where: {
+          id: params.chapterId,
+          courseId: params.courseId,
+        },
+        data: {
+          isPublished
+        }
+      });
+    }
+
+    return NextResponse.json(chapter);
   } catch (error) {
-    console.log("[PATCH ERROR] Courses/Chapter ID:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("[CHAPTER_ID_PATCH]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 

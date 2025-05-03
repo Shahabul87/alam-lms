@@ -1,24 +1,18 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
-
-import "react-quill/dist/quill.bubble.css";
+import React from 'react';
+import { ContentViewer } from './tiptap/content-viewer';
 
 interface PreviewProps {
   value: string;
-};
+}
 
-export const Preview = ({
-  value,
-}: PreviewProps) => {
-  const ReactQuill = useMemo(() => dynamic(() => import("react-quill"), { ssr: false }), []);
-
+export const Preview = ({ value }: PreviewProps) => {
   return (
-    <ReactQuill
-      theme="bubble"
-      value={value}
-      readOnly
-    />
+    <div className="prose prose-slate dark:prose-invert max-w-none">
+      <ContentViewer content={value} />
+    </div>
   );
 };
+
+export default Preview;

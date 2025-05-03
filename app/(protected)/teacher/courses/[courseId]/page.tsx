@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CircleDollarSign, File, LayoutDashboard, ListChecks } from "lucide-react";
 import { TitleForm } from "./_components/title-form";
 import { DescriptionForm } from "./_components/description-form";
-import { ImageForm } from "./_components/image-form";
+
 import { CategoryForm } from "./_components/category-form";
 import { PriceForm } from "./_components/price-form";
 import { AttachmentForm } from "./_components/attachment-form";
@@ -12,12 +12,7 @@ import { ChaptersForm } from "./_components/chapters-form";
 import { Actions } from "./_components/actions";
 import { IconBadge } from "@/components/icon-badge";
 import { Banner } from "@/components/banner";
-import { FileUploadForm } from "./_components/file-upload-form";
-import { Header } from "@/app/(homepage)/header";
-import { HeaderAfterLogin } from "@/app/(homepage)/header-after-login";
-import { SidebarDemo } from "@/components/ui/sidebar-demo";
-import { ImageFormCombined } from "./_components/image-upload-form-combined";
-import ConditionalHeader from "@/app/(homepage)/user-header";
+
 import { cn } from "@/lib/utils";
 import { CourseImageUpload } from "./_components/course-image-upload";
 import { WhatYouWillLearnForm } from "./_components/what-you-will-learn-form";
@@ -89,8 +84,7 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
 
   return (
     <>
-      <ConditionalHeader user={user} />
-      <SidebarDemo>
+      
         <div className={cn(
           "min-h-screen",
           "bg-gray-50 dark:bg-gray-900",
@@ -154,18 +148,7 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                         initialData={course}
                         courseId={course.id}
                       />
-                      <CategoryForm
-                        initialData={course}
-                        courseId={course.id}
-                        options={categories.map((category) => ({
-                          label: category.name,
-                          value: category.id,
-                        }))}
-                      />
-                      <CourseImageUpload 
-                        courseId={params.courseId}
-                        initialImage={course.imageUrl}
-                      />
+                     
                     </div>
                   </div>
                 </div>
@@ -203,6 +186,18 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                     </div>
                     <PriceForm initialData={course} courseId={course.id} />
                   </div>
+                  <CategoryForm
+                        initialData={course}
+                        courseId={course.id}
+                        options={categories.map((category) => ({
+                          label: category.name,
+                          value: category.id,
+                        }))}
+                      />
+                      <CourseImageUpload 
+                        courseId={params.courseId}
+                        initialImage={course.imageUrl}
+                      />
 
                   {/* Attachments Section */}
                   <div className={cn(
@@ -224,7 +219,6 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
             </div>
           </div>
         </div>
-      </SidebarDemo>
     </>
   );
 }

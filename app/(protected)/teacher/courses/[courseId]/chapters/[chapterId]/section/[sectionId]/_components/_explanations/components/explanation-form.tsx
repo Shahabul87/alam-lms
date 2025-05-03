@@ -4,7 +4,6 @@ import * as z from "zod";
 import { Form } from "@/components/ui/form";
 import { ExplanationFormFields } from "./explanation-form-fields";
 import { ExplanationSubmitButton } from "./explanation-submit-button";
-import "@/app/(protected)/teacher/courses/[courseId]/chapters/[chapterId]/section/[sectionId]/_components/_explanations/styles/editor.css";
 
 const formSchema = z.object({
   heading: z.string().min(1, { message: "Heading is required" }),
@@ -40,9 +39,20 @@ export const ExplanationForm = ({
     },
   });
 
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await onSubmit(values);
+      // On successful submission, clear localStorage
+      localStorage.removeItem('explanation-code-blocks');
+      localStorage.removeItem('explanation-heading');
+    } catch (error) {
+      console.error("Form submission error:", error);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <ExplanationFormFields form={form} isSubmitting={isSubmitting} />
         <ExplanationSubmitButton isSubmitting={isSubmitting} isValid={form.formState.isValid} />
       </form>

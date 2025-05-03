@@ -42,20 +42,31 @@ export const authRoutes: string[] = [
 export const apiAuthPrefix = "/api/auth";
 
 /**
+ * Admin-specific routes that should only be accessible to admin users
+ * @type {string[]}
+ */
+export const adminRoutes: string[] = [
+  "/dashboard/admin",
+  "/admin",
+  "/admin/dashboard",
+];
+
+/**
  * Returns the default redirect path after logging in based on user role
  * @param role - The user's role (ADMIN or USER)
  * @returns {string} The redirect path
  */
 const getDefaultRedirect = (role?: string): string => {
   if (role === "ADMIN") return "/dashboard/admin";
-  return "/user";
+  return "/dashboard/user";
 };
 
 /**
  * The default redirect path after logging in
+ * Now using the getDefaultRedirect function
  * @type {string}
  */
-export const DEFAULT_LOGIN_REDIRECT = "/user";
+export const DEFAULT_LOGIN_REDIRECT = "/dashboard/user";
 
 /**
  * Get redirect URL based on role

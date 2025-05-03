@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, Video, Loader2, Youtube } from "lucide-react";
+import { Pencil, Video, Loader2, YoutubeIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -88,7 +88,7 @@ export const SectionYoutubeVideoForm = ({
             "p-2 w-fit rounded-lg",
             "bg-rose-50 dark:bg-rose-500/10"
           )}>
-            <Youtube className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+            <YoutubeIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-rose-600 to-pink-600 dark:from-rose-400 dark:to-pink-400 bg-clip-text text-transparent">

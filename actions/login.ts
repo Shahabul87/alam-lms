@@ -25,147 +25,99 @@ export const login = async (
   values: z.infer<typeof LoginSchema>,
   callbackUrl?: string | null,
 ) => {
-  console.log("Login action called with:", { values, callbackUrl });
-  
   const validatedFields = LoginSchema.safeParse(values);
 
   if (!validatedFields.success) {
-    console.error("Validation error:", validatedFields.error);
     return { error: "Invalid fields!" };
   }
 
   const { email, password, code } = validatedFields.data;
 
-  try {
-    const existingUser = await getUserByEmail(email);
-    console.log("Found user:", existingUser ? {
-      id: existingUser.id,
-      email: existingUser.email,
-      emailVerified: existingUser.emailVerified,
-      hasPassword: !!existingUser.password,
-      isTwoFactorEnabled: existingUser.isTwoFactorEnabled
-    } : null);
+  const existingUser = await getUserByEmail(email);
 
-    if (!existingUser || !existingUser.email || !existingUser.password) {
-      console.log("Invalid credentials - user not found or missing email/password");
-      return { error: "Invalid credentials!" }
-    }
+  if (!existingUser || !existingUser.email || !existingUser.password) {
+    return { error: "Email does not exist!" }
+  }
 
-    if (!existingUser.emailVerified) {
-      console.log("Email not verified");
-      const verificationToken = await generateVerificationToken(
-        existingUser.email,
+  if (!existingUser.emailVerified) {
+    const verificationToken = await generateVerificationToken(
+      existingUser.email,
+    );
+
+    await sendVerificationEmail(
+      verificationToken.email,
+      verificationToken.token,
+    );
+
+    return { success: "Confirmation email sent!" };
+  }
+
+  if (existingUser.isTwoFactorEnabled && existingUser.email) {
+    if (code) {
+      const twoFactorToken = await getTwoFactorTokenByEmail(
+        existingUser.email
       );
 
-      await sendVerificationEmail(
-        verificationToken.email,
-        verificationToken.token,
-      );
-
-      return { success: "Confirmation email sent!" };
-    }
-
-    if (existingUser.isTwoFactorEnabled && existingUser.email) {
-      console.log("2FA is enabled, checking code");
-      if (code) {
-        const twoFactorToken = await getTwoFactorTokenByEmail(
-          existingUser.email
-        );
-
-        if (!twoFactorToken) {
-          return { error: "Invalid code!" };
-        }
-
-        if (twoFactorToken.token !== code) {
-          return { error: "Invalid code!" };
-        }
-
-        const hasExpired = new Date(twoFactorToken.expires) < new Date();
-
-        if (hasExpired) {
-          return { error: "Code expired!" };
-        }
-
-        await db.twoFactorToken.delete({
-          where: { id: twoFactorToken.id }
-        });
-
-        const existingConfirmation = await getTwoFactorConfirmationByUserId(
-          existingUser.id
-        );
-
-        if (existingConfirmation) {
-          await db.twoFactorConfirmation.delete({
-            where: { id: existingConfirmation.id }
-          });
-        }
-
-        await db.twoFactorConfirmation.create({
-          data: {
-            userId: existingUser.id,
-          }
-        });
-
-        try {
-          console.log("Attempting signIn with credentials after 2FA...");
-          return await signIn("credentials", {
-            email,
-            password,
-            redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
-          });
-        } catch (signInError) {
-          console.error("SignIn error after 2FA:", signInError);
-          return { error: "Authentication failed after 2FA validation" };
-        }
-      } else {
-        try {
-          console.log("Generating 2FA token for:", existingUser.email);
-          const twoFactorToken = await generateTwoFactorToken(existingUser.email);
-          console.log("Generated token:", twoFactorToken.token);
-          
-          await sendTwoFactorTokenEmail(
-            twoFactorToken.email,
-            twoFactorToken.token,
-          );
-          
-          return { twoFactor: true };
-        } catch (error) {
-          console.error("2FA setup error:", error);
-          return { error: "Failed to send verification code. Please try again." };
-        }
+      if (!twoFactorToken) {
+        return { error: "Invalid code!" };
       }
-    }
 
-    try {
-      console.log("Attempting signIn with credentials...");
-      return await signIn("credentials", {
-        email,
-        password,
-        redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
+      if (twoFactorToken.token !== code) {
+        return { error: "Invalid code!" };
+      }
+
+      const hasExpired = new Date(twoFactorToken.expires) < new Date();
+
+      if (hasExpired) {
+        return { error: "Code expired!" };
+      }
+
+      await db.twoFactorToken.delete({
+        where: { id: twoFactorToken.id }
       });
-    } catch (signInError) {
-      console.error("Direct SignIn error:", signInError);
-      if (signInError instanceof AuthError) {
-        switch (signInError.type) {
-          case "CredentialsSignin":
-            return { error: "Invalid credentials! Please check your email and password." }
-          default:
-            return { error: `Auth error: ${signInError.type}` }
-        }
+
+      const existingConfirmation = await getTwoFactorConfirmationByUserId(
+        existingUser.id
+      );
+
+      if (existingConfirmation) {
+        await db.twoFactorConfirmation.delete({
+          where: { id: existingConfirmation.id }
+        });
       }
-      return { error: "Authentication failed. Check server logs for details." };
+
+      await db.twoFactorConfirmation.create({
+        data: {
+          userId: existingUser.id,
+        }
+      });
+    } else {
+      const twoFactorToken = await generateTwoFactorToken(existingUser.email)
+      await sendTwoFactorTokenEmail(
+        twoFactorToken.email,
+        twoFactorToken.token,
+      );
+
+      return { twoFactor: true };
     }
+  }
+
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
+    })
   } catch (error) {
-    console.error("Login error:", error);
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          return { error: "Invalid credentials! Authentication failed." }
+          return { error: "Invalid credentials!" }
         default:
-          return { error: `Something went wrong! Error type: ${error.type}` }
+          return { error: "Something went wrong!" }
       }
     }
 
-    return { error: "An unexpected error occurred. Please try again later." };
+    throw error;
   }
 };

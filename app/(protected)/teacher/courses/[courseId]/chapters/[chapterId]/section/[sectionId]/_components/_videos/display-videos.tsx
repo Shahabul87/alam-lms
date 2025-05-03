@@ -1,38 +1,27 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Video as VideoIcon, Star } from "lucide-react";
+import { Video as VideoIcon, Star, Play, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DisplayVideosProps {
-  chapter: {
+  videos: {
     id: string;
     title: string;
-    sections: {
-      id: string;
-      videos: {
-        id: string;
-        title: string;
-        description: string | null;
-        url: string | null;
-        rating: number | null;
-      }[];
-    }[];
-  };
-  sectionId: string;
+    description: string | null;
+    url: string | null;
+    rating: number | null;
+    thumbnail?: string | null;
+    platform?: string | null;
+  }[];
   onVideoClick: (url: string) => void;
 }
 
 export const DisplayVideos = ({
-  chapter,
-  sectionId,
+  videos,
   onVideoClick,
 }: DisplayVideosProps) => {
-  const currentSection = chapter.sections.find(
-    (section) => section.id === sectionId
-  );
-
-  if (!currentSection?.videos.length) {
+  if (!videos.length) {
     return (
       <div className="text-sm text-gray-500 dark:text-gray-400 mt-4">
         No videos added to this section yet
@@ -42,15 +31,18 @@ export const DisplayVideos = ({
 
   return (
     <div className="mt-6">
-      <div className="grid grid-cols-1 gap-4">
-        {currentSection.videos.map((video) => (
+      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+        {videos.length} Video Resources
+      </h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {videos.map((video) => (
           <motion.div
             key={video.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             onClick={() => video.url && onVideoClick(video.url)}
             className={cn(
-              "group p-4 rounded-lg",
+              "group rounded-lg",
               "bg-white/50 dark:bg-gray-900/50",
               "border border-gray-200 dark:border-gray-700/50",
               "hover:bg-gray-50 dark:hover:bg-gray-800/70",
@@ -59,10 +51,40 @@ export const DisplayVideos = ({
               "overflow-hidden"
             )}
           >
-            <div className="flex flex-col gap-4">
-              <div className="space-y-2">
+            <div className="relative h-32 bg-gray-200 dark:bg-gray-800">
+              {video.thumbnail ? (
+                <img
+                  src={video.thumbnail}
+                  alt={video.title}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
+                  <VideoIcon className="h-10 w-10 text-blue-300 dark:text-blue-500" />
+                </div>
+              )}
+
+              {/* Play button overlay */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                <div className="bg-black/60 rounded-full p-3 transform scale-90 group-hover:scale-100 transition-transform">
+                  <Play className="h-6 w-6 text-white fill-white" />
+                </div>
+              </div>
+
+              {video.platform && (
+                <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded">
+                  <span className="text-white text-xs">{video.platform}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4">
+              <div className="space-y-1">
                 <h4 className={cn(
-                  "text-sm sm:text-base font-medium",
+                  "text-sm font-medium",
                   "text-gray-900 dark:text-gray-200",
                   "group-hover:text-blue-700 dark:group-hover:text-blue-300",
                   "transition-colors duration-300",
@@ -71,18 +93,17 @@ export const DisplayVideos = ({
                   {video.title}
                 </h4>
                 <p className={cn(
-                  "text-sm",
+                  "text-xs",
                   "text-gray-600 dark:text-gray-400",
-                  "group-hover:text-gray-700 dark:group-hover:text-gray-300",
                   "transition-colors duration-300",
-                  "line-clamp-2 sm:line-clamp-1"
+                  "line-clamp-2"
                 )}>
                   {video.description}
                 </p>
               </div>
 
               <div className={cn(
-                "flex items-center justify-between",
+                "flex items-center justify-between mt-3",
                 "pt-2 border-t",
                 "border-gray-200 dark:border-gray-700/50"
               )}>
@@ -91,7 +112,7 @@ export const DisplayVideos = ({
                     <Star
                       key={star}
                       className={cn(
-                        "h-4 w-4",
+                        "h-3.5 w-3.5",
                         star <= (video.rating || 0)
                           ? "text-yellow-500 fill-yellow-500"
                           : "text-gray-300 dark:text-gray-600"
@@ -99,19 +120,7 @@ export const DisplayVideos = ({
                     />
                   ))}
                 </div>
-                <div className={cn(
-                  "p-1.5 rounded-md",
-                  "bg-blue-50 dark:bg-blue-500/10",
-                  "group-hover:bg-blue-100 dark:group-hover:bg-blue-500/20",
-                  "transition-colors duration-300"
-                )}>
-                  <VideoIcon className={cn(
-                    "h-4 w-4",
-                    "text-blue-600 dark:text-blue-400",
-                    "group-hover:text-blue-700 dark:group-hover:text-blue-300",
-                    "transition-colors duration-300"
-                  )} />
-                </div>
+                <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-500" />
               </div>
             </div>
           </motion.div>

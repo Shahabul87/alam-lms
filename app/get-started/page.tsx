@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { 
   CheckCircle2, 
@@ -11,6 +12,8 @@ import {
   Shield,
   Trophy
 } from "lucide-react";
+
+export const dynamic = 'force-dynamic';
 
 const steps = [
   {
@@ -44,6 +47,16 @@ export default function GetStartedPage() {
     triggerOnce: true,
     threshold: 0.1
   });
+  
+  const [particles, setParticles] = useState<{x: number, y: number}[]>([]);
+  
+  useEffect(() => {
+    // Initialize particles only on client side
+    setParticles(Array.from({ length: 20 }).map(() => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight
+    })));
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -57,18 +70,18 @@ export default function GetStartedPage() {
             className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900 via-gray-900 to-gray-900"
           />
           {/* Animated particles */}
-          {Array.from({ length: 20 }).map((_, index) => (
+          {particles.map((particle, index) => (
             <motion.div
               key={index}
               className="absolute w-2 h-2 bg-purple-500 rounded-full"
               initial={{
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
+                x: particle.x,
+                y: particle.y,
                 scale: 0
               }}
               animate={{
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * window.innerHeight,
+                x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+                y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1000),
                 scale: [0, 1, 0],
               }}
               transition={{

@@ -29,6 +29,11 @@ const nextConfig = {
         pathname: '/**',
       },
       {
+        protocol: 'https',
+        hostname: 'source.unsplash.com',
+        pathname: '/**',
+      },
+      {
         protocol: 'http',
         hostname: 'res.cloudinary.com',
         pathname: '/**',
@@ -57,11 +62,39 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'miro.medium.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn-images-1.medium.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn-images-2.medium.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.medium.com',
+        pathname: '/**',
+      },
+      // Wildcard pattern to allow any domain (for blog images from various sources)
+      {
+        protocol: 'https',
+        hostname: '**',
+        pathname: '/**',
       }
     ],
+    domains: ['*'], // Allow all domains as fallback
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    minimumCacheTTL: 60 * 60 * 24, // 24 hours
+    minimumCacheTTL: 60 * 60 * 24, // 24 hours,
+    unoptimized: true, // Skip image optimization for unknown domains
   },
 
   webpack(config) {

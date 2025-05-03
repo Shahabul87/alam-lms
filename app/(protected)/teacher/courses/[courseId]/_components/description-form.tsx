@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,8 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { Course } from "@prisma/client";
-import dynamic from "next/dynamic";
-import "react-quill/dist/quill.bubble.css";
-
-const ReactQuill = dynamic(() => import('react-quill'), {
-  ssr: false,
-  loading: () => <p>Loading...</p>,
-});
+import TipTapEditor from "@/components/tiptap/editor";
+import ContentViewer from "@/components/tiptap/content-viewer";
 
 interface DescriptionFormProps {
   initialData: Course;
@@ -43,6 +38,12 @@ export const DescriptionForm = ({
 }: DescriptionFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Prevent hydration issues
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const toggleEdit = () => setIsEditing((current) => !current);
 
@@ -71,11 +72,24 @@ export const DescriptionForm = ({
     }
   };
 
+  if (!isMounted) {
+    return null;
+  }
+
+  // Prevent form submission on button click inside TipTap editor
+  const handleSubmit = (e: React.FormEvent) => {
+    if (isSubmitting) e.preventDefault();
+  };
+
   return (
     <div className="mt-6 border bg-slate-100 dark:bg-slate-900 rounded-md p-4">
       <div className="font-medium flex items-center justify-between">
         Course description
-        <Button onClick={toggleEdit} variant="ghost">
+        <Button 
+          onClick={toggleEdit} 
+          variant="ghost"
+          type="button"
+        >
           {isEditing ? (
             <>Cancel</>
           ) : (
@@ -91,20 +105,25 @@ export const DescriptionForm = ({
           "text-sm mt-2",
           !initialData.description && "text-slate-500 italic"
         )}>
-          <div className="[&_.ql-editor]:!text-black dark:[&_.ql-editor]:!text-gray-200">
-            <ReactQuill
-              theme="bubble"
-              value={initialData.description || "No description"}
-              readOnly={true}
-              modules={{ toolbar: false }}
+          {initialData.description ? (
+            <ContentViewer 
+              content={initialData.description} 
+              className="text-black dark:text-gray-200"
             />
-          </div>
+          ) : (
+            <p>No description</p>
+          )}
         </div>
       ) : (
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 mt-4"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && e.target instanceof HTMLButtonElement) {
+                e.preventDefault();
+              }
+            }}
           >
             <FormField
               control={form.control}
@@ -112,17 +131,12 @@ export const DescriptionForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <div className="[&_.ql-editor]:!text-black dark:[&_.ql-editor]:!text-gray-200 bg-white dark:bg-slate-800 rounded-md">
-                      <ReactQuill
-                        theme="bubble"
-                        {...field}
-                        modules={{
-                          toolbar: [
-                            ['bold', 'italic', 'underline'],
-                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                            ['link']
-                          ]
-                        }}
+                    <div className="bg-white dark:bg-slate-800 rounded-md">
+                      <TipTapEditor
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Write a description for your course..."
+                        editorClassName="[&_.tiptap]:!text-black dark:[&_.tiptap]:!text-gray-200"
                       />
                     </div>
                   </FormControl>

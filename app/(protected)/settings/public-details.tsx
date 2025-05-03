@@ -37,8 +37,6 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
 import { UserRole } from "@prisma/client";
-import { HeaderAfterLogin } from "@/app/(homepage)/header-after-login";
-import { Header } from "@/app/(homepage)/header";
 
 
 
@@ -82,15 +80,6 @@ export const PublicSettingsPage = () => {
 
   return (
     <>
-      {!user ? (
-        <>
-          <Header />
-        </>
-      ) : (
-        <>
-          <HeaderAfterLogin user={user} />
-        </>
-      )}
       <Card className="w-3/4 h-full mx-auto bg-gray-700 rounded-md border-gray-500">
         <CardHeader>
           <p className="text-2xl md:text-4xl font-bold text-gray-300 text-center mb-8">

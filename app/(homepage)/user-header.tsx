@@ -1,33 +1,24 @@
-import React from 'react'
-import { Header } from './header';
-import { HeaderAfterLogin } from './header-after-login';
-import { User } from '@prisma/client';
+"use client";
+
+import { MainHeader } from "./main-header";
+import { UserRole } from "@prisma/client";
 
 interface ConditionalHeaderProps {
   user: {
-    id?: string;
-    name?: string | null;
-    email?: string | null;
-    role?: any;
-    isTwoFactorEnabled?: boolean;
-    isOAuth?: boolean;
-  } | null | undefined;
+    id: string;
+    role?: UserRole;
+  } | null;
 }
 
-const ConditionalHeader: React.FC<ConditionalHeaderProps> = ({ user }) => {
-  return (
-    <>
-      {!user ? (
-        <div>
-          <Header />
-        </div>
-      ) : (
-        <div>
-          <HeaderAfterLogin user={user} />
-        </div>
-      )}
-    </>
-  );
+/**
+ * A header that adapts based on user's authentication status
+ */
+const ConditionalHeader = ({ user }: ConditionalHeaderProps) => {
+  if (!user) {
+    return null;
+  }
+
+  return <MainHeader user={user} />;
 };
 
-export default ConditionalHeader;
+export default ConditionalHeader; 

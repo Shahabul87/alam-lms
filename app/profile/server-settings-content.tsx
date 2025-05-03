@@ -1,14 +1,27 @@
 "use client";
 
-// ServerSettingsContent.tsx
-import { SettingsContent } from "./settings-content";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ServerSettingsContentProps {
   userId: string;
 }
 
-export const ServerSettingsContent = ({ userId }: ServerSettingsContentProps) => {
-  return <SettingsContent userId={userId} />;
+const ServerSettingsContent = ({ userId }: ServerSettingsContentProps) => {
+  return (
+    <div className="mt-6 space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Server Settings</CardTitle>
+          <CardDescription>
+            Configure your server settings and preferences.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>Server settings configuration for user: {userId}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
-export default ServerSettingsContent;
+export default ServerSettingsContent; 

@@ -1,6 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { HeaderAfterLogin } from "@/app/(homepage)/header-after-login";
+import { MainHeader } from "@/app/(homepage)/main-header";
 import { SectionContent } from "@/app/(course)/courses/[courseId]/learn/_components/section-content";
 import { getCourse } from "@/actions/get-course";
 import { getChapter } from "@/actions/get-chapter";
@@ -69,7 +69,7 @@ const SectionPage = async (props: SectionPageProps) => {
 
   return (
     <>
-      <HeaderAfterLogin user={user} />
+      <MainHeader user={user} />
       <SectionContent
         courseId={params.courseId}
         chapterId={params.chapterId}

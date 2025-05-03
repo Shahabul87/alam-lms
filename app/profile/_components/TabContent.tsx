@@ -1,14 +1,14 @@
 "use client";
 
-import { ProfileLinksContent } from "../profilelinkscontent";
+import { ProfileLinksContent } from "../_profileLinksComponent/profilelinkscontent";
 import ServerSettingsContent from "../server-settings-content";
-import SettingsContent from "../settings-content";
+import SettingsContent from "../_profileLinksComponent/settings-content";
 import { ProfileLink, FavoriteVideo, FavoriteAudio, FavoriteBlog, FavoriteArticle, Subscription } from "@prisma/client";
 import { FavoriteVideoLinkForm } from "../_favoriteVideos/fav-video-link-form";
 import { FavoriteAudioLinkForm } from "../_favoriteAudios/fav-audio-link-form";
 import { FavoriteBlogLinkForm } from "../_favoriteBlogs/fav-blog-link-form";
 import { FavoriteArticleLinkForm } from "../_favoriteArticles/fav-article-link-form";
-import { SubscriptionLinkForm } from "../_subscription/subscription-link-form";
+import { EnhancedSubscriptionForm } from "../_subscription/enhanced-subscription-form";
 import { IdeasContent } from "./ideas-content";
 import { MindsContent } from "./minds-content";
 import { ScriptsContent } from "./scripts-content";
@@ -18,23 +18,23 @@ import { MakeAPlanContent } from "./make-a-plan-content";
 interface TabContentProps {
   selectedTab: string;
   userId: string;
-  profileLinks: ProfileLink[];
-  favoriteVideos: FavoriteVideo[];
-  favoriteAudios: FavoriteAudio[];
-  favoriteBlogs: FavoriteBlog[];
-  favoriteArticles: FavoriteArticle[];
-  subscriptions: Subscription[];
+  profileLinks?: ProfileLink[];
+  favoriteVideos?: FavoriteVideo[];
+  favoriteAudios?: FavoriteAudio[];
+  favoriteBlogs?: FavoriteBlog[];
+  favoriteArticles?: FavoriteArticle[];
+  subscriptions?: Subscription[];
 }
 
 const TabContent = ({ 
   selectedTab, 
   userId, 
-  profileLinks, 
-  favoriteVideos, 
-  favoriteAudios, 
-  favoriteBlogs, 
-  favoriteArticles,
-  subscriptions,
+  profileLinks = [], 
+  favoriteVideos = [], 
+  favoriteAudios = [], 
+  favoriteBlogs = [], 
+  favoriteArticles = [],
+  subscriptions = [],
 }: TabContentProps) => {
   switch (selectedTab) {
     case "MAKE A PLAN":
@@ -60,7 +60,7 @@ const TabContent = ({
     case "SERVER":
       return <ServerSettingsContent userId={userId} />;
     case "SUBSCRIPTION":
-      return <SubscriptionLinkForm userId={userId} subscriptions={subscriptions} />;
+      return <EnhancedSubscriptionForm userId={userId} subscriptions={subscriptions} />;
     case "BILLING":
       return <BillingContent userId={userId} />;
     default:
