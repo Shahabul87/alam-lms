@@ -1130,7 +1130,7 @@ const config = {
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
+    "rootEnvPath": "../../../../../.env",
     "schemaEnvPath": "../../../../../.env"
   },
   "relativePath": "../../../..",
@@ -1140,11 +1140,12 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "postgresql://sham251087:Adti23gGOrny@ep-aged-mountain-a5v3ew7z-pooler.us-east-2.aws.neon.tech/authapp?sslmode=require&pgbouncer=true"
+        "value": null
       }
     }
   },
