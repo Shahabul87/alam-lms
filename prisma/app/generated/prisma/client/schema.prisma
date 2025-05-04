@@ -1,20 +1,19 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider = "prisma-client-js"
-  output   = "./app/generated/prisma/client"
-}
-
-// datasource db {
-//   provider  = "postgresql"
-//   url       = env("DATABASE_URL")
-//   directUrl = env("DIRECT_URL")
+// generator client {
+//   provider = "prisma-client-js"
 // }
 
+generator client {
+  provider = "prisma-client-js"
+  output   = "app/generated/prisma/client"
+}
+
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -74,8 +73,9 @@ model User {
   mindLikes          MindLike[]
   collaboratingMinds Mind[]     @relation("MindCollaborators")
 
-  bills       Bill[]
-  enrollments Enrollment[]
+  bills        Bill[]
+  enrollments  Enrollment[]
+  examAttempts ExamAttempt[] // Add relation to exam attempts
 
   // Add calendar settings relation
   calendarSettings UserCalendarSettings?
@@ -104,6 +104,13 @@ model User {
   notifications    Notification[]
   sentMessages     Message[]      @relation("SentMessages")
   receivedMessages Message[]      @relation("ReceivedMessages")
+  activities       Activity[] // Relation to activities
+
+  // Add these relations
+  authAudits     AuthAudit[]
+  activeSessions ActiveSession[]
+  backupCodes    BackupCode[]
+  totpSecret     TOTPSecret?
 }
 
 model Course {
@@ -189,6 +196,8 @@ model Section {
   articles         Article[] // One-to-many relation with Article
   notes            Note[] // One-to-many relation with Note
   codeExplanations CodeExplanation[]
+  mathExplanations MathExplanation[] // One-to-many relation with MathExplanation
+  exams            Exam[] // One-to-many relation with Exam
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -216,6 +225,100 @@ model CodeExplanation {
   @@index([sectionId])
 }
 
+// MathExplanation model for mathematical content and explanations
+model MathExplanation {
+  id          String  @id @default(uuid())
+  title       String
+  content     String  @db.Text
+  latex       String? @db.Text
+  isPublished Boolean @default(false)
+
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+}
+
+// Exam model for assessments and tests
+model Exam {
+  id            String  @id @default(uuid())
+  title         String
+  description   String? @db.Text
+  duration      Int? // Duration in minutes
+  isPublished   Boolean @default(false)
+  isTimeLimited Boolean @default(false)
+
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  questions ExamQuestion[]
+  attempts  ExamAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+}
+
+// ExamQuestion model for questions within an exam
+model ExamQuestion {
+  id            String  @id @default(uuid())
+  question      String  @db.Text
+  options       Json? // Array of possible answers
+  correctAnswer String? @db.Text
+  points        Int     @default(1)
+  questionType  String  @default("MULTIPLE_CHOICE") // MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER, ESSAY
+
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  answers ExamAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([examId])
+}
+
+// ExamAttempt model to track user attempts at exams
+model ExamAttempt {
+  id     String @id @default(uuid())
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  score       Float?
+
+  answers ExamAnswer[]
+
+  @@index([examId])
+  @@index([userId])
+}
+
+// ExamAnswer model to store user answers to exam questions
+model ExamAnswer {
+  id        String   @id @default(uuid())
+  answer    String   @db.Text
+  isCorrect Boolean?
+
+  questionId String
+  question   ExamQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  attemptId String
+  attempt   ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([questionId])
+  @@index([attemptId])
+}
+
 model Video {
   id          String   @id @default(cuid())
   title       String
@@ -230,6 +333,12 @@ model Video {
   section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // New fields
+  thumbnail String? @db.Text
+  platform  String?
+  embedUrl  String? @db.Text
+  author    String?
 
   userId String
   user   User   @relation("UserVideos", fields: [userId], references: [id], onDelete: Cascade)
@@ -1222,4 +1331,121 @@ model Message {
 
   @@index([senderId])
   @@index([recipientId])
+}
+
+// Activity model for tracking tasks, plans, and activities
+model Activity {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?   @db.Text
+  type          String // "idea" | "mind" | "script" | "subscription" | "billing" | "plan"
+  status        String // "completed" | "in-progress" | "not-started" | "overdue" | "cancelled"
+  priority      String // "low" | "medium" | "high" | "critical"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  dueDate       DateTime?
+  completedDate DateTime?
+  progress      Int       @default(0) // 0-100
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId      String? // For sub-tasks
+  tags          String[]  @default([])
+  metadata      Json? // Type-specific additional data
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([dueDate])
+}
+
+// Add LoginAttempt model for rate limiting
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String // We don't use relation to avoid leaking user existence
+  ipAddress String
+  userAgent String?
+  success   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Index to query by email and IP for rate limiting
+  @@index([email, ipAddress])
+  @@index([ipAddress])
+  @@index([createdAt])
+}
+
+// Add AuthAudit model for security audit trail
+model AuthAudit {
+  id          String   @id @default(cuid())
+  userId      String? // Optional because some events happen before user is authenticated
+  email       String? // Email associated with the event
+  action      String // Login, Logout, PasswordReset, etc.
+  ipAddress   String
+  userAgent   String?
+  browser     String?
+  os          String?
+  deviceType  String?
+  countryCode String?
+  city        String?
+  status      String // Success, Failed, Blocked, etc.
+  details     String? // Additional details about the event
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([ipAddress])
+}
+
+// Add ActiveSession model to track user sessions
+model ActiveSession {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  ipAddress    String
+  userAgent    String?
+  browser      String?
+  os           String?
+  deviceType   String?
+  lastActiveAt DateTime @default(now())
+  expiresAt    DateTime
+  isRevoked    Boolean  @default(false)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([expiresAt])
+}
+
+// Add BackupCode model for 2FA recovery
+model BackupCode {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String // Hashed backup code
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, code])
+  @@index([userId])
+}
+
+// Add TOTPSecret model
+model TOTPSecret {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  secret    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
