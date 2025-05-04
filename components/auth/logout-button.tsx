@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { logout } from "@/actions/logout";
 
 interface LogoutButtonProps {
   children?: React.ReactNode;
@@ -19,10 +19,7 @@ export const LogoutButton = ({
   const onClick = async () => {
     try {
       setIsLoading(true);
-      await signOut({
-        redirect: true,
-        callbackUrl: "/"
-      });
+      await logout();
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
