@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string } }
+  { params }: { params: Promise<{ courseId: string; chapterId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -14,10 +14,13 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Await params to get courseId and chapterId
+    const { courseId, chapterId } = await params;
+
     // First check if the authenticated user owns the course
     const courseOwner = await db.course.findFirst({
       where: {
-        id: params.courseId,
+        id: courseId,
         userId: userId,
       }
     });
@@ -29,8 +32,8 @@ export async function DELETE(
     // Find the chapter to be deleted
     const chapter = await db.chapter.findUnique({
       where: {
-        id: params.chapterId,
-        courseId: params.courseId,
+        id: chapterId,
+        courseId: courseId,
       }
     });
 
@@ -41,14 +44,14 @@ export async function DELETE(
     // Delete the chapter
     const deletedChapter = await db.chapter.delete({
       where: {
-        id: params.chapterId
+        id: chapterId
       }
     });
 
     // Reorder the remaining chapters
     const remainingChapters = await db.chapter.findMany({
       where: {
-        courseId: params.courseId,
+        courseId: courseId,
         position: {
           gt: chapter.position
         }
@@ -79,7 +82,7 @@ export async function DELETE(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { courseId: string; chapterId: string } }
+  { params }: { params: Promise<{ courseId: string; chapterId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -90,10 +93,13 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Await params to get courseId and chapterId
+    const { courseId, chapterId } = await params;
+
     // First check if the authenticated user owns the course
     const courseOwner = await db.course.findFirst({
       where: {
-        id: params.courseId,
+        id: courseId,
         userId: userId,
       }
     });
@@ -105,8 +111,8 @@ export async function PATCH(
     // Update the chapter with the provided values
     const chapter = await db.chapter.update({
       where: {
-        id: params.chapterId,
-        courseId: params.courseId,
+        id: chapterId,
+        courseId: courseId,
       },
       data: {
         ...values,
@@ -117,8 +123,8 @@ export async function PATCH(
     if (isPublished !== undefined) {
       await db.chapter.update({
         where: {
-          id: params.chapterId,
-          courseId: params.courseId,
+          id: chapterId,
+          courseId: courseId,
         },
         data: {
           isPublished

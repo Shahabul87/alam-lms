@@ -35,14 +35,21 @@ export const Actions = ({
         await axios.patch(`/api/courses/${courseId}/unpublish`);
         toast.success("Course unpublished");
       } else {
-        await axios.patch(`/api/courses/${courseId}/publish`);
-        toast.success("Course published");
-        confetti.onOpen();
+        const response = await axios.patch(`/api/courses/${courseId}/publish`);
+        if (response.status === 200) {
+          toast.success("Course published");
+          confetti.onOpen();
+        }
       }
 
       router.refresh();
-    } catch {
-      toast.error("Something went wrong");
+    } catch (error: any) {
+      console.error("Publish error:", error);
+      if (error.response?.data) {
+        toast.error(error.response.data);
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setIsPublishLoading(false);
     }
@@ -55,8 +62,13 @@ export const Actions = ({
       toast.success("Course deleted");
       router.refresh();
       router.push(`/teacher/courses`);
-    } catch {
-      toast.error("Something went wrong");
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      if (error.response?.data) {
+        toast.error(error.response.data);
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setIsDeleteLoading(false);
     }

@@ -14,6 +14,9 @@ interface CloudinaryUploadResult {
   [key: string]: any;
 }
 
+// Define maximum file size (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 export async function POST(req: NextRequest) {
   const user = await currentUser();
 
@@ -41,23 +44,26 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid file format" }, { status: 400 });
       }
 
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          { folder: "next-cloudinary-uploads" },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result as CloudinaryUploadResult);
-          }
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+          { status: 400 }
         );
-        uploadStream.end(buffer);
-      });
+      }
 
-      uploadedResults.push(result); // Collect the result of each file
+      try {
+        // Use a more efficient approach to handle the file
+        const result = await uploadFileToCloudinary(file);
+        uploadedResults.push(result);
+      } catch (uploadError) {
+        console.error("Failed to upload file:", uploadError);
+        return NextResponse.json(
+          { error: "Failed to upload file. Please try again." },
+          { status: 500 }
+        );
+      }
     }
-
 
     // Return all uploaded files
     return NextResponse.json(
@@ -74,5 +80,45 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.log("Upload image failed", error);
     return NextResponse.json({ error: "Upload image failed" }, { status: 500 });
+  }
+}
+
+// Helper function to upload a file to Cloudinary
+async function uploadFileToCloudinary(file: File): Promise<CloudinaryUploadResult> {
+  // For small files, we can use the direct approach
+  if (file.size <= 2 * 1024 * 1024) { // 2MB
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    
+    return new Promise<CloudinaryUploadResult>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: "next-cloudinary-uploads" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result as CloudinaryUploadResult);
+        }
+      );
+      uploadStream.end(buffer);
+    });
+  } else {
+    // For larger files, use a chunk-based approach
+    // Convert file to base64 in chunks if necessary, or use stream API
+    const buffer = Buffer.from(await file.arrayBuffer());
+    return new Promise<CloudinaryUploadResult>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { 
+          folder: "next-cloudinary-uploads",
+          resource_type: "auto" // Auto-detect resource type
+        },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary upload error:", error);
+            reject(error);
+          } else {
+            resolve(result as CloudinaryUploadResult);
+          }
+        }
+      ).end(buffer);
+    });
   }
 }

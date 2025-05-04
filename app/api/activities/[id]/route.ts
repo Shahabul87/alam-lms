@@ -4,10 +4,11 @@ import { auth } from '@/auth';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
+    const { id: activityId } = await params;
     
     // Check authentication
     if (!session?.user) {
@@ -15,7 +16,6 @@ export async function PATCH(
     }
     
     const body = await req.json();
-    const activityId = params.id;
     
     // Find the activity
     const existingActivity = await db.activity.findUnique({
@@ -58,17 +58,16 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
+    const { id: activityId } = await params;
     
     // Check authentication
     if (!session?.user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
-    
-    const activityId = params.id;
     
     // Find the activity
     const existingActivity = await db.activity.findUnique({

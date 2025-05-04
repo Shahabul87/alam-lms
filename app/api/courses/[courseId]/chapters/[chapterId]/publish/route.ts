@@ -24,9 +24,15 @@ export async function PATCH(
 
     const chapter = await db.chapter.findUnique({
       where: { id: params.chapterId },
+      include: {
+        sections: true
+      }
     });
 
-    if (!chapter || !chapter.title || !chapter.description) {
+    // Check only basic required fields
+    // NOTE: We intentionally don't require sections to be published, allowing instructors
+    // to publish chapters directly without having to first publish individual sections
+    if (!chapter || !chapter.title || !chapter.description || !chapter.learningOutcomes) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 

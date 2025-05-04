@@ -82,20 +82,24 @@ export const DescriptionForm = ({
   };
 
   return (
-    <div className="mt-6 border bg-slate-100 dark:bg-slate-900 rounded-md p-4">
+    <div className={cn(
+      "rounded-md",
+      isEditing ? "p-0" : "p-4 bg-slate-50 dark:bg-slate-800/50"
+    )}>
       <div className="font-medium flex items-center justify-between">
         Course description
         <Button 
           onClick={toggleEdit} 
           variant="ghost"
           type="button"
+          className="text-xs h-8"
         >
           {isEditing ? (
             <>Cancel</>
           ) : (
             <>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit description
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+              Edit
             </>
           )}
         </Button>
@@ -108,7 +112,7 @@ export const DescriptionForm = ({
           {initialData.description ? (
             <ContentViewer 
               content={initialData.description} 
-              className="text-black dark:text-gray-200"
+              className="text-black dark:text-gray-200 prose-sm max-w-full"
             />
           ) : (
             <p>No description</p>
@@ -136,7 +140,7 @@ export const DescriptionForm = ({
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Write a description for your course..."
-                        editorClassName="[&_.tiptap]:!text-black dark:[&_.tiptap]:!text-gray-200"
+                        editorClassName="[&_.tiptap]:!text-black dark:[&_.tiptap]:!text-gray-200 min-h-[150px]"
                       />
                     </div>
                   </FormControl>
@@ -144,11 +148,12 @@ export const DescriptionForm = ({
                 </FormItem>
               )}
             />
-            <div className="flex items-center gap-x-2">
+            <div className="flex items-center justify-end gap-x-2">
               <Button
                 disabled={!isValid || isSubmitting}
                 type="submit"
-                className="bg-slate-700 dark:bg-slate-600 hover:bg-slate-800 dark:hover:bg-slate-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                size="sm"
               >
                 Save
               </Button>

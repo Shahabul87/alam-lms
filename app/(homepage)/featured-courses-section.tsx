@@ -1,11 +1,48 @@
 import { CourseCardHome } from "@/components/course-card-home";
-import { Course } from "@prisma/client";
+import { Course, Chapter, Category } from "@prisma/client";
+
+// Helper function to extract text from HTML
+const extractTextFromHtml = (html: string | null): string => {
+  if (!html) return '';
+  // Remove HTML tags
+  return html.replace(/<\/?[^>]+(>|$)/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+};
 
 interface FeaturedCoursesProps {
-  courses: Course[];
+  courses: (Course & {
+    chapters?: Chapter[];
+    category?: Category | null;
+  })[];
 }
 
 export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
+  // Process courses to ensure cleanDescription
+  const processedCourses = courses.map(course => {
+    let description = course.cleanDescription;
+    
+    // If cleanDescription is missing but description exists, extract it
+    if (!description && course.description) {
+      description = extractTextFromHtml(course.description);
+    }
+    
+    return {
+      ...course,
+      processedDescription: description || "No description available"
+    };
+  });
+
+  console.log("Featured courses processed:", processedCourses.map(c => ({
+    id: c.id,
+    title: c.title.substring(0, 20),
+    description: c.processedDescription?.substring(0, 30)
+  })));
+
   return (
     <div className="px-4 py-16 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20">
       {/* Elegant Featured Courses Section */}
@@ -25,12 +62,12 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
         </div>
       </div>
       <div className="grid gap-5 mb-8 md:grid-cols-2 lg:grid-cols-3">
-        {courses.map((course) => (
+        {processedCourses.map((course) => (
           <CourseCardHome
             key={course.id}
             id={course.id}
             title={course.title}
-            description={course.cleanDescription || ""}
+            cleanDescription={course.processedDescription}
             imageUrl={course.imageUrl!}
             chaptersLength={course.chapters?.length || 0}
             price={course.price!}

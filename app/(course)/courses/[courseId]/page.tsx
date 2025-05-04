@@ -78,21 +78,12 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
     },
   });
 
-
-
-  //console.log(course?.chapters)
-
-
-
-
-  const user:any =await currentUser();
+  const user:any = await currentUser();
 
   if (!course) {
     return redirect("/");
-    
   }
 
-  //console.log(course)
   const chapters = course?.chapters || [];
 
   // Fetch initial reviews with error handling
@@ -114,86 +105,60 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
     // Continue with empty reviews array
   }
 
-  // console.log("Course ID:", params.courseId);
-  // console.log("User:", user);
-  // console.log("Course:", course);
-  // console.log("Course image URL:", course.imageUrl);
-
   return (
-    <>
-       
-    <div>
-      <ConditionalHeader user={user} />
-    </div> 
-    <section className="mt-20">
+    <div className="-mt-16">
       <CourseCard 
         course={course} 
         userId={user?.id}
       />
-      <div className="mb-10 ">
-          <GradientHeading 
-            text="Course Breakdown"
-            gradientFrom="from-purple-400"
-            gradientVia="via-cyan-400"
-            gradientTo="to-emerald-400"
-            iconColor="text-purple-400"
-          />
-          
-          <div className="">
-            <div className="w-full overflow-hidden">
-              <div className="relative">
-                <CourseCardsCarousel chapters={chapters}/>
-              </div>
+      <div className="mb-10">
+        <GradientHeading 
+          text="Course Breakdown"
+          gradientFrom="from-purple-400"
+          gradientVia="via-cyan-400"
+          gradientTo="to-emerald-400"
+          iconColor="text-purple-400"
+        />
+        
+        <div className="">
+          <div className="w-full overflow-hidden">
+            <div className="relative">
+              <CourseCardsCarousel chapters={chapters}/>
             </div>
           </div>
         </div>
-        
-        {/* <div className="relative">
-          <GradientHeading 
-            text="Course Learning Outcomes"
-            gradientFrom="from-rose-400"
-            gradientVia="via-amber-400"
-            gradientTo="to-cyan-400"
-            iconColor="text-rose-400"
-          />
-          
-          <div className="px-8 md:px-16">
-            <div className="">
-              <CourseOutcomes chapters={chapters} />
-            </div>
-          </div>
-        </div> */}
-        <div className="mx-auto mt-20 mb-5">
-          <GradientHeading 
-            text="Course Contents"
-            gradientFrom="from-emerald-400"
-            gradientVia="via-blue-400"
-            gradientTo="to-purple-400"
-            iconColor="text-emerald-400"
-          />
-        
-          <div className="px-2 md:px-8">
-            <CourseContent chapters={chapters} />
-          </div>
-        </div>
-
-        <div className="mt-10">
-          <GradientHeading 
-            text="Course Reviews"
-            gradientFrom="from-blue-400"
-            gradientVia="via-indigo-400"
-            gradientTo="to-violet-400"
-            iconColor="text-blue-400"
-          />
-          
-          <div className="mt-8">
-            <CourseReviews courseId={courseId} initialReviews={reviews} />
-          </div>
-        </div>
+      </div>
       
-    </section>
-    <Footer />
-    </>
+      <div className="mx-auto mt-20 mb-5">
+        <GradientHeading 
+          text="Course Contents"
+          gradientFrom="from-emerald-400"
+          gradientVia="via-blue-400"
+          gradientTo="to-purple-400"
+          iconColor="text-emerald-400"
+        />
+      
+        <div className="px-2 md:px-8">
+          <CourseContent chapters={chapters} />
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <GradientHeading 
+          text="Course Reviews"
+          gradientFrom="from-blue-400"
+          gradientVia="via-indigo-400"
+          gradientTo="to-violet-400"
+          iconColor="text-blue-400"
+        />
+        
+        <div className="mt-8">
+          <CourseReviews courseId={courseId} initialReviews={reviews} />
+        </div>
+      </div>
+      
+      <Footer />
+    </div>
   )
 }
  

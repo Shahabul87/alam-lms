@@ -8,12 +8,16 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Define maximum file size (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 export async function POST(
   req: Request,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const session = await auth();
+    const { courseId } = await params;
 
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -26,14 +30,40 @@ export async function POST(
       return new NextResponse("No file uploaded", { status: 400 });
     }
 
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+        { status: 400 }
+      );
+    }
+
+    try {
+      // Use a specialized upload function based on file size
+      const result = await uploadToCloudinary(file);
+      return NextResponse.json(result);
+    } catch (uploadError) {
+      console.error("Failed to upload file:", uploadError);
+      return NextResponse.json(
+        { error: "Failed to upload file. Please try again." },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error("[COURSE_IMAGE_UPLOAD]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
+// Helper function to safely upload to Cloudinary
+async function uploadToCloudinary(file: File) {
+  // For small files we can use the buffer approach
+  if (file.size <= 2 * 1024 * 1024) { // 2MB limit for base64 approach
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Convert buffer to base64
     const fileStr = buffer.toString('base64');
 
-    // Upload to Cloudinary
-    const result = await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       cloudinary.uploader.upload(
         `data:${file.type};base64,${fileStr}`,
         {
@@ -47,10 +77,25 @@ export async function POST(
         }
       );
     });
-
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("[COURSE_IMAGE_UPLOAD]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+  } else {
+    // For larger files, use a stream approach
+    const buffer = Buffer.from(await file.arrayBuffer());
+    
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: 'course-images',
+          resource_type: "auto" // Auto-detect resource type
+        },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary upload error:", error);
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      ).end(buffer);
+    });
   }
 } 

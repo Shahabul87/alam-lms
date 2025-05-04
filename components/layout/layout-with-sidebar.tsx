@@ -19,25 +19,46 @@ const SIDEBAR_HIDDEN_ROUTES = [
   "/support",
 ];
 
+// Patterns for routes where the sidebar should be hidden
+const SIDEBAR_HIDDEN_PATTERNS = [
+  /^\/courses\/[^\/]+$/, // Course detail pages
+];
+
 export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarProps) {
   const pathname = usePathname();
-  const shouldShowSidebar = !SIDEBAR_HIDDEN_ROUTES.includes(pathname);
+  
+  // Check if the current path matches any of the hidden routes or patterns
+  const isHiddenRoute = pathname ? SIDEBAR_HIDDEN_ROUTES.includes(pathname) : false;
+  const matchesHiddenPattern = pathname ? 
+    SIDEBAR_HIDDEN_PATTERNS.some(pattern => pattern.test(pathname)) : false;
+  
+  const shouldShowSidebar = !(isHiddenRoute || matchesHiddenPattern);
   const hasUser = !!user;
   const showSidebar = hasUser && shouldShowSidebar;
+  
+  // Determine if we're on a course page
+  const isCoursePage = pathname ? /^\/courses\/[^\/]+$/.test(pathname) : false;
 
   return (
-    <div className="flex h-screen pt-16">
+    <div className={clsx(
+      "flex h-screen",
+      isCoursePage ? "" : "pt-16"
+    )}>
       {/* Conditional sidebar */}
       {showSidebar && (
-        <div className="fixed top-16 left-0 bottom-0 h-[calc(100vh-4rem)] z-40">
+        <div className={clsx(
+          "fixed left-0 bottom-0 z-40",
+          isCoursePage ? "top-0 h-screen" : "top-16 h-[calc(100vh-4rem)]"
+        )}>
           <SidebarContainer user={user} />
         </div>
       )}
       
-      {/* Main content with conditional margin */}
+      {/* Main content with conditional margin and padding */}
       <main
         className={clsx(
-          "flex-1 overflow-y-auto h-[calc(100vh-4rem)] pt-2 px-4",
+          "flex-1 overflow-y-auto",
+          isCoursePage ? "h-screen pt-0 px-0" : "h-[calc(100vh-4rem)] pt-2 px-4",
           showSidebar ? "ml-[80px]" : ""
         )}
       >

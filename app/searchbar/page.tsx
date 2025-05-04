@@ -19,6 +19,7 @@ type CourseForHomepage = {
   id: string;
   title: string;
   description: string | null;
+  cleanDescription: string | null;
   imageUrl: string | null;
   price: number | null;
   chaptersLength?: number;
@@ -54,6 +55,12 @@ export default function PlaceholdersAndVanishInputDemo(props: SearchPageProps) {
   useEffect(() => {
     const fetchCourses = async () => {
       const fetchedCourses = await getCoursesForHomepage();
+      // Log the courses to see what we're getting
+      console.log("Search page courses:", fetchedCourses.map(course => ({
+        id: course.id,
+        title: course.title,
+        cleanDescription: course.cleanDescription?.substring(0, 30)
+      })));
       setCourses(fetchedCourses);
     };
     fetchCourses();
@@ -85,7 +92,7 @@ export default function PlaceholdersAndVanishInputDemo(props: SearchPageProps) {
                 imageUrl={item.imageUrl || '/default-image.jpg'}
                 price={item.price || 0}
                 category={item?.category?.name || 'Uncategorized'}
-                description={item.description || ''}
+                cleanDescription={item.cleanDescription || item.description || ''}
                 chaptersLength={item.chaptersLength || 0}
               />
             ))}

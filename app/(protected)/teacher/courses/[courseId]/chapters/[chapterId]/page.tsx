@@ -50,27 +50,43 @@ const ChapterIdPage = async (
     console.error("Chapter not found");
     return redirect("/");
   }
-  // console.log("Chapter data:", {
-  //   courseId: params.courseId,
-  //   chapterId: params.chapterId,
-  //   chapter
-  // });
+  
+  // Super detailed debugging for each required field
+  const hasTitle = Boolean(chapter.title);
+  const hasDescription = Boolean(chapter.description);
+  const hasLearningOutcomes = Boolean(chapter.learningOutcomes);
+  const publishedSections = chapter.sections.filter(s => s.isPublished);
+  const hasPublishedSection = publishedSections.length > 0;
+  
+  console.log("====================== CHAPTER DEBUG ======================");
+  console.log(`Title: "${chapter.title}" => ${hasTitle}`);
+  console.log(`Description: "${chapter.description?.substring(0, 30)}..." => ${hasDescription}`);
+  console.log(`Learning Outcomes: "${chapter.learningOutcomes?.substring(0, 30)}..." => ${hasLearningOutcomes}`);
+  console.log(`Published Sections: ${publishedSections.length} => ${hasPublishedSection}`);
+  console.log("Section details:", chapter.sections.map(s => ({
+    id: s.id,
+    title: s.title,
+    isPublished: s.isPublished
+  })));
+  console.log("==========================================================");
 
+  // Modified required fields - removed the need for published sections
   const requiredFields = [
-    chapter.title,
-    chapter.description,
-    chapter.learningOutcomes,
-    chapter.sections.some(section => section.isPublished),
+    hasTitle,
+    hasDescription,
+    hasLearningOutcomes,
+    // hasPublishedSection - Removed this requirement
   ];
-
-
 
   const totalFields = requiredFields.length;
   const completedFields = requiredFields.filter(Boolean).length;
 
+  console.log("Required fields:", requiredFields);
+  console.log(`Completed fields: ${completedFields}/${totalFields}`);
+  console.log("All complete:", requiredFields.every(Boolean));
+  
   const completionText = `(${completedFields}/${totalFields})`;
 
-  //const isComplete = requiredFields.every(Boolean);
   const isComplete = requiredFields.every(Boolean);
 
 
