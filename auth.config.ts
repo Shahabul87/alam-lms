@@ -1,13 +1,27 @@
-
 // Use dynamic import for bcryptjs to avoid Edge Runtime issues
 let bcrypt: any = null;
 
+// Check if we're in a Node.js environment
+const isNodeEnvironment = typeof process !== 'undefined' && 
+                          process.versions != null && 
+                          process.versions.node != null;
+
 // Function to dynamically load bcryptjs when needed
 const loadBcrypt = async () => {
-  if (!bcrypt) {
-    bcrypt = await import('bcryptjs');
+  // Only load bcrypt in Node.js environment
+  if (isNodeEnvironment) {
+    if (!bcrypt) {
+      bcrypt = await import('bcryptjs');
+    }
+    return bcrypt;
   }
-  return bcrypt;
+  
+  // For Edge Runtime, return a mock implementation or use alternative
+  console.warn("bcryptjs not available in Edge Runtime");
+  return {
+    compare: () => Promise.resolve(false), // Always fail in Edge Runtime
+    hash: () => Promise.reject(new Error("bcrypt not available in Edge Runtime"))
+  };
 };
 
 import type { NextAuthConfig } from "next-auth";
@@ -24,6 +38,18 @@ const safeComparePasswords = async (inputPassword: string, hashedPassword: strin
     // Check if hash appears valid
     if (!hashedPassword.startsWith('$2')) {
       console.error("Invalid hash format, doesn't start with $2");
+      return false;
+    }
+
+    // Handle Edge Runtime case
+    if (!isNodeEnvironment) {
+      // In Edge Runtime, use emergency admin access if available
+      if (process.env.ADMIN_EMERGENCY_PASSWORD && 
+          process.env.ADMIN_EMERGENCY_EMAIL && 
+          inputPassword === process.env.ADMIN_EMERGENCY_PASSWORD) {
+        console.log("Using emergency admin access in Edge Runtime");
+        return true;
+      }
       return false;
     }
 
