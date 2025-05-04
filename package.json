@@ -2,18 +2,14 @@
   "name": "authapp",
   "version": "0.1.0",
   "private": true,
-  "resolutions": {
-    "glob": "^9.0.0",
-    "rimraf": "^4.0.0",
-    "@humanwhocodes/config-array": "latest",
-    "@humanwhocodes/object-schema": "latest"
-  },
   "scripts": {
     "dev": "next dev",
-    "postinstall": "prisma generate",
+    
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "check-env": "node scripts/check-env.js"
     
   },
   "dependencies": {

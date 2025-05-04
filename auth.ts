@@ -23,6 +23,12 @@ export const { handlers: { GET, POST }, auth, signIn, signOut, } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account }) {
+      // Ensure we return early if missing critical data
+      if (!user || !user.id) {
+        console.log("Missing user data, rejecting sign in");
+        return false;
+      }
+      
       console.log("signIn callback triggered:", { 
         provider: account?.provider,
         userId: user?.id,
@@ -34,18 +40,20 @@ export const { handlers: { GET, POST }, auth, signIn, signOut, } = NextAuth({
         return true;
       }
       
-      if (!user.id) {
-        console.log("No user ID, rejecting sign in");
-        return false;
-      }
-      
       try {
         const existingUser = await getUserById(user.id);
-        console.log("Existing user in signIn callback:", existingUser ? {
+        
+        // Handle case where user might not be found
+        if (!existingUser) {
+          console.log("User not found in database, rejecting sign in");
+          return false;
+        }
+        
+        console.log("Existing user in signIn callback:", {
           id: existingUser.id,
           emailVerified: !!existingUser.emailVerified,
           isTwoFactorEnabled: existingUser.isTwoFactorEnabled
-        } : null);
+        });
 
         if (!existingUser?.emailVerified) {
           console.log("Email not verified, rejecting sign in");
@@ -81,6 +89,11 @@ export const { handlers: { GET, POST }, auth, signIn, signOut, } = NextAuth({
       }
     },
     async session({ token, session }) {
+      if (!token || !session) {
+        console.error("Missing token or session in session callback");
+        return session;
+      }
+      
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
@@ -90,33 +103,37 @@ export const { handlers: { GET, POST }, auth, signIn, signOut, } = NextAuth({
       }
 
       if (session.user) {
-        session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean;
-        session.user.name = token.name ?? "";
-        session.user.email = token.email ?? "";
-        session.user.isOAuth = token.isOAuth as boolean;
+        session.user.isTwoFactorEnabled = !!token.isTwoFactorEnabled;
+        session.user.name = token.name || "";
+        session.user.email = token.email || "";
+        session.user.isOAuth = !!token.isOAuth;
       }
-      //console.log(session)
+      
       return session;
     },
     async jwt({ token }) {
-      
-      if (!token.sub) return token;
+      if (!token || !token.sub) return token;
 
-      const existingUser = await getUserById(token.sub);
+      try {
+        const existingUser = await getUserById(token.sub);
 
-      if (!existingUser) return token;
+        if (!existingUser) return token;
 
-      const existingAccount = await getAccountByUserId(
-        existingUser.id
-      );
+        const existingAccount = await getAccountByUserId(
+          existingUser.id
+        );
 
-      token.isOAuth = !!existingAccount;
-      token.name = existingUser.name;
-      token.email = existingUser.email;
-      token.role = existingUser.role;
-      token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
-      //console.log(token)
-      return token;
+        token.isOAuth = !!existingAccount;
+        token.name = existingUser.name || null;
+        token.email = existingUser.email || null;
+        token.role = existingUser.role;
+        token.isTwoFactorEnabled = !!existingUser.isTwoFactorEnabled;
+        
+        return token;
+      } catch (error) {
+        console.error("Error in JWT callback:", error);
+        return token;
+      }
     }
   },
   adapter: PrismaAdapter(db),
