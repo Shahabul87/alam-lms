@@ -3,7 +3,6 @@ import { Inter, DM_Sans } from 'next/font/google'
 import './globals.css'
 import clsx from "clsx";
 import { auth } from '@/auth'
-import { Toaster } from "@/components/ui/sonner";
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
 import { PageBackground } from '@/components/ui/page-background';
@@ -11,6 +10,7 @@ import { MainHeader } from './(homepage)/main-header';
 import { SidebarContainer } from '@/components/ui/sidebar-container';
 import { currentUser } from '@/lib/auth';
 import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
+import ClientToaster from '@/components/client-toaster';
 
 // Force dynamic rendering for the entire app
 export const dynamic = 'force-dynamic';
@@ -61,7 +61,7 @@ export default async function RootLayout({
       )}>
         <Providers session={session}>
           <ConfettiProvider />
-          <Toaster />
+          <ClientToaster />
           <PageBackground>
             {/* Fixed header */}
             <div className="fixed top-0 left-0 right-0 z-[40]">

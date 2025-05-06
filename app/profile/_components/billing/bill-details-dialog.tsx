@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -119,8 +119,8 @@ export function BillDetailsDialog({
     }
   };
 
-  // Handle delete with confirmation
-  const handleDelete = async () => {
+  // Handle delete with confirmation - use useCallback to avoid recreation during render
+  const handleDelete = useCallback(async () => {
     if (!bill) return;
     
     // Confirmation via toast
@@ -145,10 +145,10 @@ export function BillDetailsDialog({
         onClick: () => { /* Do nothing */ },
       },
     });
-  };
+  }, [bill, onDelete, onOpenChange]);
 
   // Handle mark as paid
-  const handleMarkAsPaid = async () => {
+  const handleMarkAsPaid = useCallback(async () => {
     if (!bill || bill.status === "PAID") return;
     
     setIsMarking(true);
@@ -160,7 +160,7 @@ export function BillDetailsDialog({
     } finally {
       setIsMarking(false);
     }
-  };
+  }, [bill, onMarkAsPaid]);
 
   // Frequency display mapping
   const frequencyLabels: Record<string, string> = {

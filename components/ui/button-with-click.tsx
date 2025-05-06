@@ -1,6 +1,6 @@
 "use client";
 
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import { ButtonHTMLAttributes, forwardRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import axios from "axios";
 import { toast } from "sonner";
@@ -15,7 +15,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const ButtonWithClick = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", testUrl, ...props }, ref) => {
     
-    const handleTestClick = async () => {
+    // Use useCallback to avoid recreating the function on every render
+    const handleTestClick = useCallback(async () => {
       if (!testUrl) return;
       
       try {
@@ -74,7 +75,7 @@ const ButtonWithClick = forwardRef<HTMLButtonElement, ButtonProps>(
         console.error("Test fetch error:", error);
         toast.error("Error fetching metadata");
       }
-    };
+    }, [testUrl]);
     
     return (
       <button
