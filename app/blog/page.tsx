@@ -19,7 +19,7 @@ const PostsPage = async ({ searchParams }: SearchPageProps) => {
   }
 
   return (
-    <div className="mt-20">
+    <div className="">
       {posts.length === 0 ? (
         <div className="text-center text-gray-500 text-lg">
           No posts available. Please check back later.

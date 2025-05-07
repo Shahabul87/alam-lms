@@ -34,23 +34,36 @@ const PostChapterCard = ({ title, description, imageUrl }: PostChapterCardProps)
   };
 
   const parseHtmlContent = (htmlString: string) => {
+    // Check if the content is already wrapped in <p> tags to avoid nesting
+    const isPWrapped = htmlString.trim().startsWith('<p>') && htmlString.trim().endsWith('</p>');
+    
     return parse(htmlString, {
       replace: (domNode: any) => {
+        // Skip the root <p> tag if we're going to render this inside a <p> tag
+        if (domNode.type === 'tag' && domNode.name === 'p' && domNode.parent === null && isPWrapped) {
+          // Return just the children content of the paragraph
+          return domNode.children;
+        }
+        
         if (domNode.type === 'tag') {
-          const content = domNode.children[0]?.data || '';
           switch (domNode.name) {
             case 'strong':
             case 'b':
-              return <span className="font-bold">{content}</span>;
+              return <span className="font-bold">{domNode.children.map((child: any) => 
+                child.data || (child.children && parse(child.children))
+              )}</span>;
             case 'em':
             case 'i':
-              return <span className="italic">{content}</span>;
+              return <span className="italic">{domNode.children.map((child: any) => 
+                child.data || (child.children && parse(child.children))
+              )}</span>;
             case 'u':
-              return <span className="underline">{content}</span>;
-            default:
-              return content;
+              return <span className="underline">{domNode.children.map((child: any) => 
+                child.data || (child.children && parse(child.children))
+              )}</span>;
           }
         }
+        return undefined; // Let the default parser handle it
       }
     });
   };
@@ -86,7 +99,7 @@ const PostChapterCard = ({ title, description, imageUrl }: PostChapterCardProps)
           </motion.h3>
           
           <motion.div className="space-y-0">
-            <motion.p 
+            <motion.div 
               className={cn(
                 "text-base lg:text-lg xl:text-xl",
                 "text-gray-700 dark:text-gray-300/90 leading-relaxed",
@@ -95,7 +108,7 @@ const PostChapterCard = ({ title, description, imageUrl }: PostChapterCardProps)
               )}
             >
               {firstHalf && parseHtmlContent(firstHalf)}
-            </motion.p>
+            </motion.div>
           </motion.div>
         </div>
 
@@ -121,7 +134,7 @@ const PostChapterCard = ({ title, description, imageUrl }: PostChapterCardProps)
       {/* Bottom Section with Remaining Text */}
       {secondHalf && (
         <div className="mt-6">
-          <motion.p 
+          <motion.div 
             className={cn(
               "text-base lg:text-lg xl:text-xl",
               "text-gray-700 dark:text-gray-300/90 leading-relaxed",
@@ -130,7 +143,7 @@ const PostChapterCard = ({ title, description, imageUrl }: PostChapterCardProps)
             )}
           >
             {parseHtmlContent(secondHalf)}
-          </motion.p>
+          </motion.div>
 
           {/* Decorative Elements */}
           <div className="hidden lg:block mt-6">

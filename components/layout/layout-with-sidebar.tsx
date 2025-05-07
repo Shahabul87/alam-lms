@@ -22,6 +22,7 @@ const SIDEBAR_HIDDEN_ROUTES = [
 // Patterns for routes where the sidebar should be hidden
 const SIDEBAR_HIDDEN_PATTERNS = [
   /^\/courses\/[^\/]+$/, // Course detail pages
+  /^\/blog\/[^\/]+$/, 
 ];
 
 export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarProps) {

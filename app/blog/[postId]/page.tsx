@@ -7,10 +7,10 @@ import { transformPostChapters } from "./_components/transform-post-chapter";
 import ReadingModes from "./_components/reading-mode";
 import { FeaturedImage } from "./_components/featured-image";
 import { Metadata } from "next";
-import { PostHeader } from "./_components/post-header";
-import { PostMetadata } from "./_components/post-metadata";
+import PostHeaderDetails from "./_components/post-header-details";
 import { getPostData } from "@/app/actions/get-post-data";
 import { CommentModal } from "./_components/comment-modal";
+import SimilarPosts from "./_components/similar-posts";
 
 const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
   const params = await props.params;
@@ -32,25 +32,20 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
 
   return (
     <>
-      <div className="min-h-screen bg-white dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200 mt-20">
+      <div className="min-h-screen bg-white dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
         <div className="w-full max-w-[2000px] mx-auto">
           <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 mx-auto">
             <div className="mx-auto w-full lg:px-4 lg:py-8">
-              <PostHeader
+              {/* Combined Header and Metadata */}
+              <PostHeaderDetails
                 title={post.title}
                 category={post.category}
                 authorName={post.user?.name}
                 createdAt={post.createdAt}
+                updatedAt={post.updatedAt}
               />
 
               <div className="h-px w-full bg-gray-200 dark:bg-gradient-to-r dark:from-blue-500/50 dark:via-purple-500/50 dark:to-blue-500/50 mb-8" />
-
-              {/* Metadata and Share Section */}
-              <PostMetadata 
-                title={post.title}
-                createdAt={post.createdAt}
-                updatedAt={post.updatedAt}
-              />
 
               {/* Featured Image with Toggle */}
               {post.imageUrl && (
@@ -63,6 +58,13 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
               <div className="mb-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl lg:p-6 border border-gray-200 dark:border-gray-700/50 backdrop-blur-sm">
                 <ReadingModes post={post} />
               </div>
+
+              {/* Similar Posts Section */}
+              <SimilarPosts 
+                postId={params.postId}
+                category={post.category} 
+                useDummyData={true}
+              />
 
               {/* Comments Section */}
               <div className="space-y-8">
