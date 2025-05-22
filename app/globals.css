@@ -312,3 +312,15 @@ body.dragging *::selection {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.6);
 }
+
+/* Add grid pattern background for groups page */
+.bg-grid-pattern {
+  --grid-size: 30px;
+  --dot-size: 1.5px;
+  background-size: var(--grid-size) var(--grid-size);
+  background-image: radial-gradient(
+    circle at center,
+    currentColor var(--dot-size),
+    transparent 0
+  );
+}

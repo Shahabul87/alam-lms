@@ -7,6 +7,7 @@ import { handleCalendarError } from "../_lib/error-handler";
 import { toast } from "sonner";
 import { EventDetailsDialog } from "./event-details-dialog";
 import { EditEventDialog } from "./edit-event-dialog";
+import { ErrorScreen } from "./error-screen";
 
 interface CalendarContainerProps {
   userId: string;
@@ -21,6 +22,7 @@ export const CalendarContainer = ({
 }: CalendarContainerProps) => {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isNewEventOpen, setIsNewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -30,24 +32,45 @@ export const CalendarContainer = ({
   const fetchEvents = useCallback(async () => {
     try {
       setIsLoading(true);
-      const searchParams = new URLSearchParams({
-        userId,
-        ...(filters.dateRange && {
-          date: filters.dateRange.start?.toISOString(),
-        }),
-      });
+      setError(null); // Reset error state
+      
+      // Make sure we have a valid userId
+      if (!userId) {
+        throw new Error("User ID is required");
+      }
 
-      const response = await fetch(`/api/calendar/events?${searchParams}`);
+      // Create a proper query string
+      const searchParams = new URLSearchParams();
+      
+      // Add userId
+      searchParams.append("userId", userId);
+      
+      // Add date range if available
+      if (filters.dateRange && filters.dateRange.start) {
+        searchParams.append("date", filters.dateRange.start.toISOString());
+      }
+
+      // Log the request URL for debugging
+      console.log(`Fetching events from: /api/calendar/events?${searchParams.toString()}`);
+      
+      const response = await fetch(`/api/calendar/events?${searchParams.toString()}`);
       const data = await response.json();
 
       if (!response.ok) {
+        console.error("API response not OK:", data);
         throw new Error(data.error || "Failed to fetch events");
       }
 
       if (data.success) {
+        console.log("Events fetched successfully:", data.data.length);
         setEvents(data.data);
+      } else {
+        console.error("API response indicated failure:", data);
+        throw new Error(data.error || "Failed to fetch events");
       }
     } catch (error) {
+      console.error("Error fetching events:", error);
+      setError(error instanceof Error ? error.message : "Failed to load calendar events");
       handleCalendarError(error);
     } finally {
       setIsLoading(false);
@@ -100,6 +123,10 @@ export const CalendarContainer = ({
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorScreen message={error} onRetry={fetchEvents} />;
   }
 
   return (

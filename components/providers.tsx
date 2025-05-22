@@ -10,48 +10,39 @@ const CustomAuthProvider = ({ children, session }: { children: ReactNode, sessio
   const [safeSession, setSafeSession] = useState(session);
 
   useEffect(() => {
-    // Validate and sanitize the session
-    if (session) {
-      try {
-        // Try to JSON stringify and parse to ensure it's valid
-        const validatedSession = JSON.parse(JSON.stringify(session));
-        setSafeSession(validatedSession);
-      } catch (e) {
-        console.error("Invalid session data:", e);
-        setSafeSession(null); // Use null session if invalid
-      }
-    }
+    // Reset error count when session changes
+    setErrorCount(0);
   }, [session]);
 
   useEffect(() => {
-    // Listen for fetch errors related to auth session
-    const handleError = (event: ErrorEvent) => {
-      if (
-        event.message?.includes('Failed to fetch') || 
-        event.error?.toString()?.includes('Failed to fetch') ||
-        event.message?.includes('json') ||
-        event.message?.includes('JSON')
-      ) {
-        console.error('Session fetch error detected:', event);
+    const handleFetchError = async (event: ErrorEvent) => {
+      if (event.message?.includes('Failed to fetch')) {
         setErrorCount(prev => prev + 1);
         
-        // If we get too many errors, clear the session to prevent infinite loops
-        if (errorCount > 3) {
+        // Implement exponential backoff for retries
+        if (errorCount < 3) {
+          const retryDelay = Math.pow(2, errorCount) * 1000; // 1s, 2s, 4s
+          setTimeout(() => {
+            // Force a session refresh
+            window.location.reload();
+          }, retryDelay);
+        } else {
+          // After 3 retries, clear session and redirect to login
           setSafeSession(null);
+          window.location.href = '/auth/login';
         }
       }
     };
 
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener('error', handleFetchError);
+    return () => window.removeEventListener('error', handleFetchError);
   }, [errorCount]);
 
   return (
     <SessionProvider 
-      session={safeSession} 
-      refetchInterval={0} 
+      session={safeSession}
+      refetchInterval={30 * 60} // Refetch every 30 minutes
       refetchOnWindowFocus={false}
-      refetchWhenOffline={false}
     >
       {children}
     </SessionProvider>

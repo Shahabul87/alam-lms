@@ -45,7 +45,7 @@ export class CalendarSync {
     const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
     
     try {
-      await calendar.events.insert({
+      const response = await calendar.events.insert({
         calendarId: 'primary',
         requestBody: {
           summary: event.title,
@@ -61,8 +61,55 @@ export class CalendarSync {
           },
         },
       });
+
+      return response.data;
     } catch (error) {
       console.error('Failed to export to Google Calendar:', error);
+      throw error;
+    }
+  }
+
+  async updateGoogleEvent(eventId: string, event: any) {
+    const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+    
+    try {
+      const response = await calendar.events.update({
+        calendarId: 'primary',
+        eventId: eventId,
+        requestBody: {
+          summary: event.title,
+          description: event.description,
+          location: event.location,
+          start: {
+            dateTime: event.isAllDay ? undefined : event.startDate,
+            date: event.isAllDay ? event.startDate.split('T')[0] : undefined,
+          },
+          end: {
+            dateTime: event.isAllDay ? undefined : event.endDate,
+            date: event.isAllDay ? event.endDate.split('T')[0] : undefined,
+          },
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update Google Calendar event:', error);
+      throw error;
+    }
+  }
+
+  async deleteGoogleEvent(eventId: string) {
+    const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+    
+    try {
+      await calendar.events.delete({
+        calendarId: 'primary',
+        eventId: eventId,
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to delete Google Calendar event:', error);
       throw error;
     }
   }

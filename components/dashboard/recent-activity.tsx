@@ -1,5 +1,5 @@
-import { formatDistanceToNow } from "date-fns";
 import { Eye, Download, FileText, Calendar } from "lucide-react";
+import { TimeAgo } from "@/app/components/ui/time-ago";
 
 type ActivityType = "view" | "download" | "submission" | "event";
 
@@ -87,7 +87,7 @@ export default function RecentActivity({ activities }: RecentActivityProps) {
                     </p>
                   )}
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                    <TimeAgo date={activity.timestamp} />
                   </p>
                 </div>
               </div>

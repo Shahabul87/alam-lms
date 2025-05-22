@@ -1,61 +1,174 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+// Helper function for safer error responses
+const createErrorResponse = (message: string, status = 500) => {
+  console.error(`[REPLY_REACTIONS_POST] Error: ${message}`);
+  return NextResponse.json(
+    { error: message },
+    { status }
+  );
+};
+
 export async function POST(
-  req: Request,
+  req: NextRequest,
   props: { params: Promise<{ postId: string; replyId: string }> }
 ) {
-  const params = await props.params;
+  // Declare user at the top level of the function
+  let user;
+  
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    // Safe session check
+    try {
+      user = await currentUser();
+      if (!user) {
+        return createErrorResponse("Unauthorized", 401);
+      }
+    } catch (sessionError) {
+      console.error("[REPLY_REACTIONS_POST] Session Error:", sessionError);
+      return createErrorResponse("Authentication error. Please sign in again.", 401);
+    }
+    
+    // Safely parse the request body
+    let type;
+    try {
+      const body = await req.json();
+      type = body.type;
+    } catch (parseError) {
+      console.error("[REPLY_REACTIONS_POST] JSON Parse Error:", parseError);
+      return createErrorResponse("Invalid request format", 400);
     }
 
-    const { type, action } = await req.json();
+    if (!type) {
+      return createErrorResponse("Reaction type is required", 400);
+    }
 
-    // Find existing reaction
-    const existingReaction = await db.replyReaction.findFirst({
+    // Get the params
+    const params = await props.params;
+    const { replyId, postId } = params;
+    
+    // Validate IDs
+    if (!postId || typeof postId !== 'string') {
+      return createErrorResponse("Invalid post ID", 400);
+    }
+    
+    if (!replyId || typeof replyId !== 'string') {
+      return createErrorResponse("Invalid reply ID", 400);
+    }
+
+    console.log("[REPLY_REACTIONS_POST]", { replyId, postId, type, userId: user.id });
+
+    // First verify the post exists
+    const post = await db.post.findUnique({
+      where: { id: postId },
+      select: { id: true }
+    });
+
+    if (!post) {
+      return createErrorResponse("Post not found", 404);
+    }
+
+    // Verify the reply exists and belongs to the post
+    const reply = await db.reply.findFirst({
       where: {
-        userId: session.user.id,
-        replyId: params.replyId,
-        type
+        id: replyId,
+        postId,
+      },
+      include: {
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    if (action === 'remove' && existingReaction) {
-      // Remove reaction (decrement)
-      await db.replyReaction.delete({
-        where: { id: existingReaction.id },
-      });
-      return NextResponse.json({ message: "Reaction removed" });
-    } 
+    if (!reply) {
+      console.log("Reply not found with:", { replyId, postId });
+      return createErrorResponse("Reply not found", 404);
+    }
     
-    if (action === 'add' && !existingReaction) {
-      // Add reaction (increment)
-      const reaction = await db.replyReaction.create({
-        data: {
-          type,
-          userId: session.user.id,
-          replyId: params.replyId,
+    // Store the user ID to ensure it's accessible in the transaction
+    const userId = user.id;
+
+    // Handle the reaction in a transaction
+    const result = await db.$transaction(async (tx) => {
+      // Check for existing reaction
+      const existingReaction = await tx.reaction.findFirst({
+        where: {
+          userId: userId, // Use the variable from outside the transaction
+          replyId: replyId,
+          type: type,
+        },
+      });
+
+      if (existingReaction) {
+        console.log("[REPLY_REACTIONS_POST] Removing existing reaction:", existingReaction.id);
+        // Remove existing reaction
+        await tx.reaction.delete({
+          where: {
+            id: existingReaction.id,
+          },
+        });
+      } else {
+        console.log("[REPLY_REACTIONS_POST] Creating new reaction");
+        // Create new reaction
+        await tx.reaction.create({
+          data: {
+            type,
+            userId: userId, // Use the variable from outside the transaction
+            replyId,
+          },
+        });
+      }
+
+      // Get updated reply with reactions
+      const updatedReply = await tx.reply.findUnique({
+        where: {
+          id: replyId,
         },
         include: {
           user: {
             select: {
               id: true,
               name: true,
-              email: true,
-            }
-          }
-        }
+              image: true,
+            },
+          },
+          reactions: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
       });
-      return NextResponse.json(reaction);
-    }
 
-    return NextResponse.json({ message: "No action taken" });
+      return updatedReply;
+    });
+
+    console.log("[REPLY_REACTIONS_POST] Successfully processed reaction");
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("[REPLY_REACTION_POST]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("[REPLY_REACTIONS_POST] Error:", error);
+    
+    // Provide more specific error messages based on error type
+    if (error instanceof Error) {
+      if (error.message.includes("database") || error.message.includes("prisma")) {
+        return createErrorResponse("Database error. Please try again later.", 500);
+      }
+    }
+    
+    return createErrorResponse("Internal server error", 500);
   }
 } 

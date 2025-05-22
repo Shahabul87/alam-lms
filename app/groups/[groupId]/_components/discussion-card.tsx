@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, ThumbsUp, Share2, MoreVertical, Heart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { TimeAgo } from "@/app/components/ui/time-ago";
 
 interface DiscussionCardProps {
   discussion: any;
@@ -37,7 +37,7 @@ export const DiscussionCard = ({ discussion, currentUser, groupId }: DiscussionC
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Posted by {discussion.author.name} •{" "}
-              {formatDistanceToNow(new Date(discussion.createdAt), { addSuffix: true })}
+              <TimeAgo date={discussion.createdAt} />
             </p>
           </div>
         </div>

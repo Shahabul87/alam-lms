@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,9 +35,11 @@ import {
   CheckCircle,
   Timer,
   Circle,
-  MoreVertical
+  MoreVertical,
+  BellRing,
+  CheckSquare
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInMinutes, differenceInHours, differenceInDays, isValid, parseISO } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,60 +48,57 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-type Task = {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: Date;
-  priority: 'low' | 'medium' | 'high';
-  category: string;
-  completed: boolean;
-  createdAt: Date;
-};
+import { toast } from "sonner";
+import { TaskService } from "@/app/actions/task-service";
+import type { Task } from "@/app/actions/task-service";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TaskPlannerProps {
   userId: string;
+}
+
+// Define a reminder type
+interface ReminderItem {
+  id: string;
+  date: Date | null;
+  type: string | null;
 }
 
 export function TaskPlanner({ userId }: TaskPlannerProps) {
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isEditingTask, setIsEditingTask] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("all");
+  const [isLoading, setIsLoading] = useState(false);
   
-  // This would be replaced with real data from an API
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Complete course outline",
-      description: "Create detailed outline for new web development course",
-      dueDate: new Date(Date.now() + 86400000 * 2), // 2 days from now
-      priority: 'high',
-      category: "Course Planning",
-      completed: false,
-      createdAt: new Date()
-    },
-    {
-      id: "2",
-      title: "Record intro video",
-      description: "Create introduction video for the course",
-      dueDate: new Date(Date.now() + 86400000 * 5), // 5 days from now
-      priority: 'medium',
-      category: "Content Creation",
-      completed: false,
-      createdAt: new Date()
-    },
-    {
-      id: "3",
-      title: "Design slides for module 1",
-      description: "Create presentation slides for the first module",
-      dueDate: new Date(Date.now() + 86400000 * 3), // 3 days from now
-      priority: 'medium',
-      category: "Content Creation",
-      completed: true,
-      createdAt: new Date(Date.now() - 86400000) // 1 day ago
-    }
-  ]);
+  // Task state
+  const [tasks, setTasks] = useState<Task[]>([]);
+  
+  // New task form state
+  const [newTask, setNewTask] = useState<{
+    title: string;
+    description: string;
+    startTime: Date | null;
+    dueDate: Date;
+    priority: 'low' | 'medium' | 'high';
+    category: string;
+    completed: boolean;
+    hasReminder: boolean;
+    reminders: ReminderItem[];
+  }>({
+    title: "",
+    description: "",
+    startTime: null,
+    dueDate: new Date(),
+    priority: "medium",
+    category: "Course Planning",
+    completed: false,
+    hasReminder: false,
+    reminders: []
+  });
   
   // Categories for tasks
   const categories = [
@@ -111,72 +110,450 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
     "Personal"
   ];
   
+  // Reminder types
+  const reminderTypes = [
+    { value: "email", label: "Email" },
+    { value: "push", label: "Push Notification" },
+    { value: "in-app", label: "In-App Alert" }
+  ];
+  
+  // Load tasks on component mount
+  useEffect(() => {
+    loadTasks();
+  }, []);
+  
+  // Load tasks
+  const loadTasks = async () => {
+    try {
+      setIsLoading(true);
+      const taskData = await TaskService.getAllTasks();
+      setTasks(taskData);
+    } catch (error) {
+      console.error("Failed to load tasks:", error);
+      toast.error("Failed to load tasks. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Filter tasks based on the selected tab
   const filteredTasks = tasks.filter(task => {
     if (selectedTab === "all") return true;
     if (selectedTab === "completed") return task.completed;
     if (selectedTab === "due-today") {
       const today = new Date();
+      const dueDate = new Date(task.dueDate);
       return (
         !task.completed && 
-        task.dueDate.getDate() === today.getDate() &&
-        task.dueDate.getMonth() === today.getMonth() &&
-        task.dueDate.getFullYear() === today.getFullYear()
+        dueDate.getDate() === today.getDate() &&
+        dueDate.getMonth() === today.getMonth() &&
+        dueDate.getFullYear() === today.getFullYear()
       );
     }
     if (selectedTab === "upcoming") {
       const today = new Date();
       today.setHours(23, 59, 59, 999);
-      return !task.completed && task.dueDate > today;
+      return !task.completed && new Date(task.dueDate) > today;
     }
     if (selectedTab === "overdue") {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      return !task.completed && task.dueDate < today;
+      return !task.completed && new Date(task.dueDate) < today;
     }
     return true;
   });
   
-  // New task form state
-  const [newTask, setNewTask] = useState<Omit<Task, 'id' | 'createdAt'>>({
-    title: "",
-    description: "",
-    dueDate: new Date(),
-    priority: "medium",
-    category: "Course Planning",
-    completed: false
-  });
-  
-  // Add a new task
-  const handleAddTask = () => {
-    const task: Task = {
-      ...newTask,
-      id: Date.now().toString(),
-      createdAt: new Date()
+  // Handle reminder toggle
+  const handleReminderToggle = (checked: boolean) => {
+    if (checked && newTask.reminders.length === 0) {
+      // If toggling on and no reminders exist, create a default one
+      const defaultReminder: ReminderItem = {
+        id: crypto.randomUUID(),
+        date: new Date(new Date(newTask.dueDate).getTime() - 60 * 60 * 1000), // 1 hour before
+        type: "in-app"
+      };
+      
+      setNewTask({
+        ...newTask,
+        hasReminder: checked,
+        reminders: [defaultReminder]
+      });
+    } else {
+      setNewTask({
+        ...newTask,
+        hasReminder: checked
+      });
+    }
+  };
+
+  // Add a new reminder
+  const addReminder = () => {
+    const newReminder: ReminderItem = {
+      id: crypto.randomUUID(),
+      date: new Date(new Date(newTask.dueDate).getTime() - 60 * 60 * 1000), // 1 hour before
+      type: "in-app"
     };
     
-    setTasks([...tasks, task]);
+    setNewTask({
+      ...newTask,
+      reminders: [...newTask.reminders, newReminder]
+    });
+  };
+  
+  // Remove a reminder
+  const removeReminder = (id: string) => {
+    setNewTask({
+      ...newTask,
+      reminders: newTask.reminders.filter(reminder => reminder.id !== id)
+    });
+  };
+  
+  // Update a reminder date
+  const updateReminderDate = (id: string, dateString: string) => {
+    if (!dateString) return;
+    
+    setNewTask({
+      ...newTask,
+      reminders: newTask.reminders.map(reminder => {
+        if (reminder.id === id) {
+          const currentTime = reminder.date ? formatTimeForInput(reminder.date) : null;
+          const newDate = createDateFromInputs(dateString, currentTime);
+          
+          return {
+            ...reminder,
+            date: newDate
+          };
+        }
+        return reminder;
+      })
+    });
+  };
+  
+  // Update a reminder time
+  const updateReminderTime = (id: string, timeString: string) => {
+    if (!timeString) return;
+    
+    setNewTask({
+      ...newTask,
+      reminders: newTask.reminders.map(reminder => {
+        if (reminder.id === id) {
+          const dateString = reminder.date ? formatDateForInput(reminder.date) : formatDateForInput(new Date());
+          const newDateTime = createDateFromInputs(dateString, timeString);
+          
+          return {
+            ...reminder,
+            date: newDateTime
+          };
+        }
+        return reminder;
+      })
+    });
+  };
+  
+  // Update a reminder type
+  const updateReminderType = (id: string, type: string) => {
+    setNewTask({
+      ...newTask,
+      reminders: newTask.reminders.map(reminder => {
+        if (reminder.id === id) {
+          return {
+            ...reminder,
+            type
+          };
+        }
+        return reminder;
+      })
+    });
+  };
+
+  // Helper function for creating a proper date object from date and time inputs
+  const createDateFromInputs = (dateString: string, timeString: string | null = null) => {
+    if (!dateString) return null;
+    
+    // Create a base date object at noon to avoid timezone issues
+    const baseDate = new Date(`${dateString}T12:00:00`);
+    
+    // If time is provided, update the hours and minutes
+    if (timeString) {
+      const [hours, minutes] = timeString.split(':').map(Number);
+      baseDate.setHours(hours, minutes, 0, 0);
+    }
+    
+    return baseDate;
+  };
+
+  // Helper function to format date for input
+  const formatDateForInput = (date: Date | null) => {
+    if (!date) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Helper function to format time for input
+  const formatTimeForInput = (date: Date | null) => {
+    if (!date) return "";
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // Set task start date and time separately
+  const setTaskStartDate = (dateString: string) => {
+    if (!dateString) {
+      setNewTask(prev => ({ ...prev, startTime: null }));
+      return;
+    }
+    
+    try {
+      // Get current start time if it exists
+      const currentTime = newTask.startTime ? formatTimeForInput(newTask.startTime) : null;
+      const newDate = createDateFromInputs(dateString, currentTime);
+      
+      setNewTask(prev => ({
+        ...prev,
+        startTime: newDate
+      }));
+    } catch (error) {
+      console.error("Error setting start date:", error);
+      toast.error("Error setting date. Please try again.");
+    }
+  };
+  
+  const setTaskStartTime = (timeString: string) => {
+    if (!timeString) return;
+    
+    try {
+      // If there's no start date yet, use today's date
+      const dateString = newTask.startTime ? formatDateForInput(newTask.startTime) : formatDateForInput(new Date());
+      const newDateTime = createDateFromInputs(dateString, timeString);
+      
+      setNewTask(prev => ({
+        ...prev,
+        startTime: newDateTime
+      }));
+    } catch (error) {
+      console.error("Error setting start time:", error);
+      toast.error("Error setting time. Please try again.");
+    }
+  };
+  
+  // Set task due date and time separately
+  const setTaskDueDate = (dateString: string) => {
+    if (!dateString) return;
+    
+    try {
+      // Get current due time if it exists
+      const currentTime = formatTimeForInput(newTask.dueDate);
+      const newDate = createDateFromInputs(dateString, currentTime);
+      
+      setNewTask(prev => ({
+        ...prev,
+        dueDate: newDate
+      }));
+    } catch (error) {
+      console.error("Error setting due date:", error);
+      toast.error("Error setting date. Please try again.");
+    }
+  };
+  
+  const setTaskDueTime = (timeString: string) => {
+    if (!timeString) return;
+    
+    try {
+      const dateString = formatDateForInput(newTask.dueDate);
+      const newDateTime = createDateFromInputs(dateString, timeString);
+      
+      setNewTask(prev => ({
+        ...prev,
+        dueDate: newDateTime
+      }));
+    } catch (error) {
+      console.error("Error setting due time:", error);
+      toast.error("Error setting time. Please try again.");
+    }
+  };
+  
+  // Helper function to calculate and format duration between two dates
+  const calculateDuration = (startDate: Date, endDate: Date) => {
+    const minutes = differenceInMinutes(endDate, startDate);
+    
+    if (minutes < 0) {
+      return "Invalid time range";
+    }
+    
+    if (minutes < 60) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    
+    const hours = differenceInHours(endDate, startDate);
+    if (hours < 24) {
+      const remainingMinutes = minutes % 60;
+      return `${hours} hour${hours !== 1 ? 's' : ''}${remainingMinutes > 0 ? ` ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}` : ''}`;
+    }
+    
+    const days = differenceInDays(endDate, startDate);
+    const remainingHours = hours % 24;
+    return `${days} day${days !== 1 ? 's' : ''}${remainingHours > 0 ? ` ${remainingHours} hour${remainingHours !== 1 ? 's' : ''}` : ''}`;
+  };
+
+  // Reset task form
+  const resetTaskForm = () => {
     setNewTask({
       title: "",
       description: "",
+      startTime: null,
       dueDate: new Date(),
       priority: "medium",
       category: "Course Planning",
-      completed: false
+      completed: false,
+      hasReminder: false,
+      reminders: []
     });
-    setIsNewTaskOpen(false);
+  };
+
+  // Handle dialog open state change
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsNewTaskOpen(open);
+    if (!open) {
+      // Reset form when closing dialog
+      resetTaskForm();
+    }
+  };
+
+  // Helper function to adjust date for timezone
+  const adjustDateForTimezone = (dateString: string) => {
+    // Create a date object from the input string
+    const date = new Date(dateString);
+    // Set the time to noon to avoid timezone issues
+    date.setHours(12, 0, 0, 0);
+    return date;
+  };
+
+  // Add a new task
+  const handleAddTask = async () => {
+    try {
+      // Basic form validation
+      if (!newTask.title.trim()) {
+        toast.error("Please enter a task title");
+        return;
+      }
+      
+      if (!newTask.dueDate) {
+        toast.error("Please select a due date");
+        return;
+      }
+      
+      // Validate start and end time
+      if (newTask.startTime) {
+        const startDate = new Date(newTask.startTime);
+        const dueDate = new Date(newTask.dueDate);
+        
+        if (!isValid(startDate)) {
+          toast.error("Invalid start time");
+          return;
+        }
+        
+        if (startDate > dueDate) {
+          toast.error("Start time cannot be after due date");
+          return;
+        }
+      }
+      
+      if (!isValid(new Date(newTask.dueDate))) {
+        toast.error("Invalid due date");
+        return;
+      }
+      
+      // Validation for reminders
+      if (newTask.hasReminder && newTask.reminders.length > 0) {
+        for (const reminder of newTask.reminders) {
+          if (!reminder.date) {
+            toast.error("Please select a reminder date for all reminders");
+            return;
+          }
+          
+          if (!isValid(new Date(reminder.date))) {
+            toast.error("Invalid reminder date");
+            return;
+          }
+          
+          if (!reminder.type) {
+            toast.error("Please select a reminder type for all reminders");
+            return;
+          }
+          
+          // Optional: warn if reminder is after due date but allow it
+          if (new Date(reminder.date) > new Date(newTask.dueDate)) {
+            toast.warning("One or more reminders are set to occur after the due date");
+            break; // Only show this warning once
+          }
+        }
+      }
+      
+      setIsLoading(true);
+      
+      const createdTask = await TaskService.createTask({
+        title: newTask.title,
+        description: newTask.description,
+        startTime: newTask.startTime,
+        dueDate: newTask.dueDate,
+        priority: newTask.priority,
+        category: newTask.category,
+        hasReminder: newTask.hasReminder,
+        reminders: newTask.reminders.map(r => ({
+          date: r.date,
+          type: r.type
+        }))
+      });
+      
+      setTasks([...tasks, createdTask]);
+      toast.success("Task added successfully!");
+      
+      // Reset form
+      resetTaskForm();
+      setIsNewTaskOpen(false);
+    } catch (error) {
+      console.error("Failed to add task:", error);
+      toast.error("Failed to add task. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Toggle task completion
-  const toggleTaskComplete = (id: string) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+  const toggleTaskComplete = async (id: string, completed: boolean) => {
+    try {
+      setIsLoading(true);
+      const updatedTask = await TaskService.toggleTaskCompletion(id, !completed);
+      
+      setTasks(tasks.map(task => 
+        task.id === id ? updatedTask : task
+      ));
+      
+      toast.success(`Task marked as ${!completed ? 'completed' : 'incomplete'}`);
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      toast.error("Failed to update task. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Delete a task
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+  const deleteTask = async (id: string) => {
+    try {
+      setIsLoading(true);
+      await TaskService.deleteTask(id);
+      setTasks(tasks.filter(task => task.id !== id));
+      toast.success("Task deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      toast.error("Failed to delete task. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Get priority color
@@ -254,143 +631,338 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
           </TabsList>
         </Tabs>
         
-        <Dialog open={isNewTaskOpen} onOpenChange={setIsNewTaskOpen}>
+        <Dialog open={isNewTaskOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 shadow-sm"
+              className="bg-gradient-to-r from-green-600 to-teal-600 text-white hover:from-green-700 hover:to-teal-700"
+              size="sm"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Task
+              <Plus className="h-4 w-4 mr-1" />
+              New Task
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[650px] md:max-w-[750px] w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Task</DialogTitle>
+              <DialogTitle>Add New Task</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <label htmlFor="title" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Task Title
-                </label>
-                <Input
-                  id="title"
-                  value={newTask.title}
-                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  placeholder="What needs to be done?"
-                  className="border-gray-300 dark:border-gray-700"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                </label>
-                <Textarea
-                  id="description"
-                  value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  placeholder="Add details about this task..."
-                  className="border-gray-300 dark:border-gray-700 min-h-[100px]"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <label htmlFor="due-date" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Due Date
-                  </label>
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400 mr-2" />
-                    <input
-                      type="date"
-                      id="due-date"
-                      value={format(newTask.dueDate, 'yyyy-MM-dd')}
-                      onChange={(e) => {
-                        const date = new Date(e.target.value);
-                        setNewTask({ ...newTask, dueDate: date });
-                      }}
-                      className={cn(
-                        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
-                        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                        "border-gray-300 dark:border-gray-700"
-                      )}
-                    />
-                  </div>
+              {/* Task Details Section */}
+              <div className="border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                <div className="flex items-center mb-3">
+                  <CheckSquare className="h-4 w-4 mr-2 text-gray-500" />
+                  <h3 className="font-medium text-sm">Task Details</h3>
                 </div>
                 
-                <div className="grid gap-2">
-                  <label htmlFor="priority" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Priority
-                  </label>
-                  <Select 
-                    value={newTask.priority}
-                    onValueChange={(value) => setNewTask({ 
-                      ...newTask, 
-                      priority: value as 'low' | 'medium' | 'high' 
-                    })}
+                <div className="grid grid-cols-4 items-center gap-4 mb-3">
+                  <Label htmlFor="title" className="text-right">
+                    Title
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder="Task title"
+                    className="col-span-3"
+                    value={newTask.title}
+                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4 mb-3">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Task description (optional)"
+                    className="col-span-3"
+                    value={newTask.description}
+                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4 mb-3">
+                  <Label htmlFor="category" className="text-right">
+                    Category
+                  </Label>
+                  <Select
+                    value={newTask.category}
+                    onValueChange={(value) => setNewTask({ ...newTask, category: value })}
                   >
-                    <SelectTrigger className="border-gray-300 dark:border-gray-700">
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="priority" className="text-right">
+                    Priority
+                  </Label>
+                  <Select
+                    value={newTask.priority}
+                    onValueChange={(value: 'low' | 'medium' | 'high') => 
+                      setNewTask({ ...newTask, priority: value })
+                    }
+                  >
+                    <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
-                          <span>Low</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="medium">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 rounded-full bg-amber-500 mr-2"></div>
-                          <span>Medium</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="high">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
-                          <span>High</span>
-                        </div>
-                      </SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               
-              <div className="grid gap-2">
-                <label htmlFor="category" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Category
-                </label>
-                <Select 
-                  value={newTask.category}
-                  onValueChange={(value) => setNewTask({ ...newTask, category: value })}
-                >
-                  <SelectTrigger className="border-gray-300 dark:border-gray-700">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(category => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Task Timing Section */}
+              <div className="border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                    <h3 className="font-medium text-sm">Task Timing</h3>
+                  </div>
+                </div>
+                
+                <div className="grid gap-6">
+                  {/* Start Date and Time - Separate controls */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                      Start Date & Time (Optional)
+                    </Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="relative">
+                        <div className="border rounded-md flex items-center overflow-hidden focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-white dark:bg-gray-800">
+                          <input
+                            type="date"
+                            className="flex-1 py-2 px-3 focus:outline-none bg-transparent"
+                            value={newTask.startTime ? formatDateForInput(newTask.startTime) : ""}
+                            onChange={(e) => setTaskStartDate(e.target.value)}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Set start date</p>
+                      </div>
+                      <div className="relative">
+                        <div className="border rounded-md flex items-center overflow-hidden focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-white dark:bg-gray-800">
+                          <input
+                            type="time"
+                            className="flex-1 py-2 px-3 focus:outline-none bg-transparent"
+                            value={newTask.startTime ? formatTimeForInput(newTask.startTime) : ""}
+                            onChange={(e) => setTaskStartTime(e.target.value)}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Set start time</p>
+                      </div>
+                    </div>
+                    {!newTask.startTime && (
+                      <p className="text-xs text-gray-500 italic">Leave blank for tasks without a specific start time</p>
+                    )}
+                  </div>
+
+                  {/* Due Date and Time - Separate controls */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-red-500" />
+                      Due Date & Time
+                    </Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="relative">
+                        <div className="border rounded-md flex items-center overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-white dark:bg-gray-800">
+                          <input
+                            type="date"
+                            className="flex-1 py-2 px-3 focus:outline-none bg-transparent"
+                            value={formatDateForInput(newTask.dueDate)}
+                            onChange={(e) => setTaskDueDate(e.target.value)}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Set due date</p>
+                      </div>
+                      <div className="relative">
+                        <div className="border rounded-md flex items-center overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-white dark:bg-gray-800">
+                          <input
+                            type="time"
+                            className="flex-1 py-2 px-3 focus:outline-none bg-transparent"
+                            value={formatTimeForInput(newTask.dueDate)}
+                            onChange={(e) => setTaskDueTime(e.target.value)}
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Set due time</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500">This task is due on {format(newTask.dueDate, "PPPP")} at {format(newTask.dueDate, "h:mm a")}</p>
+                  </div>
+                  
+                  {/* Duration info - shows calculated duration between start and end time */}
+                  {newTask.startTime && (
+                    <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 p-3 flex items-center text-blue-600 dark:text-blue-300">
+                      <Timer className="h-4 w-4 mr-2" />
+                      <span className="text-sm font-medium">
+                        Duration: {calculateDuration(newTask.startTime, newTask.dueDate)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Reminder Section Redesigned */}
+              <div className="border rounded-md p-4 bg-gray-50 dark:bg-gray-900/20">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <BellRing className="h-4 w-4 mr-2 text-gray-500" />
+                    <h3 className="font-medium text-sm">Reminders</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">
+                      {newTask.hasReminder ? "Enabled" : "Disabled"}
+                    </span>
+                    <Switch 
+                      checked={newTask.hasReminder}
+                      onCheckedChange={handleReminderToggle}
+                    />
+                  </div>
+                </div>
+                
+                {newTask.hasReminder && (
+                  <div className="border rounded-md p-4 bg-white dark:bg-gray-800 space-y-5 mt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Reminder Schedule</h4>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 text-xs gap-1 border-dashed"
+                        onClick={addReminder}
+                      >
+                        <Plus className="h-3 w-3" /> Add Reminder
+                      </Button>
+                    </div>
+                    
+                    {newTask.reminders.length === 0 ? (
+                      <div className="text-center p-4 border border-dashed rounded-md">
+                        <p className="text-sm text-gray-500">No reminders yet. Add your first reminder.</p>
+                      </div>
+                    ) : (
+                      <ScrollArea className={newTask.reminders.length > 2 ? "h-[300px]" : ""}>
+                        <div className="space-y-4">
+                          {newTask.reminders.map((reminder, index) => (
+                            <div key={reminder.id} className="border rounded-md p-3 bg-gray-50 dark:bg-gray-900/20">
+                              <div className="flex justify-between items-center mb-3">
+                                <h5 className="text-sm font-medium flex items-center">
+                                  <BellRing className="h-3.5 w-3.5 mr-2 text-purple-500" />
+                                  Reminder #{index + 1}
+                                </h5>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 rounded-full"
+                                  onClick={() => removeReminder(reminder.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                  <span className="sr-only">Remove</span>
+                                </Button>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                <div className="relative">
+                                  <div className="border rounded-md flex items-center overflow-hidden focus-within:ring-1 focus-within:ring-purple-500 focus-within:border-purple-500 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-white dark:bg-gray-800">
+                                    <input
+                                      type="date"
+                                      className="flex-1 py-2 px-3 focus:outline-none bg-transparent"
+                                      value={reminder.date ? formatDateForInput(reminder.date) : ""}
+                                      onChange={(e) => updateReminderDate(reminder.id, e.target.value)}
+                                    />
+                                  </div>
+                                  <p className="mt-1 text-xs text-gray-500">Set reminder date</p>
+                                </div>
+                                <div className="relative">
+                                  <div className="border rounded-md flex items-center overflow-hidden focus-within:ring-1 focus-within:ring-purple-500 focus-within:border-purple-500 hover:border-gray-300 dark:hover:border-gray-600 transition-colors bg-white dark:bg-gray-800">
+                                    <input
+                                      type="time"
+                                      className="flex-1 py-2 px-3 focus:outline-none bg-transparent"
+                                      value={reminder.date ? formatTimeForInput(reminder.date) : ""}
+                                      onChange={(e) => updateReminderTime(reminder.id, e.target.value)}
+                                    />
+                                  </div>
+                                  <p className="mt-1 text-xs text-gray-500">Set reminder time</p>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <Label className="text-xs text-gray-500">Notification Type</Label>
+                                <RadioGroup 
+                                  className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                                  value={reminder.type || ""}
+                                  onValueChange={(value) => updateReminderType(reminder.id, value)}
+                                >
+                                  {reminderTypes.map((type) => (
+                                    <div 
+                                      key={type.value} 
+                                      className={cn(
+                                        "flex items-center gap-2 border rounded-md p-2 cursor-pointer transition-all",
+                                        "hover:bg-gray-50 dark:hover:bg-gray-700",
+                                        reminder.type === type.value ? 
+                                          "border-purple-500 bg-purple-50 dark:bg-purple-900/20" : 
+                                          "border-gray-200 dark:border-gray-700"
+                                      )}
+                                      onClick={() => updateReminderType(reminder.id, type.value)}
+                                    >
+                                      <RadioGroupItem value={type.value} id={`${reminder.id}-${type.value}`} className="text-purple-500" />
+                                      <Label 
+                                        htmlFor={`${reminder.id}-${type.value}`} 
+                                        className="cursor-pointer text-xs font-medium"
+                                      >
+                                        {type.label}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </RadioGroup>
+                              </div>
+                              
+                              {reminder.date && newTask.dueDate && (
+                                <div className="mt-3 text-xs text-gray-500">
+                                  {new Date(reminder.date) < new Date(newTask.dueDate) 
+                                    ? `This reminder will notify you ${calculateDuration(reminder.date, newTask.dueDate)} before the deadline`
+                                    : "Warning: This reminder is set after the due date"}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsNewTaskOpen(false)}
-                className="border-gray-300 dark:border-gray-700"
-              >
+              <Button variant="outline" onClick={() => setIsNewTaskOpen(false)}>
                 Cancel
               </Button>
               <Button 
                 onClick={handleAddTask} 
-                disabled={!newTask.title || !newTask.dueDate}
-                className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+                className={cn(
+                  "text-white",
+                  isLoading 
+                    ? "bg-gray-500 cursor-not-allowed" 
+                    : "bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                )}
+                disabled={!newTask.title || !newTask.dueDate || isLoading}
               >
-                Create Task
+                {isLoading ? (
+                  <div className="flex items-center gap-1">
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1"></span>
+                    Adding...
+                  </div>
+                ) : (
+                  <>Add Task</>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -399,137 +971,142 @@ export function TaskPlanner({ userId }: TaskPlannerProps) {
       
       {/* Task List */}
       <div className="space-y-4">
-        {filteredTasks.length === 0 ? (
-          <Card className="bg-white/60 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700">
-            <CardContent className="pt-6 text-center">
-              <div className="rounded-full mx-auto bg-gray-100 dark:bg-gray-700 w-12 h-12 flex items-center justify-center mb-3">
-                <CheckCircle className="h-6 w-6 text-gray-400 dark:text-gray-500" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">No tasks found</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {selectedTab === "all" 
-                  ? "Create your first task to get started" 
-                  : `No tasks in "${selectedTab}" category`}
-              </p>
-              {selectedTab !== "all" && (
-                <Button 
-                  variant="link" 
-                  className="mt-2 text-blue-600 dark:text-blue-400 p-0 h-auto"
-                  onClick={() => setSelectedTab("all")}
-                >
-                  View all tasks
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          filteredTasks.map(task => (
-            <motion.div 
-              key={task.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
+        {isLoading && tasks.length === 0 ? (
+          <div className="flex justify-center items-center h-40">
+            <p className="text-gray-500 dark:text-gray-400">Loading tasks...</p>
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="flex flex-col justify-center items-center h-40 space-y-2">
+            <CheckCircle className="h-12 w-12 text-gray-300 dark:text-gray-700" />
+            <p className="text-gray-500 dark:text-gray-400">No tasks found</p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsNewTaskOpen(true)}
             >
-              <Card 
-                className={cn(
-                  "bg-white/60 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700",
-                  task.completed && "bg-gray-50/60 dark:bg-gray-900/60"
-                )}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <Checkbox 
-                        id={`task-${task.id}`}
-                        checked={task.completed}
-                        onCheckedChange={() => toggleTaskComplete(task.id)}
-                        className="mt-1 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                      />
-                      <div className="space-y-1">
-                        <div className="flex items-center">
-                          <label 
-                            htmlFor={`task-${task.id}`}
-                            className={cn(
-                              "font-medium cursor-pointer",
-                              task.completed 
-                                ? "text-gray-400 dark:text-gray-500 line-through" 
-                                : "text-gray-800 dark:text-gray-200"
-                            )}
-                          >
-                            {task.title}
-                          </label>
-                          <div className={cn(
-                            "ml-2 text-xs px-2 py-0.5 rounded-full",
-                            getPriorityColor(task.priority, true),
-                            getPriorityColor(task.priority)
-                          )}>
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                          </div>
-                        </div>
-                        
-                        {task.description && (
-                          <p className={cn(
-                            "text-sm",
-                            task.completed 
-                              ? "text-gray-400 dark:text-gray-500" 
-                              : "text-gray-600 dark:text-gray-400"
-                          )}>
-                            {task.description}
-                          </p>
-                        )}
-                        
-                        <div className="flex items-center gap-3 text-xs">
-                          <div className="flex items-center">
-                            <Calendar className="h-3 w-3 mr-1 text-gray-500 dark:text-gray-400" />
-                            <span className={
-                              new Date() > task.dueDate && !task.completed
-                                ? "text-red-600 dark:text-red-400 font-medium"
-                                : "text-gray-500 dark:text-gray-400"
-                            }>
-                              {format(task.dueDate, 'MMM d, yyyy')}
-                            </span>
-                          </div>
-                          <div className="flex items-center">
-                            <Tag className="h-3 w-3 mr-1 text-gray-500 dark:text-gray-400" />
-                            <span className="text-gray-500 dark:text-gray-400">
-                              {task.category}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+              <Plus className="h-4 w-4 mr-1" />
+              Add your first task
+            </Button>
+          </div>
+        ) : (
+          filteredTasks.map((task) => (
+            <div
+              key={task.id}
+              className={cn(
+                "p-4 rounded-lg border transition-all",
+                task.completed 
+                  ? "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800" 
+                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm"
+              )}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-3 flex-1">
+                  <Checkbox 
+                    checked={task.completed}
+                    onCheckedChange={() => toggleTaskComplete(task.id, task.completed)}
+                    className="mt-1"
+                  />
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className={cn(
+                        "font-medium",
+                        task.completed && "line-through text-gray-500 dark:text-gray-400"
+                      )}>
+                        {task.title}
+                      </h3>
                     </div>
                     
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="flex items-center"
-                          onClick={() => {
-                            // This would open the edit task modal
-                            console.log("Edit task", task.id);
-                          }}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>Edit</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="flex items-center text-red-600 focus:text-red-600"
-                          onClick={() => deleteTask(task.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {task.description && (
+                      <p className={cn(
+                        "text-sm text-gray-600 dark:text-gray-400",
+                        task.completed && "line-through text-gray-400 dark:text-gray-500"
+                      )}>
+                        {task.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <div className={cn(
+                        "flex items-center text-xs rounded-full px-2 py-1",
+                        task.completed 
+                          ? "bg-gray-100 dark:bg-gray-800 text-gray-500" 
+                          : getPriorityColor(task.priority, true)
+                      )}>
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        <span className={task.completed ? "text-gray-500" : getPriorityColor(task.priority)}>
+                          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                        </span>
+                      </div>
+                      
+                      <div className={cn(
+                        "flex items-center text-xs rounded-full px-2 py-1",
+                        "bg-gray-100 dark:bg-gray-800 text-gray-500"
+                      )}>
+                        <Tag className="h-3 w-3 mr-1" />
+                        <span>{task.category}</span>
+                      </div>
+                      
+                      {task.startTime && (
+                        <div className={cn(
+                          "flex items-center text-xs rounded-full px-2 py-1",
+                          "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                        )}>
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>Start: {format(new Date(task.startTime), "MMM d, h:mm a")}</span>
+                        </div>
+                      )}
+                      
+                      <div className={cn(
+                        "flex items-center text-xs rounded-full px-2 py-1",
+                        "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                      )}>
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>End: {format(new Date(task.dueDate), "MMM d, h:mm a")}</span>
+                      </div>
+                      
+                      {task.hasReminder && (
+                        <div className={cn(
+                          "flex items-center text-xs rounded-full px-2 py-1",
+                          "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                        )}>
+                          <BellRing className="h-3 w-3 mr-1" />
+                          <span>Reminder set</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsEditingTask(task.id)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toggleTaskComplete(task.id, task.completed)}>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Mark as {task.completed ? 'incomplete' : 'complete'}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => deleteTask(task.id)}
+                      className="text-red-600 dark:text-red-400"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           ))
         )}
       </div>

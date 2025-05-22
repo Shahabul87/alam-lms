@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, BookOpen, Users, Star, BarChart, Play } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { TimeAgo } from "@/app/components/ui/time-ago";
 
 interface CourseCardProps {
   course: any;
@@ -14,10 +14,8 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
   // Default image if none provided
   const imageUrl = course.imageUrl || "/images/course-placeholder.jpg";
   
-  // Format date
-  const dateText = isEnrolled 
-    ? `Enrolled ${formatDistanceToNow(new Date(course.enrolledAt), { addSuffix: true })}`
-    : `Created ${formatDistanceToNow(new Date(course.createdAt), { addSuffix: true })}`;
+  // Format date text
+  const datePrefix = isEnrolled ? "Enrolled " : "Created ";
   
   // Determine the link based on course type and publication status
   const courseLink = isEnrolled
@@ -133,7 +131,10 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
               <span className="truncate">{course.instructor.name}</span>
             </div>
           )}
-          <div className="text-xs text-gray-500 mt-1">{dateText}</div>
+          <div className="text-xs text-gray-500 mt-1">
+            {datePrefix} 
+            <TimeAgo date={isEnrolled ? course.enrolledAt : course.createdAt} />
+          </div>
         </div>
         
         {/* Progress Bar (for enrolled courses) */}

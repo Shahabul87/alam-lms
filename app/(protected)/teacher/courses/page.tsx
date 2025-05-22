@@ -33,10 +33,14 @@ const CoursesPage = async () => {
     },
   });
 
+  // Get course stats
+  const publishedCount = courses.filter(course => course.isPublished).length;
+  const draftCount = courses.length - publishedCount;
+
   return (
     <div className={cn(
       "min-h-screen",
-      "bg-gray-50 dark:bg-gray-900",
+      "bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800",
       "transition-colors duration-300"
     )}>
       <div className={cn(
@@ -45,7 +49,14 @@ const CoursesPage = async () => {
         "py-6 sm:py-8 lg:py-12",
         "max-w-[2000px]"
       )}>
-        <CoursesDashboard courses={courses} />
+        <CoursesDashboard 
+          courses={courses}
+          stats={{
+            total: courses.length,
+            published: publishedCount,
+            draft: draftCount
+          }}
+        />
       </div>
     </div>
   );

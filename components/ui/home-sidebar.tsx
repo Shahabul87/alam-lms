@@ -88,7 +88,6 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       title: "Dashboard",
       icon: <IconDashboard className="w-5 h-5" />,
       href: user?.role === "ADMIN" ? "/dashboard/admin" : (user ? "/dashboard/user" : "/"),
-      submenu: getDashboardMenuItems(),
     },
     {
       title: "Profile Manager",
@@ -106,7 +105,6 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       submenu: [
         { label: "My Courses", href: "/my-courses" },
         { label: "All Courses", href: "/teacher/courses" },
-        { label: "Browse Courses", href: "/teacher/courses" },
         { label: "Create Course", href: "/teacher/create" },
       ],
     },
@@ -114,20 +112,15 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       title: "Posts",
       icon: <IconNews className="w-5 h-5" />,
       submenu: [
-        { label: "My Posts", href: "/my-posts" },
-        { label: "All Posts", href: "/teacher/allposts" },
-        { label: "Browse Posts", href: "/posts/browse" },
-        { label: "Create Post", href: "/teacher/createblog" },
+        { label: "My Posts", href: "/post/all-posts" },
+        { label: "Browse Posts", href: "/post" },
+        { label: "Create Post", href: "/post/create-post" },
       ],
     },
     {
       title: "Analytics",
       icon: <IconChartBar className="w-5 h-5" />,
-      submenu: [
-        { label: "Student Analytics", href: "/analytics/student" },
-        { label: "Teacher Analytics", href: "/analytics/teacher" },
-        { label: "Admin Analytics", href: "/analytics/admin" },
-      ],
+      href: user?.role === "ADMIN" ? "/analytics/admin" : "/analytics/student",
     },
     {
       title: "Groups",
@@ -138,11 +131,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
         { label: "Create Group", href: "/groups/create" },
       ],
     },
-    {
-      title: "Calendar",
-      icon: <IconCalendar className="w-5 h-5" />,
-      href: "/calendar",
-    },
+  
     {
       title: "Support",
       icon: <IconHelpCircle className="w-5 h-5" />,
@@ -203,7 +192,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
       <motion.div
         initial={false}
         animate={{ 
-          width: (open || (!isMobile && isHovered)) ? "280px" : "80px",
+          width: (open || (!isMobile && isHovered)) ? "280px" : "94px",
           x: isMobile && !open ? "-100%" : 0 
         }}
         onMouseEnter={handleMouseEnter}

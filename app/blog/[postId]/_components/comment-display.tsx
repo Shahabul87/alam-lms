@@ -30,6 +30,7 @@ import { CommentHeader } from "./comments/comment-header";
 import { CommentContent } from "./comments/comment-content";
 import { CommentActions } from "./comments/comment-actions";
 import { CommentReplies } from "./comments/comment-replies";
+import { NestedComment } from "./comments/nested-comment";
 
 // Define the component props with replies as a separate field on initialData
 interface ReplyType {
@@ -61,30 +62,43 @@ interface CommentDisplayProps {
   initialData: Post & {
     comments: Array<{
       id: string;
-      createdAt: Date;
+      content: string;
       userId: string;
-      comments: string | null;
-      likes: number;
-      loves: number;
-      postId: string;
-      likedBy: string[];
-      lovedBy: string[];
+      createdAt: Date;
       user: {
         id: string;
-        name: string | null;
+        name: string;
         image: string | null;
-        email: string | null;
       };
       reactions: Array<{
         id: string;
         type: string;
+        userId: string;
         user: {
           id: string;
           name: string | null;
-          email: string | null;
         };
       }>;
-      replies: ReplyType[];
+      replies: Array<{
+        id: string;
+        content: string;
+        userId: string;
+        createdAt: Date;
+        user: {
+          id: string;
+          name: string;
+          image: string | null;
+        };
+        reactions: Array<{
+          id: string;
+          type: string;
+          userId: string;
+          user: {
+            id: string;
+            name: string | null;
+          };
+        }>;
+      }>;
     }>;
   };
   postId: string;
@@ -190,442 +204,129 @@ const CommentDisplay: React.FC<CommentDisplayProps> = ({ initialData, postId }) 
   const router = useRouter();
   const { data: session } = useSession();
   const [comments, setComments] = useState(initialData.comments);
-  const [reply, setReply] = useState(initialData.comments.flatMap(comment => comment.replies) || []);
-  const [activeReply, setActiveReply] = useState<string | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [selectedReaction, setSelectedReaction] = useState<Record<string, string>>({});
-  const [selectedReplyReaction, setSelectedReplyReaction] = useState<Record<string, string>>({});
-  const [activeNestedReply, setActiveNestedReply] = useState<{
-    commentId: string;
-    replyId: string;
-  } | null>(null);
-  const [replyModalOpen, setReplyModalOpen] = useState(false);
-  const [activeComment, setActiveComment] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      replyContent: "",
-    },
-  });
+  const handleSubmitComment = async () => {
+    if (!session?.user) {
+      toast.error("Please sign in to comment");
+      return;
+    }
 
-  const nestedReplyForm = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      replyContent: "",
-    },
-  });
+    if (!newComment.trim()) {
+      toast.error("Comment cannot be empty");
+      return;
+    }
 
-  const { isSubmitting, isValid } = form.formState;
-
-  const toggleEmojiPicker = () => setShowEmojiPicker((current) => !current);
-
-  const getReactionCount = (reactions: Array<{ type: string }>, type: string) =>
-    reactions.filter((reaction) => reaction.type === type).length;
-
-  const onSubmit = async (values: z.infer<typeof formSchema>, commentId: string) => {
+    setIsSubmitting(true);
     try {
-      // Make sure we're sending the correct data structure
-      const response = await axios.post(`/api/posts/${postId}/comments/${commentId}/replies`, {
-        content: values.replyContent, // Changed from replyContent to content
-        postId: postId,
-        commentId: commentId,
+      console.log("Creating comment for post:", postId);
+      const response = await axios.post(`/api/posts/${postId}/comments`, {
+        content: newComment,
       });
 
-      if (response.data) {
-        // Update the local state with the new reply
-        setComments(prevComments => 
-          prevComments.map(comment => {
-            if (comment.id === commentId) {
-              return {
-                ...comment,
-                replies: Array.isArray(comment.replies) 
-                  ? [...comment.replies, response.data]
-                  : [response.data]
-              };
-            }
-            return comment;
-          })
-        );
-
-        toast.success("Reply added successfully");
-        form.reset();
-        setReplyModalOpen(false);
-        setActiveComment(null);
-        router.refresh(); // Refresh the page to get updated data
-      }
-    } catch (error) {
-      console.error("Error adding reply:", error);
-      toast.error("Failed to add reply");
-    }
-  };
-
-  const handleReactionSelect = (emoji: string) => {
-    const currentReply = form.getValues("replyContent");
-    form.setValue("replyContent", `${currentReply} ${emoji}`);
-    setShowEmojiPicker(false);
-  };
-
-  const reactions = [
-    {
-      type: "👍",
-      name: "THUMBSUP",
-      color: "blue",
-      label: "Like",
-      activeClass: "bg-blue-500/10 text-blue-500 dark:text-blue-400",
-      hoverClass: "hover:bg-blue-500/5 hover:text-blue-600 dark:hover:text-blue-300"
-    },
-    {
-      type: "❤️",
-      name: "HEART",
-      color: "red",
-      label: "Love",
-      activeClass: "bg-red-500/10 text-red-500 dark:text-red-400",
-      hoverClass: "hover:bg-red-500/5 hover:text-red-600 dark:hover:text-red-300"
-    }
-  ];
-
-  const handleReplyReaction = async (
-    postId: string, 
-    replyId: string, 
-    type: string, 
-    reply: ReplyType,  // Changed from Reply to ReplyType
-    session: any
-  ) => {
-    try {
-      const hasReaction = reply.reactions.some(
-        r => r.user?.id === session?.user?.id && r.type === type
-      );
+      const newCommentData = response.data;
+      console.log("New comment created:", newCommentData);
       
-      const action = hasReaction ? 'remove' : 'add';
-      const response = await axios.post(
-        `/api/posts/${postId}/replies/${replyId}/reactions`,
-        { type, action }
-      );
-
-      if (response.status === 200) {
-        router.refresh();
-        if (action === 'add') {
-          toast.success('Reaction added');
-        } else {
-          toast.success('Reaction removed');
-        }
-      }
+      setComments((prev) => [newCommentData, ...prev]);
+      setNewComment("");
+      toast.success("Comment added successfully!");
     } catch (error) {
-      toast.error('Failed to add/remove reaction');
+      console.error("Error creating comment:", error);
+      toast.error("Failed to add comment");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const RenderReply = ({ 
-    reply, 
-    commentId, 
-    level = 0 
-  }: { 
-    reply: ReplyType; 
-    commentId: string;
-    level?: number;
-  }) => {
-    if (!reply) return null;  // Add this check
-
-    return (
-      <div 
-        className="space-y-4"
-        style={{ marginLeft: level > 0 ? `${level * 2}rem` : undefined }}
-      >
-        <div className="bg-gray-900/30 rounded-lg border border-gray-700/30 p-4 backdrop-blur-sm 
-          transition-all duration-300 hover:bg-gray-900/50">
-          <div className="flex items-center gap-3 mb-2">
-            <Image
-              src={reply.user?.image || "/default-avatar.png"}
-              alt={reply.user?.name || "Anonymous"}
-              width={32}
-              height={32}
-              className="rounded-full ring-1 ring-blue-500/20"
-            />
-            <div>
-              <span className="font-medium text-base bg-gradient-to-r from-blue-100 to-blue-300 bg-clip-text text-transparent">
-                {reply.user?.name || "Anonymous"}
-              </span>
-              <p className="text-gray-300 text-sm leading-relaxed tracking-wide font-light mt-1">
-                {reply.content}
-              </p>
-            </div>
-          </div>
-
-          {/* Reply Actions */}
-          <div className="flex items-center gap-3 mt-3">
-            {reactions.map(({ type, name, label, activeClass, hoverClass }) => (
-              <motion.button
-                key={type}
-                onClick={() => handleReplyReaction(postId, reply.id, name, reply, session)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-full",
-                  "font-medium text-sm",
-                  "transition-all duration-300",
-                  "border border-transparent",
-                  reply.reactions.some(r => r.user?.id === session?.user?.id && r.type === name)
-                    ? activeClass
-                    : cn(
-                        "text-gray-600 dark:text-gray-400",
-                        hoverClass,
-                        "hover:border-gray-200 dark:hover:border-gray-700"
-                      )
-                )}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.span
-                  className="text-lg"
-                  whileHover={{ scale: 1.2 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  {type}
-                </motion.span>
-                <span className="relative top-px">
-                  {label}
-                  {reply.reactions.filter(r => r.type === name).length > 0 && (
-                    <span className="ml-1 text-xs">
-                      {reply.reactions.filter(r => r.type === name).length}
-                    </span>
-                  )}
-                </span>
-              </motion.button>
-            ))}
-
-            {/* Reply button for nested replies */}
-            {level < 3 && ( // Limit nesting depth
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                onClick={() => setActiveNestedReply({
-                  commentId,
-                  replyId: reply.id
-                })}
-              >
-                Reply
-              </motion.button>
-            )}
-          </div>
-
-          {/* Nested Reply Form */}
-          {activeNestedReply?.replyId === reply.id && (
-            <div className="mt-4">
-              <Form {...nestedReplyForm}>
-                <form
-                  onSubmit={nestedReplyForm.handleSubmit((values) => 
-                    onNestedReplySubmit(values, commentId, reply.id)
-                  )}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={nestedReplyForm.control}
-                    name="replyContent"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            disabled={isSubmitting}
-                            placeholder="Write your reply..."
-                            className="bg-gray-900/50 border-gray-700/50 text-gray-200 focus:border-blue-500/50 focus:ring-blue-500/20 
-                              placeholder:text-gray-500 transition-all"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      onClick={() => setActiveNestedReply(null)}
-                      variant="ghost"
-                      className="text-gray-400 hover:text-gray-300"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      disabled={!nestedReplyForm.formState.isValid || isSubmitting}
-                      type="submit"
-                      className="bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 
-                        hover:text-blue-200 transition-all duration-200 
-                        border border-blue-500/20"
-                    >
-                      Reply
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </div>
-          )}
-
-          {/* Render child replies */}
-          {reply.childReplies && reply.childReplies.length > 0 && (
-            <div className="mt-4">
-              {reply.childReplies.map((childReply) => (
-                <RenderReply
-                  key={childReply.id}
-                  reply={childReply}
-                  commentId={commentId}
-                  level={level + 1}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const onNestedReplySubmit = async (
-    values: NestedReplyValues,
-    commentId: string,
-    parentReplyId: string
-  ) => {
-    try {
-      const response = await axios.post(
-        `/api/posts/${postId}/comments/${commentId}/replies`,
-        {
-          ...values,
-          parentReplyId,
-        }
-      );
-
-      // Update the reply state to include the new nested reply
-      setReply((prevReplies) => [
-        ...prevReplies,
-        {
-          ...response.data,
-          user: response.data.user,
-          reactions: [],
-          childReplies: []
-        }
-      ]);
-
-      toast.success("Reply added");
-      setActiveNestedReply(null);
-      nestedReplyForm.reset();
-      router.refresh();
-    } catch (error) {
-      console.error("Error adding nested reply:", error);
-      toast.error("Something went wrong");
-    }
-  };
-
-  const handleReaction = async (commentId: string, reactionType: string) => {
-    const user = await currentUser();
-
-    if (!user?.id) {
-      toast.error("You must be logged in to react");
+  const handleReply = async (commentId: string, content: string, parentId?: string) => {
+    if (!session?.user) {
+      toast.error("Please sign in to reply");
       return;
     }
 
     try {
-      const response = await axios.post(`/api/posts/${postId}/comments/${commentId}/reactions`, {
-        type: reactionType,
-        user: {
-          id: user.id as string,
-          name: user.name || null,
-          email: user.email || null
-        }
+      console.log("Creating reply for comment:", { commentId, postId });
+      const response = await axios.post(`/api/posts/${postId}/comments/${commentId}/replies`, {
+        content,
+        parentId
       });
 
-      // Update local state
-      setComments(comments.map(comment => {
+      const newReply = response.data;
+      console.log("New reply created:", newReply);
+      
+      setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
-          if (response.data.action === 'remove') {
-            // Remove the reaction (decrement)
-            comment.reactions = comment.reactions.filter(
-              r => !(r.user.id === (user.id as string) && r.type === reactionType)
-            );
-          } else {
-            // Add new reaction (increment)
-            comment.reactions.push({
-              id: Date.now().toString(),
-              type: reactionType,
-              user: {
-                id: user.id as string,
-                name: user.name || null,
-                email: user.email || null
-              }
-            });
-          }
+          return {
+            ...comment,
+            replies: [...(comment.replies || []), newReply]
+          };
         }
         return comment;
       }));
 
-      router.refresh();
+      toast.success("Reply added successfully!");
     } catch (error) {
-      console.error("Error adding reaction:", error);
-      toast.error("Something went wrong");
+      console.error("Error creating reply:", error);
+      toast.error("Failed to add reply");
     }
   };
 
-  // Add this effect to sync comments with initialData
-  useEffect(() => {
-    setComments(initialData.comments);
-  }, [initialData.comments]);
+  const handleReaction = async (commentId: string, reactionType: string) => {
+    if (!session?.user) {
+      toast.error("Please sign in to react");
+      return;
+    }
+
+    try {
+      console.log("Adding reaction:", { commentId, postId, reactionType });
+      const response = await axios.post(`/api/posts/${postId}/comments/${commentId}/reactions`, {
+        type: reactionType
+      });
+
+      const updatedComment = response.data;
+      console.log("Updated comment with reaction:", updatedComment);
+      
+      setComments(prev => prev.map(comment => {
+        if (comment.id === commentId) {
+          return updatedComment;
+        }
+        return comment;
+      }));
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      toast.error("Failed to add reaction");
+    }
+  };
 
   return (
-    <div className="max-w-[800px] mx-auto">
+    <div className="space-y-8">
+      {/* New comment input */}
+      <div className="space-y-4">
+        <Textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Write a comment..."
+          className="min-h-[100px]"
+        />
+        <Button
+          onClick={handleSubmitComment}
+          disabled={isSubmitting || !newComment.trim()}
+        >
+          Post Comment
+        </Button>
+      </div>
+
+      {/* Comments list */}
       <div className="space-y-6">
         {comments.map((comment) => (
-          <div key={comment.id} className="group">
-            <CommentHeader 
-              userImage={comment.user?.image}
-              userName={comment.user?.name}
-              createdAt={comment.createdAt}
-            />
-
-            <CommentContent content={comment.comments || ""} />
-
-            <CommentActions 
-              comment={comment}
-              session={session}
-              postId={postId}
-              onReplyClick={() => {
-                setActiveComment(comment.id);
-                setReplyModalOpen(true);
-              }}
-            />
-
-            <ReplyModal
-              isOpen={replyModalOpen && activeComment === comment.id}
-              onClose={() => {
-                setReplyModalOpen(false);
-                setActiveComment(null);
-                form.reset();
-              }}
-              onSubmit={(values) => onSubmit(values, comment.id)}
-              form={form}
-              title={`Reply to ${comment.user?.name || 'Comment'}`}
-              isSubmitting={isSubmitting}
-              isValid={isValid}
-            >
-              <FormField
-                control={form.control}
-                name="replyContent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        disabled={isSubmitting}
-                        placeholder="Write your reply..."
-                        className="resize-none min-h-[150px] bg-background/50 focus:bg-background transition-all duration-300"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </ReplyModal>
-
-            <CommentReplies 
-              replies={sortByDate(comment.replies)}
-              commentId={comment.id}
-            />
-          </div>
+          <NestedComment
+            key={comment.id}
+            comment={comment}
+            currentUserId={session?.user?.id}
+            onReply={handleReply}
+            onReact={handleReaction}
+          />
         ))}
       </div>
     </div>

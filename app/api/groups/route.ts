@@ -5,13 +5,21 @@ import { z } from "zod";
 
 const createGroupSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  description: z.string().optional(),
+  description: z.string().min(10, "Please provide a meaningful description"),
   imageUrl: z.string().optional(),
+  coverImageUrl: z.string().optional(),
   category: z.string(),
+  categoryId: z.string().optional(),
   privacy: z.enum(["public", "private", "invite-only"]),
+  isPrivate: z.boolean().default(false),
   rules: z.array(z.string()),
   tags: z.array(z.string()),
   courseId: z.string().optional().nullable(),
+  location: z.string().optional(),
+  isOnline: z.boolean().default(false),
+  meetUrl: z.string().optional(),
+  allowJoinRequests: z.boolean().default(true),
+  autoApproveMembers: z.boolean().default(false),
 });
 
 export async function POST(req: Request) {
@@ -39,6 +47,17 @@ export async function POST(req: Request) {
       }
     }
 
+    // If categoryId is provided, validate it exists
+    if (validatedData.categoryId) {
+      const category = await db.category.findUnique({
+        where: { id: validatedData.categoryId }
+      });
+
+      if (!category) {
+        validatedData.categoryId = undefined;
+      }
+    }
+
     const group = await db.group.create({
       data: {
         name: validatedData.name,
@@ -46,9 +65,11 @@ export async function POST(req: Request) {
         imageUrl: validatedData.imageUrl,
         category: validatedData.category,
         privacy: validatedData.privacy,
+        isPrivate: validatedData.isPrivate, // Use the isPrivate field from form
         rules: validatedData.rules,
         tags: validatedData.tags,
         courseId: validatedData.courseId || undefined,
+        categoryId: validatedData.categoryId || undefined,
         creatorId: session.user.id,
       },
     });
@@ -62,6 +83,16 @@ export async function POST(req: Request) {
       },
     });
 
+    // Create a welcome post for the group
+    await db.groupDiscussion.create({
+      data: {
+        title: "Welcome to the group!",
+        content: `👋 Welcome to ${validatedData.name}! This is the first discussion in our group. Feel free to introduce yourself and share what you hope to gain from this community.`,
+        groupId: group.id,
+        authorId: session.user.id,
+      }
+    });
+
     const groupWithMember = await db.group.findUnique({
       where: { id: group.id },
       include: {
@@ -72,6 +103,7 @@ export async function POST(req: Request) {
             imageUrl: true,
           },
         },
+        categoryRef: true,
       },
     });
 

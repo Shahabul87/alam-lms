@@ -47,6 +47,7 @@ import {
 
 // Import toast for notifications
 import { toast } from "sonner";
+import { TimeAgo } from "@/app/components/ui/time-ago";
 
 interface Bill {
   id: string;
@@ -251,7 +252,7 @@ export function BillDetailsDialog({
                     {bill.status !== "PAID" && (
                       <>
                         <Clock className="inline h-3 w-3 mr-1" />
-                        {formatDistanceToNow(new Date(bill.dueDate), { addSuffix: true })}
+                        <TimeAgo date={bill.dueDate} />
                       </>
                     )}
                   </div>

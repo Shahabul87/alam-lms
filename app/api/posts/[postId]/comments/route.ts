@@ -1,50 +1,228 @@
+import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isRateLimited, getRateLimitMessage } from "@/app/lib/rate-limit";
+import { getFromCache, setInCache, getCommentsKey, shouldCachePost, invalidateCache } from "@/app/lib/cache";
 
-export async function POST(req: Request, props: { params: Promise<{ postId: string }> }) {
-  const params = await props.params;
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ postId: string }> }
+) {
   try {
-    // Authenticate the user
     const user = await currentUser();
-    if (!user || !user.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = user.id;
-    const { comment } = await req.json();
+    // Check rate limiting
+    const rateLimitResult = await isRateLimited(user.id, 'comment');
+    if (rateLimitResult.limited) {
+      console.log(`[COMMENT_POST] Rate limited: ${user.id}`, rateLimitResult);
+      return NextResponse.json({ 
+        error: getRateLimitMessage('comment', rateLimitResult.reset),
+        rateLimitInfo: rateLimitResult
+      }, { status: 429 });
+    }
 
-    // Validate that the comment text is provided
-    if (!comment || typeof comment !== "string" || comment.trim() === "") {
-      return new NextResponse("Comment text is required", { status: 400 });
+    const { content } = await req.json();
+    const params = await props.params;
+    const { postId } = params;
+
+    if (!content) {
+      return NextResponse.json({ error: "Content is required" }, { status: 400 });
     }
 
     // Verify that the post exists
     const post = await db.post.findUnique({
-      where: {
-        id: params.postId,
-      },
+      where: { id: postId },
+      select: { id: true }
     });
 
     if (!post) {
-      return new NextResponse("Post not found", { status: 404 });
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // Create a new comment in the Comment model
-    const newComment = await db.comment.create({
+    const comment = await db.comment.create({
       data: {
-        comments: comment,
-        userId: userId,
-        postId: params.postId,
-        createdAt: new Date(),
+        content,
+        userId: user.id,
+        postId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        replies: true,
       },
     });
 
-    return NextResponse.json(newComment);
+    // Invalidate cache for this post's comments
+    await invalidateCache(`comments:${postId}:*`);
+    console.log(`[COMMENT_POST] Invalidated cache for comments:${postId}:*`);
 
+    return NextResponse.json(comment);
   } catch (error) {
-    console.error("[CREATE_COMMENT_ERROR]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("[COMMENT_POST]", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ postId: string }> }
+) {
+  try {
+    const params = await props.params;
+    const { postId } = params;
+    const url = new URL(req.url);
+    
+    // Get pagination and sorting parameters
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const sortBy = url.searchParams.get('sortBy') || 'newest';
+    
+    // Check cache first
+    const cacheKey = getCommentsKey(postId, page, sortBy);
+    const cachedComments = await getFromCache<any[]>(cacheKey);
+    
+    if (cachedComments) {
+      console.log(`[COMMENTS_GET] Cache hit for ${cacheKey}`);
+      return NextResponse.json(cachedComments, {
+        headers: {
+          'X-Cache': 'HIT',
+          'Cache-Control': 'public, max-age=120' // 2 minutes
+        }
+      });
+    }
+
+    // Verify that the post exists
+    const post = await db.post.findUnique({
+      where: { id: postId },
+      select: { id: true }
+    });
+
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    // Calculate pagination
+    const pageSize = 20;
+    const skip = (page - 1) * pageSize;
+
+    // Get total count for pagination info
+    const totalCount = await db.comment.count({
+      where: {
+        postId,
+      }
+    });
+
+    // Get comments with their replies and reactions
+    const comments = await db.comment.findMany({
+      where: {
+        postId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        replies: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            reactions: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+            parentReply: {
+              select: {
+                id: true,
+              }
+            }
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        _count: {
+          select: {
+            replies: true
+          }
+        }
+      },
+      orderBy: sortBy === 'oldest' 
+        ? { createdAt: "asc" } 
+        : sortBy === 'popular' 
+          ? { reactions: { _count: "desc" } } 
+          : { createdAt: "desc" },
+      skip,
+      take: pageSize,
+    });
+
+    // Add pagination metadata
+    const result = {
+      data: comments,
+      pagination: {
+        page,
+        pageSize,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+        hasMore: skip + pageSize < totalCount
+      }
+    };
+
+    // Cache the result if it's a heavily commented post
+    if (shouldCachePost(totalCount)) {
+      await setInCache(cacheKey, result);
+      console.log(`[COMMENTS_GET] Cached comments for ${cacheKey}`);
+    }
+
+    return NextResponse.json(result, {
+      headers: {
+        'X-Cache': 'MISS',
+        'Cache-Control': 'public, max-age=120' // 2 minutes
+      }
+    });
+  } catch (error) {
+    console.error("[COMMENTS_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 

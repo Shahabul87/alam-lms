@@ -2,57 +2,72 @@ import { db } from "@/lib/db";
 
 export const getPostData = async (postId: string) => {
   try {
+    console.log("Fetching post data for:", postId);
+    
     const post = await db.post.findUnique({
       where: {
         id: postId,
       },
       include: {
-        user: true,
-        tags: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         comments: {
           include: {
-            user: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
             reactions: {
               include: {
-                user: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
             replies: {
               include: {
-                user: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                  },
+                },
                 reactions: {
                   include: {
-                    user: true,
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
                   },
                 },
               },
             },
           },
-        },
-        replies: {
-          include: {
-            user: true,
-            reactions: {
-              include: {
-                user: true,
-              },
-            },
+          orderBy: {
+            createdAt: "asc",
           },
         },
-        reactions: {
-          include: {
-            user: true,
-          },
-        },
+        tags: true,
         postchapter: {
-          where: {
-            isPublished: true,
-          },
           orderBy: {
             position: "asc",
           },
         },
-        imageSections: {
+        postimage: {
           orderBy: {
             position: "asc",
           },
@@ -61,12 +76,20 @@ export const getPostData = async (postId: string) => {
     });
 
     if (!post) {
+      console.log("Post not found:", postId);
       return null;
     }
 
+    console.log("Post data loaded:", {
+      id: post.id,
+      commentCount: post.comments.length,
+      hasComments: post.comments.length > 0,
+      firstCommentId: post.comments[0]?.id
+    });
+
     return post;
   } catch (error) {
-    console.error("[GET_POST_DATA_ERROR]", error);
+    console.error("[GET_POST_DATA]", error);
     return null;
   }
 }; 

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Edit3, ArrowRight, Loader2, Tag, X } from "lucide-react";
+import { Edit3, ArrowRight, Loader2, Tag, X, Sparkles } from "lucide-react";
 
 import {
   Form,
@@ -163,10 +163,11 @@ export const CreateBlogInputSection = () => {
             name="title"
             render={({ field }) => (
               <FormItem className="space-y-4">
-                <div className="relative">
+                <div className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
                   <div className={cn(
-                    "absolute left-4 top-1/2 transform -translate-y-1/2 transition-opacity duration-200",
-                    field.value ? "opacity-0" : "opacity-100",
+                    "absolute left-4 top-1/2 transform -translate-y-1/2 transition-all duration-200",
+                    field.value ? "opacity-0 -translate-x-2" : "opacity-100",
                     isFocused ? "text-indigo-500" : "text-gray-400"
                   )}>
                     <Edit3 className="h-5 w-5" />
@@ -178,10 +179,10 @@ export const CreateBlogInputSection = () => {
                       disabled={isSubmitting}
                       placeholder="Enter an engaging title for your blog post..."
                       className={cn(
-                        "w-full py-4 text-lg pr-4",
+                        "w-full py-5 text-lg pr-4 relative",
                         field.value ? "pl-4" : "pl-12",
-                        "bg-transparent dark:bg-transparent",
-                        "border-2 rounded-lg",
+                        "bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm",
+                        "border-2 rounded-xl",
                         "transition-all duration-300 ease-in-out",
                         "text-gray-800 dark:text-gray-100",
                         "placeholder:text-gray-400 dark:placeholder:text-gray-500",
@@ -199,10 +200,12 @@ export const CreateBlogInputSection = () => {
                 <div className="flex items-center justify-between px-1">
                   <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
                   <div className={cn(
-                    "text-xs",
+                    "text-xs font-medium px-2 py-1 rounded-full transition-all duration-300",
                     charCount > 0 ? (
-                      charCount > 80 ? "text-amber-500" : "text-green-500 dark:text-green-400"
-                    ) : "text-gray-400 dark:text-gray-500"
+                      charCount > 80 ? 
+                        "text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30" : 
+                        "text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30"
+                    ) : "text-gray-500 dark:text-gray-400"
                   )}>
                     {charCount} / 100 characters
                   </div>
@@ -225,27 +228,31 @@ export const CreateBlogInputSection = () => {
               <FormItem className="space-y-4">
                 <div>
                   <FormLabel className="flex items-center gap-2 text-gray-800 dark:text-gray-200 font-medium">
-                    <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <div className="p-1 bg-indigo-100 dark:bg-indigo-900/40 rounded-md">
+                      <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    </div>
                     Categories
                   </FormLabel>
-                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <FormDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
                     Add categories to help readers find your content
                   </FormDescription>
                 </div>
 
                 {/* Selected Categories */}
                 {selectedCategories.length > 0 && (
-                  <div className="flex flex-wrap gap-2 my-2">
+                  <div className="flex flex-wrap gap-2 my-3 p-3 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-800/80">
                     {selectedCategories.map((category) => (
                       <Badge 
                         key={category} 
-                        className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 dark:hover:bg-indigo-800/60 py-1 px-2 rounded-full flex items-center gap-1"
+                        className="bg-gradient-to-r from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 text-indigo-800 
+                                 dark:from-indigo-900/60 dark:to-purple-900/60 dark:text-indigo-300 dark:hover:from-indigo-800/80 dark:hover:to-purple-800/80 
+                                 py-1.5 px-3 rounded-full flex items-center gap-1.5 border border-indigo-200/50 dark:border-indigo-700/30 shadow-sm"
                       >
                         {category}
                         <button 
                           type="button" 
                           onClick={() => handleRemoveCategory(category)}
-                          className="ml-1 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full p-0.5"
+                          className="ml-1 hover:bg-indigo-200/70 dark:hover:bg-indigo-800/70 rounded-full p-0.5"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -255,7 +262,8 @@ export const CreateBlogInputSection = () => {
                 )}
 
                 {/* Category Search */}
-                <div className="relative">
+                <div className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-300/20 to-purple-300/20 dark:from-indigo-700/20 dark:to-purple-700/20 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
                   <Input
                     type="text"
                     placeholder="Search categories..."
@@ -265,15 +273,15 @@ export const CreateBlogInputSection = () => {
                       setShowSuggestions(true);
                     }}
                     onFocus={() => setShowSuggestions(true)}
-                    className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                    className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 relative rounded-xl"
                   />
                   
                   {showSuggestions && filteredCategories.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-60 rounded-md overflow-auto border border-gray-200 dark:border-gray-700">
+                    <div className="absolute z-10 mt-1 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg max-h-60 rounded-xl overflow-auto border border-gray-200 dark:border-gray-700">
                       {filteredCategories.map((category) => (
                         <div 
                           key={category}
-                          className="px-4 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer text-gray-800 dark:text-gray-200"
+                          className="px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer text-gray-800 dark:text-gray-200 transition-colors duration-200"
                           onClick={() => handleAddCategory(category)}
                         >
                           {category}
@@ -290,13 +298,13 @@ export const CreateBlogInputSection = () => {
                     placeholder="Or add a custom category..."
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
-                    className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                    className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-700 rounded-xl"
                   />
                   <Button 
                     type="button"
                     onClick={handleAddCustomCategory}
                     variant="outline"
-                    className="shrink-0 border-indigo-200 hover:border-indigo-300 dark:border-indigo-800 dark:hover:border-indigo-700 text-indigo-600 dark:text-indigo-400"
+                    className="shrink-0 border-indigo-200 hover:border-indigo-300 dark:border-indigo-800 dark:hover:border-indigo-700 text-indigo-600 dark:text-indigo-400 rounded-xl"
                     disabled={!customCategory}
                   >
                     Add
@@ -306,18 +314,16 @@ export const CreateBlogInputSection = () => {
             )}
           />
           
-          <div className="mt-6">
+          <div className="mt-8">
             <Button
               type="submit"
               disabled={!isInputValid || isSubmitting}
               className={cn(
                 "w-full md:w-auto md:min-w-[200px] md:float-right py-4 px-6 relative overflow-hidden group",
-                "bg-gradient-to-r from-indigo-600 to-violet-600",
-                "hover:from-indigo-700 hover:to-violet-700",
-                "dark:from-indigo-700 dark:to-violet-700",
-                "dark:hover:from-indigo-600 dark:hover:to-violet-600",
+                "bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-size-200 bg-pos-0 hover:bg-pos-100",
+                "dark:from-indigo-700 dark:via-purple-700 dark:to-indigo-700",
                 "text-white font-medium text-base",
-                "rounded-lg transition-all duration-300",
+                "rounded-xl transition-all duration-500",
                 "disabled:opacity-70 disabled:cursor-not-allowed",
                 "shadow-md hover:shadow-lg",
                 "border border-indigo-700/30",
@@ -332,7 +338,10 @@ export const CreateBlogInputSection = () => {
               ) : (
                 <>
                   <span>Continue to Content</span>
-                  <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform duration-300" />
+                  <div className="relative">
+                    <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform duration-300" />
+                    <Sparkles className="absolute -top-1 -right-1 w-2 h-2 text-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
                 </>
               )}
             </Button>

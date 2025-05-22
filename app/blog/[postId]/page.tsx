@@ -1,16 +1,17 @@
 import { redirect } from "next/navigation";
 import { currentUser } from '@/lib/auth'
 import { Footer } from "@/app/(homepage)/footer";
-import { PostComment } from "./_components/add-comments";
-import CommentDisplay from "./_components/comment-display";
 import { transformPostChapters } from "./_components/transform-post-chapter";
 import ReadingModes from "./_components/reading-mode";
 import { FeaturedImage } from "./_components/featured-image";
 import { Metadata } from "next";
 import PostHeaderDetails from "./_components/post-header-details";
 import { getPostData } from "@/app/actions/get-post-data";
-import { CommentModal } from "./_components/comment-modal";
 import SimilarPosts from "./_components/similar-posts";
+import { CommentSection } from "./_components/comment-system";
+
+// Is the app running in development mode?
+const isDev = process.env.NODE_ENV === 'development';
 
 const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
   const params = await props.params;
@@ -67,26 +68,11 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
               />
 
               {/* Comments Section */}
-              <div className="space-y-8">
-                <div className="text-center">
-                  <h2 className="text-3xl font-bold text-gray-900 dark:bg-gradient-to-r dark:from-blue-400 dark:to-purple-400 dark:bg-clip-text dark:text-transparent">
-                    Comments
-                  </h2>
-                  <div className="h-px w-full max-w-[200px] mx-auto bg-gray-200 dark:bg-gradient-to-r dark:from-transparent dark:via-purple-500/50 dark:to-transparent mt-4" />
-                </div>
-
-                {/* Comment Modal */}
-                <div className="flex justify-center">
-                  <CommentModal post={post} postId={params.postId} />
-                </div>
-
-                {/* Comments Display */}
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 backdrop-blur-sm">
-                  <CommentDisplay 
-                    initialData={post as any} 
-                    postId={params.postId} 
-                  />
-                </div>
+              <div className="mt-8 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700/50 backdrop-blur-sm">
+                <CommentSection 
+                  postId={params.postId} 
+                  initialComments={post.comments as unknown as any[]}
+                />
               </div>
             </div>
 

@@ -141,9 +141,6 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
               <Link href="/features" className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors">
                 Features
               </Link>
-              <Link href="/discover" className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors">
-                Discover
-              </Link>
               <Link href="/about" className="text-sm lg:text-base text-gray-300 hover:text-white transition-colors">
                 About
               </Link>

@@ -37,13 +37,10 @@ model User {
   phone        String? // Optional field for phone number
   profileLinks ProfileLink[] // One-to-many relation with ProfileLink
 
-  posts            Post[] // One-to-many relation with Post
-  comments         Comment[] // One-to-many relation with Comment
-  reply            Reply[]
-  postReactions    PostReaction[] // One-to-many relation with PostReaction
-  commentReactions CommentReaction[] // One-to-many relation with CommentReaction
-  replyReactions   ReplyReaction[] // One-to-many relation with ReplyReaction
-  reactions        Reaction[]
+  posts    Post[]    // One-to-many relation with Post
+  comments Comment[] // One-to-many relation with Comment
+  replies  Reply[]   // One-to-many relation with Reply
+  reactions Reaction[] // One-to-many relation with Reaction
 
   // Relations to learning resources created by the user
   videos   Video[]   @relation("UserVideos")
@@ -110,6 +107,8 @@ model User {
   activeSessions  ActiveSession[]
   backupCodes     BackupCode[]
   totpSecret      TOTPSecret?
+
+  tasks         Task[]        // Add relation for tasks
 }
 
 model Course {
@@ -563,144 +562,121 @@ model StripeCustomer {
 }
 
 model Post {
-  id          String  @id @default(cuid())
-  userId      String
+  id          String   @id @default(cuid())
   title       String
-  description String? @db.Text
-  imageUrl    String?
-  published   Boolean @default(false)
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    String?
+  description String?  @db.Text
+  imageUrl    String?  @db.Text
+  category    String?  // Keep this field
+  published   Boolean? // Keep this field
+  views       Int      @default(0) // Add views field
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tags          Tag[]                @relation("PostTags")
-  comments      Comment[] // One-to-many relation with Comment
-  replies       Reply[]
-  reactions     PostReaction[] // One-to-many relation with PostReaction
-  postchapter   PostChapterSection[] // One-to-many relation with ContentSection
-  imageSections PostImageSection[] // One-to-many relation with ImageSection
+  postchapter PostChapterSection[]
+  postimage   PostImageSection[]
+  comments    Comment[]
+  replies     Reply[]
+  tags        Tag[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([userId])
 }
 
 model PostChapterSection {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
+  content     String?  @db.Text
+  description String?  @db.Text    // Keep this field
+  imageUrl    String?  @db.Text    // Keep this field
+  isFree      Boolean? @default(false) // Keep this field
+  isPublished Boolean? @default(false) // Keep this field
+  position    Int
   postId      String
-  description String? @db.Text
-
-  imageUrl    String?
-  isPublished Boolean  @default(false)
-  isFree      Boolean  @default(false)
-  position    Int // Position of the section within the post
   post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([postId])
 }
 
 model Comment {
-  id          String    @id @default(cuid())
-  userId      String
-  comments    String?
-  likes       Int       @default(0)
-  loves       Int       @default(0)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId      String
-  replies     Reply[]
-  likedBy     String[]  @default([])
-  lovedBy     String[]  @default([])
-  createdAt   DateTime  @default(now())
-  
-  // Add these relation fields
-  reactions        Reaction[]
-  commentReactions CommentReaction[]
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  replies Reply[]
+  reactions Reaction[] @relation("CommentReactions")
 
   @@index([userId])
   @@index([postId])
 }
 
 model Reply {
-  id           String          @id @default(cuid())
-  content      String
-  userId       String
-  postId       String
-  commentId    String
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  user         User            @relation(fields: [userId], references: [id])
-  post         Post            @relation(fields: [postId], references: [id])
-  comment      Comment         @relation(fields: [commentId], references: [id])
-  reactions    Reaction[]
-  replyReactions ReplyReaction[]
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  userId    String
+  postId    String
+  commentId String
   parentReplyId String?
-  childReplies Reply[]         @relation("ReplyToReply")
-  parentReply  Reply?          @relation("ReplyToReply", fields: [parentReplyId], references: [id])
+  depth     Int      @default(0) // Track nesting level - 0 means direct reply to comment
+  path      String?  // Store the full path for efficient lookups e.g. "comment_id/reply1_id/reply2_id"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  parentReply Reply? @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: SetNull)
+  childReplies Reply[] @relation("ReplyToReply")
+  reactions Reaction[] @relation("ReplyReactions")
 
   @@index([userId])
   @@index([postId])
   @@index([commentId])
   @@index([parentReplyId])
+  @@index([path]) // Index the path for efficient hierarchical queries
 }
 
 model Reaction {
   id        String   @id @default(cuid())
-  type      String // like, love, haha, wow, sad, angry
+  type      String
   userId    String
-  commentId String?
-  replyId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  reply   Reply?   @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation("CommentReactions", fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String?
+  reply     Reply?   @relation("ReplyReactions", fields: [replyId], references: [id], onDelete: Cascade)
+  replyId   String?
 
-  @@unique([userId, commentId, replyId])
+  @@index([userId])
+  @@index([commentId])
+  @@index([replyId])
 }
 
 model PostImageSection {
   id        String   @id @default(cuid())
+  imageUrl  String   @db.Text
+  position  Int
   postId    String
-  imageUrl  String // URL of the image
-  caption   String? // Optional caption for the image
-  position  Int // Position of the image within the post
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
 }
 
 model Tag {
   id    String @id @default(cuid())
   name  String @unique
-  posts Post[] @relation("PostTags")
-}
-
-model PostReaction {
-  id        String       @id @default(cuid())
-  userId    String
-  type      ReactionType
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId    String
-  createdAt DateTime     @default(now())
-}
-
-model CommentReaction {
-  id        String       @id @default(cuid())
-  userId    String
-  type      ReactionType
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comment   Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  commentId String
-  createdAt DateTime     @default(now())
-}
-
-enum ReactionType {
-  LIKE
-  DISLIKE
-  LOVE
-  LAUGH
-  ANGRY
+  posts Post[]
 }
 
 model FavoriteVideo {
@@ -757,74 +733,62 @@ model FavoriteBlog {
 
 model FavoriteImage {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
   userId    String
-  title     String // Title or description of the favorite image
-  platform  String // Platform name (e.g., "Instagram", "Pinterest")
-  url       String // URL of the image
-  position  Int?
+  imageUrl  String
+  title     String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Subscription {
-  id                 String   @id @default(cuid())
-  user               User     @relation(fields: [userId], references: [id]) // Relation to the User who subscribed
-  userId             String
-  name               String // Name of the subscription (e.g., "Channel Name" or "Creator Name")
-  platform           String // Platform name (e.g., "YouTube", "Vimeo", "Spotify")
-  url                String // URL of the subscription page or profile
-  category           String? // Category or type of subscription (e.g., "Educational", "Entertainment", "Music")
-  dateOfSubscription DateTime // Date when the subscription was created
-  endOfSubscription  DateTime // Date when the subscription ends or renews
-  cardUsed           String // Masked card information (e.g., "**** **** **** 1234")
-  amount             Float // Amount charged for the subscription
-  position           Int? // Position for sorting purposes, if needed
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                   String    @id @default(cuid())
+  userId               String
+  stripeCustomerId     String?   @map(name: "stripe_customer_id")
+  stripeSubscriptionId String?   @map(name: "stripe_subscription_id")
+  stripePriceId       String?    @map(name: "stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
 }
 
-model ReplyReaction {
-  id        String   @id @default(cuid())
-  type      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  reply     Reply    @relation(fields: [replyId], references: [id], onDelete: Cascade)
-  replyId   String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-}
-
+// Calendar Event model for task planning and scheduling
 model CalendarEvent {
-  id               String   @id @default(cuid())
-  title            String
-  description      String?
-  startDate        DateTime
-  endDate          DateTime
-  isAllDay         Boolean  @default(false)
-  location         String?
-  notification     Boolean  @default(true)
-  notificationTime Int      @default(30) // minutes before event
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Recurring event fields
-  isRecurring       Boolean         @default(false)
-  recurringPattern  String? // daily, weekly, monthly, yearly
-  recurringInterval Int? // every X days/weeks/months/years
-  recurringDays     Int[] // for weekly recurrence (0-6, where 0 is Sunday)
-  recurringEndDate  DateTime? // when the recurrence ends
-  parentEventId     String? // for recurring event instances
-  parentEvent       CalendarEvent?  @relation("RecurringEvents", fields: [parentEventId], references: [id])
-  recurringEvents   CalendarEvent[] @relation("RecurringEvents")
-
+  id              String    @id @default(cuid())
+  title           String
+  description     String?   @db.Text
+  startDate       DateTime
+  endDate         DateTime
+  allDay          Boolean   @default(false)
+  category        String
+  location        String?
+  recurringType   String?   // "none", "daily", "weekly", "monthly", "yearly"
+  recurringEndDate DateTime?
+  color           String?
+  taskId          String?   // Optional link to a task
+  
+  // User who owns this event
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Optional relation to parent event for recurring series
+  parentEventId   String?
+  parentEvent     CalendarEvent?  @relation("RecurringSeries", fields: [parentEventId], references: [id], onDelete: SetNull)
+  childEvents     CalendarEvent[] @relation("RecurringSeries")
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
   // External calendar fields
-  externalId String?
-  source     String?
-  lastSync   DateTime?
-
+  externalId      String?
+  source          String?
+  lastSync        DateTime?
+  
   @@unique([externalId, source])
   @@index([userId])
   @@index([startDate])
@@ -1447,4 +1411,32 @@ model TOTPSecret {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
+}
+
+// Task model for user's planned tasks with reminders
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  startTime   DateTime? // New field for when the task begins
+  dueDate     DateTime
+  priority    String
+  category    String
+  completed   Boolean  @default(false)
+  
+  // Reminder related fields
+  hasReminder Boolean  @default(false)
+  reminderDate DateTime?
+  reminderType String? // email, push, in-app
+  reminderSent Boolean  @default(false)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([dueDate])
+  @@index([completed])
 }

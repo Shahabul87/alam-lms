@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { Calendar, CheckSquare, Clock, BookOpen, BarChart, Lightbulb } from "lucide-react";
+import { Calendar, CheckSquare, Clock, BookOpen, BarChart, Lightbulb, AlertTriangle } from "lucide-react";
 import { TaskPlanner } from "./make-a-plan/task-planner";
 import { CalendarView } from "./make-a-plan/calendar-view";
 import { CoursePlanner } from "./make-a-plan/course-planner";
 import { ProgressDashboard } from "./make-a-plan/progress-dashboard";
+import { useToast } from "@/components/ui/use-toast";
 
 interface MakeAPlanContentProps {
   userId: string;
@@ -16,6 +17,33 @@ interface MakeAPlanContentProps {
 
 export const MakeAPlanContent = ({ userId }: MakeAPlanContentProps) => {
   const [activeTab, setActiveTab] = useState("tasks");
+  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  
+  // Validate required props
+  useEffect(() => {
+    if (!userId) {
+      console.error("MakeAPlanContent: userId is required but was not provided");
+      setError("User authentication error. Please try signing out and back in.");
+      toast({
+        title: "Error",
+        description: "User ID is missing. Please sign out and sign back in.",
+        variant: "destructive"
+      });
+    } else {
+      setError(null);
+    }
+  }, [userId, toast]);
+  
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 text-center">
+        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-red-700 dark:text-red-400 mb-2">Authentication Error</h3>
+        <p className="text-red-600 dark:text-red-300">{error}</p>
+      </div>
+    );
+  }
   
   return (
     <motion.div
@@ -90,7 +118,7 @@ export const MakeAPlanContent = ({ userId }: MakeAPlanContentProps) => {
         </TabsContent>
         
         <TabsContent value="calendar" className="mt-6">
-          <CalendarView userId={userId} />
+          <CalendarView key={`calendar-${userId}`} userId={userId} />
         </TabsContent>
         
         <TabsContent value="courses" className="mt-6">
