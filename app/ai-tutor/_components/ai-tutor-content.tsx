@@ -37,6 +37,7 @@ import { GoalSetting } from "./goal-setting";
 import { SkillTree } from "./skill-tree";
 import { PeerLearning } from "./peer-learning";
 import { AIFeedback } from "./ai-feedback";
+import { useToast } from "@/components/ui/use-toast";
 
 type View = "chat" | "quiz" | "progress" | "resources" | "schedule" | "notes" | "goals" | "skills" | "peers" | "feedback";
 
@@ -44,26 +45,42 @@ interface NavItem {
   id: View;
   label: string;
   icon: any;
+  implemented?: boolean;
 }
 
 export const AiTutorContent = () => {
   const [currentView, setCurrentView] = useState<View>("chat");
   const [selectedSubject, setSelectedSubject] = useState("");
-  const [learningStyle, setLearningStyle] = useState("");
+  const [learningStyle, setLearningStyle] = useState("visual");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { toast } = useToast();
 
   const navItems: NavItem[] = [
-    { id: "chat", label: "AI Chat", icon: MessageSquare },
-    { id: "quiz", label: "Practice Quiz", icon: Brain },
-    { id: "progress", label: "Progress", icon: LineChart },
-    { id: "resources", label: "Resources", icon: Library },
-    { id: "schedule", label: "Schedule", icon: Calendar },
-    { id: "notes", label: "Notes", icon: FileText },
-    { id: "goals", label: "Goals", icon: Target },
-    { id: "skills", label: "Skill Tree", icon: Network },
-    { id: "peers", label: "Peer Learning", icon: Users },
-    { id: "feedback", label: "AI Feedback", icon: Sparkles }
+    { id: "chat", label: "AI Chat", icon: MessageSquare, implemented: true },
+    { id: "quiz", label: "Practice Quiz", icon: Brain, implemented: false },
+    { id: "progress", label: "Progress", icon: LineChart, implemented: false },
+    { id: "resources", label: "Resources", icon: Library, implemented: false },
+    { id: "schedule", label: "Schedule", icon: Calendar, implemented: false },
+    { id: "notes", label: "Notes", icon: FileText, implemented: false },
+    { id: "goals", label: "Goals", icon: Target, implemented: false },
+    { id: "skills", label: "Skill Tree", icon: Network, implemented: false },
+    { id: "peers", label: "Peer Learning", icon: Users, implemented: false },
+    { id: "feedback", label: "AI Feedback", icon: Sparkles, implemented: false }
   ];
+
+  const handleViewChange = (view: View) => {
+    // Check if the view is implemented
+    const navItem = navItems.find(item => item.id === view);
+    if (navItem && !navItem.implemented && view !== "chat") {
+      toast({
+        title: "Coming Soon",
+        description: `The ${navItem.label} feature is coming in a future update.`,
+        variant: "default"
+      });
+      return;
+    }
+    setCurrentView(view);
+  };
 
   const renderContent = () => {
     switch (currentView) {
@@ -98,27 +115,27 @@ export const AiTutorContent = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+    <div className="relative w-full h-full">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className={cn(
           "flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4",
-          "bg-white/50 dark:bg-gray-800/50",
-          "border border-gray-200 dark:border-gray-700",
+          "bg-slate-800/40 backdrop-blur-sm",
+          "border border-slate-700/50",
           "p-4 sm:p-6 rounded-xl",
-          "backdrop-blur-sm"
         )}>
           <div>
             <h1 className={cn(
-              "text-2xl sm:text-3xl font-bold",
-              "bg-gradient-to-r from-purple-600 to-indigo-600",
-              "dark:from-purple-400 dark:to-indigo-400",
+              "text-2xl sm:text-3xl font-bold text-white",
+              "bg-gradient-to-r from-purple-400 to-blue-400",
               "text-transparent bg-clip-text"
             )}>
               AI Tutor
             </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1">
-              Your personalized learning companion powered by AI
+            <p className="text-sm sm:text-base text-slate-300 mt-1">
+              {selectedSubject 
+                ? `Learning ${selectedSubject} with ${learningStyle} style`
+                : "Your personalized learning companion powered by AI"}
             </p>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
@@ -128,9 +145,9 @@ export const AiTutorContent = () => {
               onClick={() => setIsSettingsOpen(true)}
               className={cn(
                 "h-9 sm:h-10",
-                "border-gray-200 dark:border-gray-700",
-                "hover:bg-gray-100 dark:hover:bg-gray-700",
-                "text-gray-700 dark:text-gray-300"
+                "border-slate-700",
+                "hover:bg-slate-800/50",
+                "text-slate-300"
               )}
             >
               <Settings className="w-4 h-4 mr-2" />
@@ -138,11 +155,10 @@ export const AiTutorContent = () => {
             </Button>
             <Button
               size="sm"
-              onClick={() => setCurrentView(currentView === "chat" ? "resources" : "chat")}
+              onClick={() => handleViewChange(currentView === "chat" ? "resources" : "chat")}
               className={cn(
                 "h-9 sm:h-10",
                 "bg-purple-600 hover:bg-purple-700",
-                "dark:bg-purple-500 dark:hover:bg-purple-600",
                 "text-white"
               )}
             >
@@ -158,13 +174,6 @@ export const AiTutorContent = () => {
                 </>
               )}
             </Button>
-            <Button
-              onClick={() => setCurrentView("schedule")}
-              variant={currentView === "schedule" ? "default" : "ghost"}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Schedule
-            </Button>
           </div>
         </div>
 
@@ -174,20 +183,28 @@ export const AiTutorContent = () => {
           <div className="lg:col-span-1 space-y-6">
             {/* Quick Actions */}
             <div className={cn(
-              "bg-white/50 dark:bg-gray-800/50",
-              "border border-gray-200 dark:border-gray-700",
-              "p-4 rounded-xl backdrop-blur-sm"
+              "bg-slate-800/40 backdrop-blur-sm",
+              "border border-slate-700/50",
+              "p-4 rounded-xl"
             )}>
               <div className="space-y-2">
                 {navItems.map((item) => (
                   <Button
                     key={item.id}
-                    onClick={() => setCurrentView(item.id)}
-                    variant={currentView === item.id ? "default" : "ghost"}
-                    className="w-full justify-start"
+                    onClick={() => handleViewChange(item.id)}
+                    variant={currentView === item.id ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start",
+                      !item.implemented && item.id !== "chat" && "opacity-70"
+                    )}
                   >
                     <item.icon className="w-4 h-4 mr-2" />
                     {item.label}
+                    {!item.implemented && item.id !== "chat" && (
+                      <span className="ml-auto text-xs bg-slate-700/50 px-1.5 py-0.5 rounded text-slate-300">
+                        Soon
+                      </span>
+                    )}
                   </Button>
                 ))}
               </div>
@@ -195,34 +212,33 @@ export const AiTutorContent = () => {
 
             {/* Current Progress */}
             <div className={cn(
-              "bg-white/50 dark:bg-gray-800/50",
-              "border border-gray-200 dark:border-gray-700",
+              "bg-slate-800/40 backdrop-blur-sm",
+              "border border-slate-700/50",
               "rounded-xl p-4",
-              "backdrop-blur-sm"
             )}>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
-                Current Progress
+              <h3 className="text-sm font-medium text-white mb-3">
+                Learning Insights
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-purple-500" />
+                  <Clock className="w-4 h-4 text-purple-400" />
                   <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">Study Time</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">2.5 hrs</p>
+                    <p className="text-sm text-slate-300">Total Time</p>
+                    <p className="text-lg font-semibold text-white">2.5 hrs</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Target className="w-4 h-4 text-purple-500" />
+                  <Target className="w-4 h-4 text-purple-400" />
                   <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">Topics Covered</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">12</p>
+                    <p className="text-sm text-slate-300">Topics Covered</p>
+                    <p className="text-lg font-semibold text-white">12</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Sparkles className="w-4 h-4 text-purple-500" />
+                  <Sparkles className="w-4 h-4 text-purple-400" />
                   <div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">Achievements</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">5</p>
+                    <p className="text-sm text-slate-300">Achievements</p>
+                    <p className="text-lg font-semibold text-white">5</p>
                   </div>
                 </div>
               </div>
@@ -240,6 +256,10 @@ export const AiTutorContent = () => {
       <SettingsDialog
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        subject={selectedSubject}
+        onSubjectChange={setSelectedSubject}
+        learningStyle={learningStyle}
+        onLearningStyleChange={setLearningStyle}
       />
     </div>
   );

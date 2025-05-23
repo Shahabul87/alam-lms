@@ -10,16 +10,21 @@ import {
   Code,
   Bot,
   StopCircle,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
+import ReactMarkdown from "react-markdown";
+import { prismLight } from "@/components/markdown/prism";
+import { PrismAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
 
 interface Message {
   id: string;
   content: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   timestamp: Date;
 }
 
@@ -37,14 +42,68 @@ export const ChatInterface = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Initialize with welcome message
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{
+        id: "welcome",
+        content: `Hello! I'm your AI tutor${subject ? ` for ${subject}` : ''}. How can I help you today?`,
+        role: "assistant",
+        timestamp: new Date()
+      }]);
+    }
+  }, [subject, messages.length]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const sendMessageToAI = async (chatMessages: Message[]) => {
+    try {
+      const response = await fetch('/api/ai-tutor', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: chatMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          subject,
+          learningStyle
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      return {
+        id: data.id || Date.now().toString(),
+        content: data.content,
+        role: "assistant" as const,
+        timestamp: new Date()
+      };
+    } catch (error) {
+      console.error('Error calling AI tutor API:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get a response from the AI tutor. Please try again.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
 
   const handleSubmit = async () => {
     if (!input.trim() || isLoading) return;
@@ -56,21 +115,19 @@ export const ChatInterface = ({
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
 
-    // Mock AI response - replace with actual API call
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "This is a mock AI response. Replace with actual AI integration.",
-        role: "assistant",
-        timestamp: new Date()
-      };
+    try {
+      const aiMessage = await sendMessageToAI(updatedMessages);
       setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      // Error is already handled in sendMessageToAI
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -78,6 +135,35 @@ export const ChatInterface = ({
       e.preventDefault();
       handleSubmit();
     }
+  };
+
+  // Render message content with markdown support
+  const renderMessageContent = (content: string) => {
+    return (
+      <ReactMarkdown
+        components={{
+          code({node, inline, className, children, ...props}) {
+            const match = /language-(\w+)/.exec(className || '');
+            return !inline && match ? (
+              <SyntaxHighlighter
+                style={prismLight}
+                language={match[1]}
+                PreTag="div"
+                {...props}
+              >
+                {String(children).replace(/\n$/, '')}
+              </SyntaxHighlighter>
+            ) : (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            );
+          }
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    );
   };
 
   return (
@@ -95,7 +181,7 @@ export const ChatInterface = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className={cn(
-              "mb-4 max-w-[80%]",
+              "mb-4 max-w-[85%]",
               message.role === "user" ? "ml-auto" : "mr-auto"
             )}
           >
@@ -103,9 +189,10 @@ export const ChatInterface = ({
               "rounded-lg p-4",
               message.role === "user"
                 ? "bg-purple-500 text-white"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100",
+              "prose prose-sm dark:prose-invert max-w-none"  
             )}>
-              {message.content}
+              {renderMessageContent(message.content)}
             </div>
             <div className={cn(
               "text-xs mt-1",
@@ -117,9 +204,9 @@ export const ChatInterface = ({
           </motion.div>
         ))}
         {isLoading && (
-          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 my-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">AI is thinking...</span>
+            <span className="text-sm">AI tutor is thinking...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -152,7 +239,16 @@ export const ChatInterface = ({
             </Button>
             <Button
               variant="outline"
-              onClick={() => setIsRecording(!isRecording)}
+              onClick={() => {
+                if (!isRecording) {
+                  toast({
+                    title: "Voice input",
+                    description: "Voice input is not yet implemented.",
+                    variant: "default"
+                  });
+                }
+                setIsRecording(!isRecording);
+              }}
               className={cn(
                 "border-gray-200 dark:border-gray-700",
                 isRecording && "text-red-500 dark:text-red-400"
@@ -171,6 +267,13 @@ export const ChatInterface = ({
             variant="ghost"
             size="sm"
             className="text-gray-500 dark:text-gray-400"
+            onClick={() => {
+              toast({
+                title: "Feature not available",
+                description: "Image upload is coming soon!",
+                variant: "default"
+              });
+            }}
           >
             <ImageIcon className="w-4 h-4 mr-1" />
             Image
@@ -179,6 +282,13 @@ export const ChatInterface = ({
             variant="ghost"
             size="sm"
             className="text-gray-500 dark:text-gray-400"
+            onClick={() => {
+              toast({
+                title: "Feature not available",
+                description: "File upload is coming soon!",
+                variant: "default"
+              });
+            }}
           >
             <FileText className="w-4 h-4 mr-1" />
             File
@@ -187,6 +297,10 @@ export const ChatInterface = ({
             variant="ghost"
             size="sm"
             className="text-gray-500 dark:text-gray-400"
+            onClick={() => {
+              const codeExample = "```python\nprint('Hello, world!')\n```";
+              setInput(prev => prev + (prev.length ? "\n\n" : "") + codeExample);
+            }}
           >
             <Code className="w-4 h-4 mr-1" />
             Code
