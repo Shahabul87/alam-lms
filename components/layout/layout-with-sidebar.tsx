@@ -19,6 +19,13 @@ const SIDEBAR_HIDDEN_ROUTES = [
   "/support",
 ];
 
+// Routes that need full-width layout (no padding)
+const FULL_WIDTH_ROUTES = [
+  "/features",
+  "/",
+  "/about",
+];
+
 // Patterns for routes where the sidebar should be hidden
 const SIDEBAR_HIDDEN_PATTERNS = [
   /^\/courses\/[^\/]+$/, // Course detail pages
@@ -37,8 +44,9 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
   const hasUser = !!user;
   const showSidebar = hasUser && shouldShowSidebar;
   
-  // Determine if we're on a course page
+  // Determine if we're on a course page or full-width page
   const isCoursePage = pathname ? /^\/courses\/[^\/]+$/.test(pathname) : false;
+  const isFullWidthPage = pathname ? FULL_WIDTH_ROUTES.includes(pathname) : false;
 
   return (
     <div className={clsx(
@@ -58,9 +66,11 @@ export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarP
       {/* Main content with conditional margin and padding */}
       <main
         className={clsx(
-          "flex-1 overflow-y-auto",
-          isCoursePage ? "h-screen pt-0 px-0" : "h-[calc(100vh-4rem)] pt-2 px-4",
-          showSidebar ? "ml-[80px]" : ""
+          "flex-1",
+          isCoursePage ? "h-screen pt-0 px-0 overflow-y-auto" : 
+          isFullWidthPage ? "min-h-screen pt-0 px-0" :
+          "h-[calc(100vh-4rem)] pt-2 px-4 overflow-y-auto",
+          showSidebar && !isFullWidthPage ? "ml-[80px]" : ""
         )}
       >
         {children}

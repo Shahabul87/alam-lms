@@ -54,13 +54,40 @@ export const ChaptersForm = ({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      await axios.post(`/api/courses/${courseId}/chapters`, values);
+      console.log("[CHAPTERS_FORM] Starting chapter creation:", { courseId, title: values.title });
+      
+      const response = await axios.post(`/api/courses/${courseId}/chapters`, values);
+      
+      console.log("[CHAPTERS_FORM] Chapter created successfully:", response.data);
       toast.success("Chapter created");
       setIsCreating(false);
       form.reset();
       router.refresh();
-    } catch {
-      toast.error("Something went wrong");
+    } catch (error: any) {
+      console.error("[CHAPTERS_FORM] Chapter creation failed:");
+      console.error("[CHAPTERS_FORM] Error details:", error);
+      console.error("[CHAPTERS_FORM] Response status:", error?.response?.status);
+      console.error("[CHAPTERS_FORM] Response data:", error?.response?.data);
+      
+      // Provide more specific error messages
+      let errorMessage = "Something went wrong";
+      
+      if (error?.response?.status === 401) {
+        errorMessage = "You are not authorized to create chapters for this course";
+      } else if (error?.response?.status === 403) {
+        errorMessage = "Access denied. Please check your permissions";
+      } else if (error?.response?.status === 404) {
+        errorMessage = "Course not found";
+      } else if (error?.response?.status === 503) {
+        errorMessage = "Service temporarily unavailable. Please try again";
+      } else if (error?.response?.data && typeof error.response.data === 'string') {
+        errorMessage = error.response.data;
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
+      console.error("[CHAPTERS_FORM] Showing error message:", errorMessage);
+      toast.error(errorMessage);
     }
   };
 

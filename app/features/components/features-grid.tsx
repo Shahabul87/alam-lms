@@ -7,7 +7,7 @@ import Link from "next/link";
 
 const CurvedLine = () => {
   const { scrollYProgress } = useScroll();
-  const pathLength = useTransform(scrollYProgress, [0, 0.8], [0, 1]);
+  const pathLength = useTransform(scrollYProgress, [0.1, 0.9], [0, 1]);
 
   return (
     <div className="absolute left-1/2 h-full -translate-x-1/2 w-[150px]">
@@ -24,8 +24,6 @@ const CurvedLine = () => {
           fill="none"
           style={{
             pathLength,
-            strokeDasharray: 1,
-            strokeDashoffset: 1,
           }}
         />
         <defs>
@@ -40,14 +38,13 @@ const CurvedLine = () => {
   );
 };
 
-const FeatureItem = ({ feature, index, inView }: { 
+const FeatureItem = ({ feature, index }: { 
   feature: typeof features[0], 
-  index: number,
-  inView: boolean 
+  index: number
 }) => {
   const isEven = index % 2 === 0;
   const [itemRef, itemInView] = useInView({
-    threshold: 0.2,
+    threshold: 0.05,
     triggerOnce: true,
   });
   
@@ -56,7 +53,7 @@ const FeatureItem = ({ feature, index, inView }: {
       ref={itemRef}
       initial={{ opacity: 0, x: isEven ? -50 : 50 }}
       animate={itemInView ? { opacity: 1, x: 0 } : { opacity: 0, x: isEven ? -50 : 50 }}
-      transition={{ duration: 0.8, ease: "easeOut", delay: index * 0.2 }}
+      transition={{ duration: 0.4, ease: "easeOut", delay: index * 0.1 }}
       className={`flex items-center gap-8 w-full ${isEven ? 'flex-row' : 'flex-row-reverse'} my-24 relative`}
     >
       {/* Curved Arrow */}
@@ -66,7 +63,7 @@ const FeatureItem = ({ feature, index, inView }: {
         fill="none"
         initial={{ opacity: 0, scale: 0 }}
         animate={itemInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
-        transition={{ duration: 0.6, delay: index * 0.2 + 0.5 }}
+        transition={{ duration: 0.3, delay: index * 0.1 + 0.2 }}
       >
         <motion.path
           d={isEven 
@@ -79,7 +76,7 @@ const FeatureItem = ({ feature, index, inView }: {
           strokeLinejoin="round"
           initial={{ pathLength: 0 }}
           animate={itemInView ? { pathLength: 1 } : { pathLength: 0 }}
-          transition={{ duration: 1, delay: index * 0.2 + 0.6 }}
+          transition={{ duration: 0.5, delay: index * 0.1 + 0.3 }}
           className="dark:opacity-100 opacity-70"
         />
         <defs>
@@ -121,10 +118,10 @@ const FeatureItem = ({ feature, index, inView }: {
             initial={{ opacity: 0, y: 20 }}
             animate={itemInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ 
-              duration: 0.6, 
-              delay: index * 0.2 + 0.2,
+              duration: 0.3, 
+              delay: index * 0.1 + 0.1,
               type: "spring",
-              stiffness: 100 
+              stiffness: 200 
             }}
             className="text-2xl lg:text-3xl font-bold"
             whileHover={{ 
@@ -143,10 +140,10 @@ const FeatureItem = ({ feature, index, inView }: {
               opacity: 1, 
               y: 0,
               transition: {
-                duration: 0.6,
-                delay: index * 0.2 + 0.3,
+                duration: 0.3,
+                delay: index * 0.1 + 0.15,
                 type: "spring",
-                stiffness: 100
+                stiffness: 200
               }
             } : { opacity: 0, y: 20 }}
             whileHover={{ 
@@ -167,9 +164,9 @@ const FeatureItem = ({ feature, index, inView }: {
         animate={itemInView ? { scale: 1 } : { scale: 0 }}
         transition={{ 
           type: "spring",
-          stiffness: 200,
-          damping: 20,
-          delay: index * 0.2 + 0.4 
+          stiffness: 300,
+          damping: 25,
+          delay: index * 0.1 + 0.2 
         }}
       >
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 
@@ -189,25 +186,30 @@ const FeatureItem = ({ feature, index, inView }: {
 };
 
 export const FeaturesGrid = () => {
-  const [ref, inView] = useInView({
+  const [headerRef, headerInView] = useInView({
     triggerOnce: true,
-    threshold: 0.1
+    threshold: 0.05
+  });
+
+  const [ctaRef, ctaInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.05
   });
 
   return (
-    <div className="relative py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <div className="relative py-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Enhanced Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-gray-50 dark:from-gray-900 dark:via-gray-900/95 dark:to-gray-950" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-900/50 to-gray-950/80" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] 
         from-purple-100/20 dark:from-purple-900/20 via-transparent to-transparent" />
       
       <div className="relative max-w-7xl mx-auto">
         {/* Section Header */}
-        <div className="text-center mb-32">
+        <div ref={headerRef} className="text-center mb-32">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6 }}
+            animate={headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.4 }}
             className="text-4xl md:text-5xl font-bold mb-6"
           >
             <span className="bg-gradient-to-r from-purple-700 via-purple-800 to-purple-700 dark:from-purple-300 dark:via-white dark:to-purple-300 bg-clip-text text-transparent
@@ -217,8 +219,8 @@ export const FeaturesGrid = () => {
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            animate={headerInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
             className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto font-light leading-relaxed"
           >
             Discover tools and features designed to enhance your learning experience and help you achieve your goals.
@@ -226,23 +228,23 @@ export const FeaturesGrid = () => {
         </div>
 
         {/* Features Timeline */}
-        <div ref={ref} className="relative max-w-5xl mx-auto">
+        <div className="relative max-w-5xl mx-auto">
           <CurvedLine />
           {features.map((feature, index) => (
             <FeatureItem
               key={feature.title}
               feature={feature}
               index={index}
-              inView={inView}
             />
           ))}
         </div>
 
         {/* Call to Action */}
         <motion.div
+          ref={ctaRef}
           initial={{ opacity: 0, y: 30 }}
-          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          animate={ctaInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
           className="text-center relative mt-32"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 

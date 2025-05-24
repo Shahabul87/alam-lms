@@ -1,26 +1,35 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
 
 export const HeroSection = () => {
   const firstText = "Build Real Skills for ";
   const secondText = "Real Growth";
+  
+  const [ref, inView] = useInView({
+    threshold: 0.3,
+    triggerOnce: false,
+  });
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div 
+      ref={ref}
+      className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8"
+    >
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/90 via-gray-800/95 to-transparent" />
       </div>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
         transition={{ duration: 0.8 }}
         className="relative text-center"
       >
         <motion.h1 
           className="text-4xl md:text-6xl font-bold text-white mb-6"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          animate={inView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 1 }}
         >
           <motion.span
@@ -31,10 +40,10 @@ export const HeroSection = () => {
               <motion.span
                 key={index}
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                animate={inView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{
                   duration: 0.2,
-                  delay: index * 0.05
+                  delay: inView ? index * 0.05 : 0
                 }}
               >
                 {char}
@@ -51,10 +60,10 @@ export const HeroSection = () => {
               <motion.span
                 key={index}
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                animate={inView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{
                   duration: 0.2,
-                  delay: (index + firstText.length) * 0.05
+                  delay: inView ? (index + firstText.length) * 0.05 : 0
                 }}
               >
                 {char}
@@ -64,8 +73,8 @@ export const HeroSection = () => {
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.5 }}
+          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.8, delay: inView ? 1.5 : 0 }}
           className="text-gray-200 text-lg max-w-2xl mx-auto"
         >
           A platform designed for practical skill development, not just theoretical knowledge.
@@ -73,8 +82,8 @@ export const HeroSection = () => {
         </motion.p>
         <motion.button
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8 }}
+          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.8, delay: inView ? 1.8 : 0 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="mt-8 px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full font-semibold text-lg hover:shadow-lg transition-all duration-300"

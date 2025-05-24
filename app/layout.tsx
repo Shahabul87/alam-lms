@@ -57,7 +57,7 @@ export default async function RootLayout({
       </head>
       <body className={clsx(
         dmSans.className,
-        "min-h-screen transition-colors duration-300 overflow-hidden"
+        "min-h-screen transition-colors duration-300"
       )}>
         <Providers session={session}>
           <ConfettiProvider />
