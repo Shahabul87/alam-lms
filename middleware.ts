@@ -22,15 +22,35 @@ export default auth((req) => {
   if (pathname.startsWith('/api/')) {
     const response = NextResponse.next();
     
-    // Add CORS headers for all API routes
-    const allowedOrigins = ['http://localhost:3000', 'https://bdgenai.com'];
-    const origin = req.headers.get('origin') ?? allowedOrigins[0];
-    const isAllowedOrigin = allowedOrigins.includes(origin);
+    // Get the origin from the request
+    const origin = req.headers.get('origin');
+    const host = req.headers.get('host');
     
-    response.headers.set('Access-Control-Allow-Origin', isAllowedOrigin ? origin : allowedOrigins[0]);
+    // Define allowed origins more flexibly
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://localhost:3000',
+      'https://bdgenai.com',
+      'https://www.bdgenai.com',
+      // Add the current host as allowed origin for same-origin requests
+      ...(host ? [`https://${host}`, `http://${host}`] : [])
+    ];
+    
+    // Check if origin is allowed or if it's a same-origin request
+    const isAllowedOrigin = !origin || allowedOrigins.includes(origin) || origin.includes('bdgenai.com');
+    
+    // Set CORS headers
+    if (isAllowedOrigin && origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    } else if (!origin) {
+      // For same-origin requests, allow the current host
+      response.headers.set('Access-Control-Allow-Origin', '*');
+    }
+    
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
     response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
     
     // Handle preflight OPTIONS requests
     if (req.method === 'OPTIONS') {

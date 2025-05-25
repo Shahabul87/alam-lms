@@ -2,6 +2,9 @@ import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+// Force Node.js runtime to avoid Edge Runtime issues with bcrypt and database connections
+export const runtime = 'nodejs';
+
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ courseId: string; chapterId: string }> }
@@ -76,6 +79,17 @@ export async function DELETE(
     return NextResponse.json(deletedChapter);
   } catch (error) {
     console.error("[CHAPTER_ID_DELETE]", error);
+    
+    // Enhanced error handling for production
+    if (error instanceof Error) {
+      if (error.message.includes('connect') || error.message.includes('timeout')) {
+        return new NextResponse("Database connection error", { status: 503 });
+      }
+      if (error.message.includes('auth') || error.message.includes('unauthorized')) {
+        return new NextResponse("Authentication error", { status: 401 });
+      }
+    }
+    
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -135,6 +149,17 @@ export async function PATCH(
     return NextResponse.json(chapter);
   } catch (error) {
     console.error("[CHAPTER_ID_PATCH]", error);
+    
+    // Enhanced error handling for production
+    if (error instanceof Error) {
+      if (error.message.includes('connect') || error.message.includes('timeout')) {
+        return new NextResponse("Database connection error", { status: 503 });
+      }
+      if (error.message.includes('auth') || error.message.includes('unauthorized')) {
+        return new NextResponse("Authentication error", { status: 401 });
+      }
+    }
+    
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

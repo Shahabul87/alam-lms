@@ -10,6 +10,9 @@ import { getUserByEmail } from "@/data/user";
 import { sendVerificationEmail } from "@/lib/mail";
 import { generateVerificationToken } from "@/lib/tokens";
 
+// Force Node.js runtime to avoid Edge Runtime issues with bcrypt
+export const runtime = 'nodejs';
+
 export async function POST(req: Request) {
   try {
     // Parse and validate the request body using Zod schema
