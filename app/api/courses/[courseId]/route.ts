@@ -5,6 +5,7 @@ import { currentUser } from "@/lib/auth";
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
+// Enhanced DELETE route with detailed error handling - v2.0
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ courseId: string }> }
