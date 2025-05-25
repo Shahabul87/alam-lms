@@ -1,20 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
+interface RouteParams {
+  params: Promise<{
+    courseId: string;
+  }>;
+}
+
+export async function DELETE(request: NextRequest, context: RouteParams) {
   try {
-    const { courseId } = params;
+    const { courseId } = await context.params;
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const course = await db.course.findUnique({
@@ -25,7 +28,7 @@ export async function DELETE(
     });
 
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     await db.course.delete({
@@ -37,16 +40,13 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[COURSE_DELETE]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
+export async function PATCH(request: NextRequest, context: RouteParams) {
   try {
-    const { courseId } = params;
+    const { courseId } = await context.params;
     console.log("PATCH request received for courseId:", courseId);
     
     const session = await auth();
@@ -54,10 +54,10 @@ export async function PATCH(
     
     if (!session?.user?.id) {
       console.log("Authentication failed: No user ID in session");
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const values = await req.json();
+    const values = await request.json();
     console.log("Request body values:", values);
     console.log("Authenticated user ID:", session.user.id);
 
@@ -119,7 +119,7 @@ export async function PATCH(
     
     if (Object.keys(updateData).length === 0) {
       console.log("No fields to update in request");
-      return new NextResponse("No fields to update", { status: 400 });
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
     const existingCourse = await db.course.findUnique({
@@ -133,7 +133,7 @@ export async function PATCH(
       console.log("Course not found or doesn't belong to user");
       console.log("User ID:", session.user.id);
       console.log("Course ID:", courseId);
-      return new NextResponse("Course not found", { status: 404 });
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
     console.log("Found existing course:", existingCourse.id);
@@ -151,13 +151,13 @@ export async function PATCH(
       return NextResponse.json(course);
     } catch (dbError: any) {
       console.error("Database error during update:", dbError);
-      return new NextResponse(`Database Error: ${dbError.message}`, { status: 500 });
+      return NextResponse.json({ error: `Database Error: ${dbError.message}` }, { status: 500 });
     }
   } catch (error: any) {
     console.error("[COURSE_PATCH] Detailed error:", error);
     if (error.name === "SyntaxError") {
-      return new NextResponse("Invalid JSON in request body", { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
     }
-    return new NextResponse(`Internal Error: ${error.message}`, { status: 500 });
+    return NextResponse.json({ error: `Internal Error: ${error.message}` }, { status: 500 });
   }
 }
