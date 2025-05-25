@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -11,20 +11,26 @@ export async function DELETE(
 ) {
   try {
     const { courseId } = await params;
-    const session = await auth();
+    console.log("[COURSE_DELETE] Starting deletion for courseId:", courseId);
+    
+    const user = await authenticateDynamicRoute(request);
 
-    if (!session?.user?.id) {
+    if (!user) {
+      console.log("[COURSE_DELETE] Authentication failed");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.log("[COURSE_DELETE] Authenticated user:", user.id);
 
     const course = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: session.user.id,
+        userId: user.id,
       }
     });
 
     if (!course) {
+      console.log("[COURSE_DELETE] Course not found or doesn't belong to user");
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -34,9 +40,10 @@ export async function DELETE(
       }
     });
 
+    console.log("[COURSE_DELETE] Course deleted successfully");
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[COURSE_DELETE]", error);
+    console.error("[COURSE_DELETE] Error:", error);
     return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
@@ -47,19 +54,19 @@ export async function PATCH(
 ) {
   try {
     const { courseId } = await params;
-    console.log("PATCH request received for courseId:", courseId);
+    console.log("[COURSE_PATCH] Starting update for courseId:", courseId);
     
-    const session = await auth();
-    console.log("Session:", session ? "Valid" : "Invalid");
+    const user = await authenticateDynamicRoute(request);
     
-    if (!session?.user?.id) {
-      console.log("Authentication failed: No user ID in session");
+    if (!user) {
+      console.log("[COURSE_PATCH] Authentication failed");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
+    console.log("[COURSE_PATCH] Authenticated user:", user.id);
+    
     const values = await request.json();
-    console.log("Request body values:", values);
-    console.log("Authenticated user ID:", session.user.id);
+    console.log("[COURSE_PATCH] Request body values:", values);
 
     const updateData: any = {};
     
@@ -83,7 +90,7 @@ export async function PATCH(
               .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
               .join(' ');
               
-            console.log("Looking for or creating category with name:", categoryName);
+            console.log("[COURSE_PATCH] Looking for or creating category:", categoryName);
             
             category = await db.category.findFirst({
               where: {
@@ -101,56 +108,56 @@ export async function PATCH(
                   name: categoryName,
                 }
               });
-              console.log("Created new category:", category);
+              console.log("[COURSE_PATCH] Created new category:", category);
             }
           }
           
           updateData.categoryId = category.id;
-          console.log("Using category:", category);
+          console.log("[COURSE_PATCH] Using category:", category);
         } catch (categoryError: any) {
-          console.error("Error handling category:", categoryError);
+          console.error("[COURSE_PATCH] Error handling category:", categoryError);
         }
       } else {
         updateData.categoryId = null;
       }
     }
 
-    console.log("Prepared update data:", updateData);
+    console.log("[COURSE_PATCH] Prepared update data:", updateData);
     
     if (Object.keys(updateData).length === 0) {
-      console.log("No fields to update in request");
+      console.log("[COURSE_PATCH] No fields to update");
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
     const existingCourse = await db.course.findUnique({
       where: {
         id: courseId,
-        userId: session.user.id,
+        userId: user.id,
       }
     });
 
     if (!existingCourse) {
-      console.log("Course not found or doesn't belong to user");
-      console.log("User ID:", session.user.id);
-      console.log("Course ID:", courseId);
+      console.log("[COURSE_PATCH] Course not found or doesn't belong to user");
+      console.log("[COURSE_PATCH] User ID:", user.id);
+      console.log("[COURSE_PATCH] Course ID:", courseId);
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    console.log("Found existing course:", existingCourse.id);
+    console.log("[COURSE_PATCH] Found existing course:", existingCourse.id);
 
     try {
       const course = await db.course.update({
         where: {
           id: courseId,
-          userId: session.user.id,
+          userId: user.id,
         },
         data: updateData,
       });
 
-      console.log("Course updated successfully:", course);
+      console.log("[COURSE_PATCH] Course updated successfully:", course);
       return NextResponse.json(course);
     } catch (dbError: any) {
-      console.error("Database error during update:", dbError);
+      console.error("[COURSE_PATCH] Database error during update:", dbError);
       return NextResponse.json({ error: `Database Error: ${dbError.message}` }, { status: 500 });
     }
   } catch (error: any) {

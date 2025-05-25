@@ -1,11 +1,11 @@
-import { currentUser } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt
 export const runtime = 'nodejs';
 
-export async function POST(req: Request, props: { params: Promise<{ courseId: string }> }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ courseId: string }> }) {
   const params = await props.params;
   
   // Add comprehensive logging for debugging production issues
@@ -13,10 +13,10 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
   console.log("[CHAPTERS_CREATE] Course ID:", params.courseId);
   
   try {
-    const user = await currentUser();
+    const user = await authenticateDynamicRoute(request);
     console.log("[CHAPTERS_CREATE] User authentication result:", user ? { id: user.id, email: user.email } : "No user");
     
-    const { title } = await req.json();
+    const { title } = await request.json();
     console.log("[CHAPTERS_CREATE] Request body - title:", title);
 
     if (!user?.id) {
@@ -24,7 +24,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const userId = user?.id;
+    const userId = user.id;
 
     // Check course ownership with detailed logging
     console.log("[CHAPTERS_CREATE] Checking course ownership for userId:", userId, "courseId:", params.courseId);
