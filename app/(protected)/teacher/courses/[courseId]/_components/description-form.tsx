@@ -64,7 +64,10 @@ export const DescriptionForm = ({
       console.log("Submitting description update:", values);
       console.log("Course ID:", courseId);
       
-      const response = await axios.patch(`/api/courses/${courseId}`, values, {
+      const response = await axios.post(`/api/course-update`, {
+        courseId: courseId,
+        description: values.description
+      }, {
         headers: {
           'Content-Type': 'application/json',
         },

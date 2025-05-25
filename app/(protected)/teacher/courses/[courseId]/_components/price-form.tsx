@@ -56,7 +56,10 @@ export const PriceForm = ({
       console.log("Submitting price:", values);
       console.log("Course ID:", courseId);
       
-      const response = await axios.patch(`/api/courses/${courseId}`, values, {
+      const response = await axios.post(`/api/course-update`, {
+        courseId: courseId,
+        price: values.price
+      }, {
         headers: {
           'Content-Type': 'application/json',
         },

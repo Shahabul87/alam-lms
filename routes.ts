@@ -22,6 +22,8 @@ export const publicRoutes = [
   "/api/debug-course-update",
   "/api/env-check",
   "/api/minimal-test",
+  "/api/auth-test",
+  "/api/course-update",
 ];
 
 /**
