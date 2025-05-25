@@ -54,16 +54,42 @@ export const PriceForm = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       console.log("Submitting price:", values);
+      console.log("Course ID:", courseId);
       
-      const response = await axios.patch(`/api/courses/${courseId}`, values);
+      const response = await axios.patch(`/api/courses/${courseId}`, values, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+      
       console.log("Price update response:", response.data);
-      
       toast.success("Price updated");
       setIsEditing(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Price update error:", error);
-      toast.error("Something went wrong");
+      
+      if (error.response) {
+        console.error("Error response status:", error.response.status);
+        console.error("Error response data:", error.response.data);
+        
+        if (error.response.status === 401) {
+          toast.error("Authentication failed. Please log in again.");
+        } else if (error.response.status === 404) {
+          toast.error("Course not found.");
+        } else if (error.response.status >= 500) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error(`Error: ${error.response.data || 'Something went wrong'}`);
+        }
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        toast.error("Network error. Please check your connection.");
+      } else {
+        console.error("Request setup error:", error.message);
+        toast.error("Something went wrong");
+      }
     }
   }
 

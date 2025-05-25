@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+
 // Reorder learning objectives
 export async function PATCH(
   req: Request, 

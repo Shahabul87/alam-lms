@@ -2,6 +2,9 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+
 export async function POST(
   req: Request,
   props: { params: Promise<{ courseId: string; chapterId: string; sectionId: string }> }

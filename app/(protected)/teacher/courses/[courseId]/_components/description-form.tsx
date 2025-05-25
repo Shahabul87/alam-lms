@@ -61,12 +61,43 @@ export const DescriptionForm = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
-      await axios.patch(`/api/courses/${courseId}`, values);
+      console.log("Submitting description update:", values);
+      console.log("Course ID:", courseId);
+      
+      const response = await axios.patch(`/api/courses/${courseId}`, values, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000, // 30 second timeout
+      });
+      
+      console.log("Description update response:", response.data);
       toast.success("Course description updated");
       toggleEdit();
       router.refresh();
-    } catch (error) {
-      toast.error("Something went wrong");
+    } catch (error: any) {
+      console.error("Description update error:", error);
+      
+      if (error.response) {
+        console.error("Error response status:", error.response.status);
+        console.error("Error response data:", error.response.data);
+        
+        if (error.response.status === 401) {
+          toast.error("Authentication failed. Please log in again.");
+        } else if (error.response.status === 404) {
+          toast.error("Course not found.");
+        } else if (error.response.status >= 500) {
+          toast.error("Server error. Please try again later.");
+        } else {
+          toast.error(`Error: ${error.response.data || 'Something went wrong'}`);
+        }
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        toast.error("Network error. Please check your connection.");
+      } else {
+        console.error("Request setup error:", error.message);
+        toast.error("Something went wrong");
+      }
     } finally {
       setIsSubmitting(false);
     }
