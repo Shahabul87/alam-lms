@@ -22,6 +22,7 @@ export const publicRoutes = [
   "/api/debug-course-update",
   "/api/env-check",
   "/api/minimal-test",
+  "/api/courses/[courseId]/temp-update",
 ];
 
 /**
