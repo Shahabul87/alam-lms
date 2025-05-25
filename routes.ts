@@ -18,6 +18,8 @@ export const publicRoutes = [
   "/api/search/mock",
   "/api/db-check",
   "/api-test",
+  "/api/simple-test",
+  "/api/debug-course-update",
 ];
 
 /**

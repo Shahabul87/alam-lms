@@ -90,6 +90,56 @@ export default function ApiTestPage() {
     }
   };
 
+  const testDiagnostics = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('/api/debug-course-update');
+      addResult('System Diagnostics', { success: true, data: response.data });
+    } catch (error: any) {
+      addResult('System Diagnostics', { 
+        success: false, 
+        error: error.response?.data || error.message,
+        status: error.response?.status 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testCourseCheck = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post('/api/debug-course-update', {
+        courseId: courseId
+      });
+      addResult('Course Check', { success: true, data: response.data });
+    } catch (error: any) {
+      addResult('Course Check', { 
+        success: false, 
+        error: error.response?.data || error.message,
+        status: error.response?.status 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testSimpleEndpoint = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('/api/simple-test');
+      addResult('Simple Test', { success: true, data: response.data });
+    } catch (error: any) {
+      addResult('Simple Test', { 
+        success: false, 
+        error: error.response?.data || error.message,
+        status: error.response?.status 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearResults = () => {
     setResults([]);
   };
@@ -121,7 +171,28 @@ export default function ApiTestPage() {
           <CardTitle>API Tests</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Button 
+              onClick={testSimpleEndpoint}
+              disabled={loading}
+              variant="outline"
+            >
+              ✅ Simple Test
+            </Button>
+            <Button 
+              onClick={testDiagnostics}
+              disabled={loading}
+              variant="outline"
+            >
+              🔍 Diagnostics
+            </Button>
+            <Button 
+              onClick={testCourseCheck}
+              disabled={loading}
+              variant="outline"
+            >
+              📋 Course Check
+            </Button>
             <Button 
               onClick={testProductionEndpoint}
               disabled={loading}
