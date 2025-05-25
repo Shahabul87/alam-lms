@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+<!-- Deployment trigger: Testing NEXTAUTH_SECRET environment variable -->
+
 ## Getting Started
 
 First, run the development server:
