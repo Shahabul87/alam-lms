@@ -16,12 +16,55 @@ export async function DELETE(
     const user = await currentUser();
 
     if (!user?.id) {
-      console.log("[COURSE_DELETE] Authentication failed");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      console.log("[COURSE_DELETE] Authentication failed - no user");
+      return NextResponse.json({ error: "Unauthorized", details: "No authenticated user" }, { status: 401 });
     }
 
     console.log("[COURSE_DELETE] Authenticated user:", user.id);
 
+    // First, check if the course exists at all
+    const courseExists = await db.course.findUnique({
+      where: {
+        id: courseId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        title: true,
+      }
+    });
+
+    console.log("[COURSE_DELETE] Course existence check:", courseExists ? {
+      id: courseExists.id,
+      userId: courseExists.userId,
+      title: courseExists.title,
+      userOwns: courseExists.userId === user.id
+    } : "Course not found");
+
+    if (!courseExists) {
+      console.log("[COURSE_DELETE] Course does not exist in database");
+      return NextResponse.json({ 
+        error: "Course not found", 
+        details: `Course with ID ${courseId} does not exist`,
+        courseId 
+      }, { status: 404 });
+    }
+
+    // Check if user owns the course
+    if (courseExists.userId !== user.id) {
+      console.log("[COURSE_DELETE] User does not own course");
+      console.log("[COURSE_DELETE] Course owner:", courseExists.userId);
+      console.log("[COURSE_DELETE] Current user:", user.id);
+      return NextResponse.json({ 
+        error: "Unauthorized", 
+        details: "You do not own this course",
+        courseId,
+        courseOwner: courseExists.userId,
+        currentUser: user.id
+      }, { status: 403 });
+    }
+
+    // Now find the course with ownership check for deletion
     const course = await db.course.findUnique({
       where: {
         id: courseId,
@@ -30,9 +73,11 @@ export async function DELETE(
     });
 
     if (!course) {
-      console.log("[COURSE_DELETE] Course not found or doesn't belong to user");
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      console.log("[COURSE_DELETE] Course not found with ownership check (this shouldn't happen)");
+      return NextResponse.json({ error: "Course not found with ownership" }, { status: 404 });
     }
+
+    console.log("[COURSE_DELETE] About to delete course:", course.title);
 
     await db.course.delete({
       where: {
@@ -41,10 +86,29 @@ export async function DELETE(
     });
 
     console.log("[COURSE_DELETE] Course deleted successfully");
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Course deleted successfully",
+      deletedCourse: {
+        id: course.id,
+        title: course.title
+      }
+    });
   } catch (error) {
     console.error("[COURSE_DELETE] Error:", error);
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    
+    // Enhanced error logging
+    if (error instanceof Error) {
+      console.error("[COURSE_DELETE] Error name:", error.name);
+      console.error("[COURSE_DELETE] Error message:", error.message);
+      console.error("[COURSE_DELETE] Error stack:", error.stack);
+    }
+    
+    return NextResponse.json({ 
+      error: "Internal Error", 
+      details: error instanceof Error ? error.message : "Unknown error",
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
 

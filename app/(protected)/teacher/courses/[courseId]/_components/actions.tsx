@@ -58,13 +58,39 @@ export const Actions = ({
   const onDelete = async () => {
     try {
       setIsDeleteLoading(true);
-      await axios.delete(`/api/courses/${courseId}`);
-      toast.success("Course deleted");
+      console.log(`[CLIENT] Attempting to delete course: ${courseId}`);
+      
+      const response = await axios.delete(`/api/courses/${courseId}`);
+      console.log(`[CLIENT] Delete response:`, response.data);
+      
+      toast.success("Course deleted successfully");
       router.refresh();
       router.push(`/teacher/courses`);
     } catch (error: any) {
-      console.error("Delete error:", error);
-      if (error.response?.data) {
+      console.error("[CLIENT] Delete error:", error);
+      console.error("[CLIENT] Error response:", error.response?.data);
+      console.error("[CLIENT] Error status:", error.response?.status);
+      
+      // Enhanced error handling with specific messages
+      if (error.response?.status === 404) {
+        const errorData = error.response.data;
+        if (errorData?.details) {
+          toast.error(`Course not found: ${errorData.details}`);
+        } else {
+          toast.error("Course not found. It may have already been deleted.");
+        }
+        // Redirect to courses list since course doesn't exist
+        router.push(`/teacher/courses`);
+      } else if (error.response?.status === 403) {
+        const errorData = error.response.data;
+        toast.error("You don't have permission to delete this course.");
+        console.error("[CLIENT] Permission details:", errorData);
+      } else if (error.response?.status === 401) {
+        toast.error("Please log in again to delete this course.");
+        router.push("/auth/login");
+      } else if (error.response?.data?.error) {
+        toast.error(`Error: ${error.response.data.error}`);
+      } else if (error.response?.data) {
         toast.error(error.response.data);
       } else {
         toast.error("Something went wrong. Please try again.");
