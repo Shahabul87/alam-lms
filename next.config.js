@@ -140,7 +140,7 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: [
         // Development origins
-        ...(process.env.NODE_ENV === 'development' ? ['localhost:3000'] : []),
+        ...(process.env.NODE_ENV === 'development' ? ['localhost:3000', 'http://localhost:3000'] : []),
         // Production origins
         'bdgenai.com', 
         'https://bdgenai.com',
