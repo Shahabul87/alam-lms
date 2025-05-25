@@ -1,5 +1,8 @@
 import NextAuth from "next-auth";
-import authConfig from "@/auth.config";
+import type { NextAuthConfig } from "next-auth";
+import Github from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+
 import {
   DEFAULT_LOGIN_REDIRECT,
   apiAuthPrefix,
@@ -7,7 +10,23 @@ import {
   publicRoutes,
 } from "@/routes";
 
-const { auth } = NextAuth(authConfig);
+// Middleware-specific auth config without Credentials provider
+// to avoid bcryptjs Edge Runtime issues
+const middlewareAuthConfig: NextAuthConfig = {
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+    Github({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    }),
+    // Note: Credentials provider is excluded to avoid bcryptjs in Edge Runtime
+  ],
+};
+
+const { auth } = NextAuth(middlewareAuthConfig);
 
 export default auth((req) => {
   const { nextUrl } = req;

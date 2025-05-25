@@ -5,7 +5,6 @@ import Google from "next-auth/providers/google";
 
 import { LoginSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
-import { verifyPassword } from "@/lib/passwordUtils";
 
 export default {
   providers: [
@@ -27,12 +26,19 @@ export default {
           const user = await getUserByEmail(email);
           if (!user || !user.password) return null;
 
-          const passwordsMatch = await verifyPassword(
-            password,
-            user.password,
-          );
+          // Use dynamic import to avoid Edge Runtime issues
+          try {
+            const { verifyPassword } = await import("@/lib/passwordUtils");
+            const passwordsMatch = await verifyPassword(
+              password,
+              user.password,
+            );
 
-          if (passwordsMatch) return user;
+            if (passwordsMatch) return user;
+          } catch (error) {
+            console.error("Password verification failed:", error);
+            return null;
+          }
         }
 
         return null;
