@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[AUTH_TEST] Error:", error);
     return NextResponse.json({
-      authenticated: false,
       error: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date().toISOString()
     }, { status: 500 });

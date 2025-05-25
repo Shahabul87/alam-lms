@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { decode } from "next-auth/jwt";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 
 export interface AuthenticatedUser {
   id: string;
@@ -12,21 +13,22 @@ export interface AuthenticatedUser {
 
 /**
  * Robust authentication for dynamic API routes in Next.js 15
- * This bypasses NextAuth's auth() function which can fail in dynamic routes
+ * Uses the correct cookie names found in production
  */
 export async function authenticateApiRoute(request?: NextRequest): Promise<AuthenticatedUser | null> {
   try {
     console.log("[AUTH_DYNAMIC] Starting authentication process");
     
-    // Method 1: Try to get session token from cookies
+    // Method 1: Try to get session token from cookies with correct names
     const cookieStore = await cookies();
     
-    // NextAuth typically stores the session token in these cookie names
+    // Use the actual cookie names found in production
     const sessionTokenNames = [
-      'next-auth.session-token',
-      '__Secure-next-auth.session-token',
+      '__Secure-authjs.session-token',
+      '__Host-authjs.csrf-token',
       'authjs.session-token',
-      '__Secure-authjs.session-token'
+      'next-auth.session-token',
+      '__Secure-next-auth.session-token'
     ];
     
     let sessionToken: string | undefined;
@@ -114,8 +116,10 @@ export async function authenticateBySession(): Promise<AuthenticatedUser | null>
     
     const cookieStore = await cookies();
     
-    // Look for session ID in cookies
-    const sessionId = cookieStore.get('next-auth.session-token')?.value ||
+    // Look for session ID in cookies with correct names
+    const sessionId = cookieStore.get('__Secure-authjs.session-token')?.value ||
+                     cookieStore.get('authjs.session-token')?.value ||
+                     cookieStore.get('next-auth.session-token')?.value ||
                      cookieStore.get('__Secure-next-auth.session-token')?.value;
     
     if (!sessionId) {
@@ -171,15 +175,51 @@ export async function authenticateBySession(): Promise<AuthenticatedUser | null>
 }
 
 /**
+ * Fallback to original NextAuth auth() function
+ * Since we confirmed it works in production
+ */
+export async function authenticateWithOriginalAuth(): Promise<AuthenticatedUser | null> {
+  try {
+    console.log("[AUTH_ORIGINAL] Attempting original auth() function");
+    
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      console.log("[AUTH_ORIGINAL] No session or user ID");
+      return null;
+    }
+    
+    console.log("[AUTH_ORIGINAL] Original auth successful for user:", session.user.id);
+    
+    return {
+      id: session.user.id,
+      email: session.user.email || "",
+      name: session.user.name || undefined,
+      role: (session.user as any).role || "USER",
+    };
+    
+  } catch (error) {
+    console.error("[AUTH_ORIGINAL] Original auth error:", error);
+    return null;
+  }
+}
+
+/**
  * Main authentication function that tries multiple methods
  */
 export async function authenticateDynamicRoute(request?: NextRequest): Promise<AuthenticatedUser | null> {
   console.log("[AUTH_MAIN] Starting dynamic route authentication");
   
-  // Try JWT-based authentication first
-  let user = await authenticateApiRoute(request);
+  // Method 1: Try original auth() function first since it works
+  let user = await authenticateWithOriginalAuth();
   
-  // If JWT fails, try session-based authentication
+  // Method 2: Try JWT-based authentication if original fails
+  if (!user) {
+    console.log("[AUTH_MAIN] Original auth failed, trying JWT auth");
+    user = await authenticateApiRoute(request);
+  }
+  
+  // Method 3: Try session-based authentication if JWT fails
   if (!user) {
     console.log("[AUTH_MAIN] JWT auth failed, trying session auth");
     user = await authenticateBySession();
