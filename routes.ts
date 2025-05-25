@@ -20,6 +20,8 @@ export const publicRoutes = [
   "/api-test",
   "/api/simple-test",
   "/api/debug-course-update",
+  "/api/env-check",
+  "/api/minimal-test",
 ];
 
 /**

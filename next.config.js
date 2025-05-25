@@ -137,10 +137,6 @@ const nextConfig = {
 
   // Optimize memory usage for builds
   experimental: {
-    optimizeServerReact: true,
-    optimizeCss: true,
-    serverMinification: true,
-    serverSourceMaps: false,
     serverActions: {
       allowedOrigins: [
         // Development origins

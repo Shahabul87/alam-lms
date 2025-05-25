@@ -6,8 +6,7 @@ import { currentUser } from "@/lib/auth";
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function DELETE(req: Request, props: { params: Promise<{ courseId: string }> }) {
-  const params = await props.params;
+export async function DELETE(req: Request, { params }: { params: { courseId: string } }) {
   try {
     const session = await auth();
 
@@ -42,8 +41,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ courseId: 
 }
 
 
-export async function PATCH(req: Request, props: { params: Promise<{ courseId: string }> }) {
-  const params = await props.params;
+export async function PATCH(req: Request, { params }: { params: { courseId: string } }) {
   try {
     console.log("PATCH request received for courseId:", params.courseId);
     
