@@ -142,7 +142,7 @@ const nextConfig = {
     serverMinification: true,
     serverSourceMaps: false,
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'www.bdgenai.com', 'bdgenai.com']
+      allowedOrigins: ['localhost:3000', 'bdgenai.com', 'https://bdgenai.com']
     }
   },
 

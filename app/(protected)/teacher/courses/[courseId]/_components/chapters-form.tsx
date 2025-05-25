@@ -55,8 +55,17 @@ export const ChaptersForm = ({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       console.log("[CHAPTERS_FORM] Starting chapter creation:", { courseId, title: values.title });
+      console.log("[CHAPTERS_FORM] Request URL:", `/api/courses/${courseId}/chapters`);
+      console.log("[CHAPTERS_FORM] Request payload:", values);
+      console.log("[CHAPTERS_FORM] Current domain:", window.location.origin);
       
-      const response = await axios.post(`/api/courses/${courseId}/chapters`, values);
+      const response = await axios.post(`/api/courses/${courseId}/chapters`, values, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+        timeout: 30000, // 30 second timeout
+      });
       
       console.log("[CHAPTERS_FORM] Chapter created successfully:", response.data);
       toast.success("Chapter created");

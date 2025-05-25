@@ -12,33 +12,37 @@ import type { NextRequest } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
-// Custom middleware function that adds CORS headers for API routes
-const addCorsHeaders = (request: NextRequest) => {
-  const response = NextResponse.next();
-  
-  // Add CORS headers only to API routes
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    response.headers.set('Access-Control-Allow-Origin', '*');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+// Enhanced middleware that handles both auth and CORS
+export default auth((req) => {
+  const { nextUrl } = req;
+  const { pathname } = nextUrl;
+  const isLoggedIn = !!req.auth;
+
+  // Handle CORS for API routes FIRST
+  if (pathname.startsWith('/api/')) {
+    const response = NextResponse.next();
     
-    // Handle preflight requests
-    if (request.method === 'OPTIONS') {
+    // Add CORS headers for all API routes
+    const allowedOrigins = ['http://localhost:3000', 'https://bdgenai.com'];
+    const origin = req.headers.get('origin') ?? allowedOrigins[0];
+    const isAllowedOrigin = allowedOrigins.includes(origin);
+    
+    response.headers.set('Access-Control-Allow-Origin', isAllowedOrigin ? origin : allowedOrigins[0]);
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle preflight OPTIONS requests
+    if (req.method === 'OPTIONS') {
       return new NextResponse(null, { 
         status: 200,
         headers: response.headers,
       });
     }
-  }
-  
-  return response;
-};
 
-// Auth.js middleware enhanced with CORS support
-export default auth((req) => {
-  const { nextUrl } = req;
-  const { pathname } = nextUrl;
-  const isLoggedIn = !!req.auth;
+    // For API routes, continue with the response (don't block authenticated API calls)
+    return response;
+  }
 
   // Allow search API routes to bypass auth completely
   if (pathname.startsWith('/api/search')) {
@@ -82,16 +86,6 @@ export default auth((req) => {
 
   return undefined;
 });
-
-// Add a chained middleware to handle CORS for all routes
-export const middleware = (request: NextRequest) => {
-  // Only apply CORS headers to API routes
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    return addCorsHeaders(request);
-  }
-  
-  return NextResponse.next();
-};
 
 export const config = {
   matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
