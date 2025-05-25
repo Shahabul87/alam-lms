@@ -35,12 +35,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
     
+    // Prepare update data
+    const updateData: any = {};
+    
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.price !== undefined) updateData.price = body.price;
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.imageUrl !== undefined) updateData.imageUrl = body.imageUrl;
+    if (body.whatYouWillLearn !== undefined) updateData.whatYouWillLearn = body.whatYouWillLearn;
+    if (body.isPublished !== undefined) updateData.isPublished = body.isPublished;
+    
+    // If no specific fields provided, add a timestamp
+    if (Object.keys(updateData).length === 0) {
+      updateData.description = `Updated at ${new Date().toISOString()}`;
+    }
+    
     // Update the course
     const updatedCourse = await db.course.update({
       where: { id: courseId },
-      data: { 
-        description: body.description || `Updated at ${new Date().toISOString()}`
-      }
+      data: updateData
     });
     
     return NextResponse.json({
