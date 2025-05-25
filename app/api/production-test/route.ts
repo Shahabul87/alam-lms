@@ -55,15 +55,16 @@ export async function GET(req: NextRequest) {
   }
 
   // Test 3: Authentication System
+  let authenticatedUser = null;
   try {
-    const user = await currentUser();
+    authenticatedUser = await currentUser();
     testResults.tests.authentication = {
       status: 'success',
       data: {
         authSystemWorking: true,
-        userAuthenticated: !!user,
-        userId: user?.id || null,
-        userEmail: user?.email || null
+        userAuthenticated: !!authenticatedUser,
+        userId: authenticatedUser?.id || null,
+        userEmail: authenticatedUser?.email || null
       }
     };
   } catch (error) {
@@ -76,27 +77,40 @@ export async function GET(req: NextRequest) {
 
   // Test 4: Database Write Operation (Safe test)
   try {
-    // Try to create and immediately delete a test record
-    const testCourse = await db.course.create({
-      data: {
-        title: 'TEST_COURSE_DELETE_ME',
-        userId: 'test-user-id',
-        description: 'This is a test course that should be deleted immediately'
-      }
-    });
+    if (authenticatedUser?.id) {
+      // Use the authenticated user's ID to avoid foreign key constraint errors
+      const testCourse = await db.course.create({
+        data: {
+          title: 'TEST_COURSE_DELETE_ME',
+          userId: authenticatedUser.id,
+          description: 'This is a test course that should be deleted immediately'
+        }
+      });
 
-    await db.course.delete({
-      where: { id: testCourse.id }
-    });
+      await db.course.delete({
+        where: { id: testCourse.id }
+      });
 
-    testResults.tests.databaseWrite = {
-      status: 'success',
-      data: {
-        canWrite: true,
-        canDelete: true,
-        testCourseId: testCourse.id
-      }
-    };
+      testResults.tests.databaseWrite = {
+        status: 'success',
+        data: {
+          canWrite: true,
+          canDelete: true,
+          testCourseId: testCourse.id,
+          usedUserId: authenticatedUser.id
+        }
+      };
+    } else {
+      // If no authenticated user, skip the write test
+      testResults.tests.databaseWrite = {
+        status: 'skipped',
+        data: {
+          canWrite: 'unknown',
+          canDelete: 'unknown',
+          reason: 'No authenticated user available for safe testing'
+        }
+      };
+    }
   } catch (error) {
     testResults.tests.databaseWrite = {
       status: 'error',
@@ -141,7 +155,13 @@ export async function GET(req: NextRequest) {
         test.error?.includes('DATABASE_URL') || 
         test.error?.includes('NEXTAUTH_SECRET') ||
         test.error?.includes('connect')
-      ).length > 0
+      ).length > 0,
+      missingNextAuthSecret: !process.env.NEXTAUTH_SECRET,
+      recommendations: [
+        ...(!process.env.NEXTAUTH_SECRET ? ['Set NEXTAUTH_SECRET environment variable'] : []),
+        ...(failedTests.length > 0 ? ['Check server logs for detailed error information'] : []),
+        ...(failedTests.length === 0 ? ['All systems operational! 🎉'] : [])
+      ]
     }
   });
 
