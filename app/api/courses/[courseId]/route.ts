@@ -5,15 +5,12 @@ import { db } from "@/lib/db";
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-interface RouteParams {
-  params: Promise<{
-    courseId: string;
-  }>;
-}
-
-export async function DELETE(request: NextRequest, context: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ courseId: string }> }
+) {
   try {
-    const { courseId } = await context.params;
+    const { courseId } = await params;
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -44,9 +41,12 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
   }
 }
 
-export async function PATCH(request: NextRequest, context: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ courseId: string }> }
+) {
   try {
-    const { courseId } = await context.params;
+    const { courseId } = await params;
     console.log("PATCH request received for courseId:", courseId);
     
     const session = await auth();
