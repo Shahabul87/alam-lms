@@ -10,10 +10,24 @@ export const publicRoutes = [
   "/api/webhook",
   "/portfolio",
   "/blog",
+  "/blog/[postId]",
   "/courses",
   "/courses/[courseId]",
+  "/courses/[courseId]/learn",
+  "/courses/[courseId]/learn/[chapterId]",
+  "/courses/[courseId]/learn/[chapterId]/sections/[sectionId]",
+  "/courses/[courseId]/chapters/sections/[sectionId]",
+  "/post",
+  "/post/[postId]",
+  "/post/all-posts",
+  "/articles/[articleId]",
   "/about",
   "/dashboard",
+  "/features",
+  "/get-started",
+  "/discover",
+  "/resources",
+  "/support",
   "/api/search",
   "/api/search/mock",
   "/api/db-check",
@@ -24,6 +38,9 @@ export const publicRoutes = [
   "/api/minimal-test",
   "/api/auth-test",
   "/api/course-update",
+  "/api/test-dynamic-routes",
+  "/api/debug-dynamic-routes",
+  "/test-dynamic/[testId]",
 ];
 
 /**
@@ -57,6 +74,38 @@ export const adminRoutes: string[] = [
 ];
 
 /**
+ * Protected routes that require authentication
+ * @type {string[]}
+ */
+export const protectedRoutes: string[] = [
+  "/dashboard/user",
+  "/my-courses",
+  "/my-posts",
+  "/profile",
+  "/settings",
+  "/messages",
+  "/calendar",
+  "/ai-tutor",
+  "/groups",
+  "/groups/[groupId]",
+  "/groups/[groupId]/settings",
+  "/groups/create",
+  "/groups/my-groups",
+  "/teacher/courses",
+  "/teacher/courses/[courseId]",
+  "/teacher/courses/[courseId]/chapters/[chapterId]",
+  "/teacher/courses/[courseId]/chapters/[chapterId]/section/[sectionId]",
+  "/teacher/create",
+  "/teacher/createblog",
+  "/teacher/posts/[postId]",
+  "/teacher/posts/[postId]/postchapters/[postchapterId]",
+  "/teacher/analytics",
+  "/teacher/allposts",
+  "/post/create-post",
+  "/analytics/student",
+];
+
+/**
  * Returns the default redirect path after logging in based on user role
  * @param role - The user's role (ADMIN or USER)
  * @returns {string} The redirect path
@@ -79,4 +128,30 @@ export const DEFAULT_LOGIN_REDIRECT = "/dashboard/user";
  */
 export const getRedirectUrl = (role?: string) => {
   return getDefaultRedirect(role);
+};
+
+/**
+ * Check if a route is public (doesn't require authentication)
+ * @param pathname - The pathname to check
+ * @returns {boolean} Whether the route is public
+ */
+export const isPublicRoute = (pathname: string): boolean => {
+  return publicRoutes.some(route => {
+    // Convert route pattern to regex
+    const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
+    return pattern.test(pathname);
+  });
+};
+
+/**
+ * Check if a route is protected (requires authentication)
+ * @param pathname - The pathname to check
+ * @returns {boolean} Whether the route is protected
+ */
+export const isProtectedRoute = (pathname: string): boolean => {
+  return protectedRoutes.some(route => {
+    // Convert route pattern to regex
+    const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
+    return pattern.test(pathname);
+  });
 };

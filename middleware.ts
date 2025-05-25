@@ -7,7 +7,8 @@ import {
   DEFAULT_LOGIN_REDIRECT,
   apiAuthPrefix,
   authRoutes,
-  publicRoutes,
+  isPublicRoute,
+  isProtectedRoute,
 } from "@/routes";
 
 // Middleware-specific auth config without Credentials provider
@@ -31,56 +32,87 @@ const { auth } = NextAuth(middlewareAuthConfig);
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
+  const pathname = nextUrl.pathname;
 
-  const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
-  // Add explicit check for _next/static and _next/image routes
-  const isNextStaticRoute = nextUrl.pathname.startsWith('/_next/static') || 
-                           nextUrl.pathname.startsWith('/_next/image');
+  // Skip middleware for static files and Next.js internals
+  const isNextStaticRoute = pathname.startsWith('/_next/') || 
+                           pathname.startsWith('/favicon.ico') ||
+                           pathname.includes('.');
   
-     if (isNextStaticRoute) {
-     return;
-   }
+  if (isNextStaticRoute) {
+    return;
+  }
+
+  // Skip middleware for API auth routes
+  const isApiAuthRoute = pathname.startsWith(apiAuthPrefix);
+  if (isApiAuthRoute) {
+    return;
+  }
+
+  // Check if it's an auth route (login, register, etc.)
+  const isAuthRoute = authRoutes.includes(pathname);
   
-  const isPublicRoute = publicRoutes.some(route => {
-    // Convert route to regex pattern
-    const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
-    return pattern.test(nextUrl.pathname);
-  });
-  const isAuthRoute = authRoutes.includes(nextUrl.pathname);
+  // Check if it's a public route using the improved function
+  const isPublic = isPublicRoute(pathname);
+  
+  // Check if it's a protected route using the improved function
+  const isProtected = isProtectedRoute(pathname);
 
-     // Special handling for API routes
-   if (isApiAuthRoute) {
-     return;
-   }
+  // Debug logging for dynamic routes (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[MIDDLEWARE] ${pathname} - Public: ${isPublic}, Protected: ${isProtected}, LoggedIn: ${isLoggedIn}`);
+  }
 
-   if (isAuthRoute) {
-     if (isLoggedIn) {
-       return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl))
-     }
-     return;
-   }
+  // Handle auth routes
+  if (isAuthRoute) {
+    if (isLoggedIn) {
+      return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+    }
+    return;
+  }
 
-  if (!isLoggedIn && !isPublicRoute) {
-    let callbackUrl = nextUrl.pathname;
+  // Handle protected routes
+  if (isProtected && !isLoggedIn) {
+    let callbackUrl = pathname;
     if (nextUrl.search) {
       callbackUrl += nextUrl.search;
     }
 
     const encodedCallbackUrl = encodeURIComponent(callbackUrl);
-
     return Response.redirect(new URL(
       `/auth/login?callbackUrl=${encodedCallbackUrl}`,
       nextUrl
     ));
   }
 
-     return;
-})
+  // Handle non-public routes that aren't explicitly protected
+  if (!isPublic && !isProtected && !isLoggedIn) {
+    let callbackUrl = pathname;
+    if (nextUrl.search) {
+      callbackUrl += nextUrl.search;
+    }
 
-// Update the matcher to exclude static files and images
+    const encodedCallbackUrl = encodeURIComponent(callbackUrl);
+    return Response.redirect(new URL(
+      `/auth/login?callbackUrl=${encodedCallbackUrl}`,
+      nextUrl
+    ));
+  }
+
+  return;
+});
+
+// Update the matcher to be more specific and exclude static files
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$).*)',
-    '/',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files (images, etc.)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.css$|.*\\.js$).*)',
   ],
-}
+};
