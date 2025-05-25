@@ -7,6 +7,7 @@ import {
   publicRoutes,
   getRedirectUrl,
 } from "@/routes";
+import { config, isOriginAllowed } from "@/lib/config";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -26,18 +27,17 @@ export default auth((req) => {
     const origin = req.headers.get('origin');
     const host = req.headers.get('host');
     
-    // Define allowed origins more flexibly
+    // Use the centralized configuration
     const allowedOrigins = [
-      'http://localhost:3000',
-      'https://localhost:3000',
-      'https://bdgenai.com',
-      'https://www.bdgenai.com',
+      ...config.allowedOrigins,
       // Add the current host as allowed origin for same-origin requests
       ...(host ? [`https://${host}`, `http://${host}`] : [])
     ];
     
-    // Check if origin is allowed or if it's a same-origin request
-    const isAllowedOrigin = !origin || allowedOrigins.includes(origin) || origin.includes('bdgenai.com');
+    // Check if origin is allowed
+    const isAllowedOrigin = !origin || 
+                           allowedOrigins.includes(origin) || 
+                           isOriginAllowed(origin || '');
     
     // Set CORS headers
     if (isAllowedOrigin && origin) {

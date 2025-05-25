@@ -1,11 +1,15 @@
 // Test script for the DeepSeek AI Tutor integration
 const fetch = require('node-fetch');
+const axios = require('axios');
+
+// Use environment variable or fallback to localhost for development
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 async function testAITutor() {
   console.log('Testing DeepSeek AI Tutor integration...');
   
   try {
-    const response = await fetch('http://localhost:3000/api/ai-tutor', {
+    const response = await fetch(`${BASE_URL}/api/ai-tutor`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
