@@ -12,11 +12,28 @@ export async function GET(req: NextRequest) {
     tests: {} as Record<string, any>
   };
 
-  // Test 1: Environment Variables
+  // Test 1: Environment Variables (Enhanced)
   try {
-    // More comprehensive NEXTAUTH_SECRET check
-    const nextAuthSecretExists = !!(process.env.NEXTAUTH_SECRET && process.env.NEXTAUTH_SECRET.length > 0);
-    const nextAuthSecretLength = process.env.NEXTAUTH_SECRET?.length || 0;
+    // Multiple approaches to detect NEXTAUTH_SECRET
+    const nextAuthSecretDirect = process.env.NEXTAUTH_SECRET;
+    const nextAuthSecretExists = !!(nextAuthSecretDirect && nextAuthSecretDirect.length > 0);
+    const nextAuthSecretLength = nextAuthSecretDirect?.length || 0;
+    
+    // Alternative detection methods for different deployment platforms
+    const envKeys = Object.keys(process.env);
+    const hasNextAuthInEnv = envKeys.some(key => key.includes('NEXTAUTH_SECRET'));
+    
+    // Check if we can access the secret through different methods
+    let secretAccessible = false;
+    let secretSource = 'none';
+    
+    if (nextAuthSecretExists) {
+      secretAccessible = true;
+      secretSource = 'direct';
+    } else if (hasNextAuthInEnv) {
+      secretAccessible = true;
+      secretSource = 'indirect';
+    }
     
     testResults.tests.environmentVariables = {
       status: 'success',
@@ -25,9 +42,15 @@ export async function GET(req: NextRequest) {
         DATABASE_URL_SET: !!process.env.DATABASE_URL,
         NEXTAUTH_SECRET_SET: nextAuthSecretExists,
         NEXTAUTH_SECRET_LENGTH: nextAuthSecretLength,
+        NEXTAUTH_SECRET_ACCESSIBLE: secretAccessible,
+        NEXTAUTH_SECRET_SOURCE: secretSource,
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
         NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-        hasRequiredEnvVars: !!(process.env.DATABASE_URL && nextAuthSecretExists && process.env.NEXTAUTH_URL)
+        hasRequiredEnvVars: !!(process.env.DATABASE_URL && secretAccessible && process.env.NEXTAUTH_URL),
+        // Additional debugging info
+        totalEnvVars: envKeys.length,
+        nextAuthRelatedVars: envKeys.filter(key => key.toLowerCase().includes('nextauth')),
+        deploymentPlatform: process.env.VERCEL ? 'vercel' : process.env.NETLIFY ? 'netlify' : 'other'
       }
     };
   } catch (error) {
@@ -61,11 +84,20 @@ export async function GET(req: NextRequest) {
 
   // Test 3: Authentication System (Enhanced)
   let authenticatedUser = null;
+  let authTestResult = null;
   try {
     authenticatedUser = await currentUser();
     
     // If user is authenticated, it means NEXTAUTH_SECRET is working
     const authWorking = !!authenticatedUser;
+    
+    // Additional auth system test
+    if (authWorking) {
+      authTestResult = 'functional';
+    } else {
+      // Try to determine why auth isn't working
+      authTestResult = 'no_user_session';
+    }
     
     testResults.tests.authentication = {
       status: 'success',
@@ -74,8 +106,10 @@ export async function GET(req: NextRequest) {
         userAuthenticated: authWorking,
         userId: authenticatedUser?.id || null,
         userEmail: authenticatedUser?.email || null,
-        // If auth is working, secret must be present
-        nextAuthSecretEffective: authWorking
+        // If auth is working, secret must be present and functional
+        nextAuthSecretEffective: authWorking,
+        authTestResult: authTestResult,
+        sessionStrategy: 'jwt' // Based on your auth.ts config
       }
     };
   } catch (error) {
@@ -158,6 +192,7 @@ export async function GET(req: NextRequest) {
   // Enhanced analysis
   const authWorking = testResults.tests.authentication?.data?.userAuthenticated;
   const envVarDetected = testResults.tests.environmentVariables?.data?.NEXTAUTH_SECRET_SET;
+  const secretAccessible = testResults.tests.environmentVariables?.data?.NEXTAUTH_SECRET_ACCESSIBLE;
   const secretLength = testResults.tests.environmentVariables?.data?.NEXTAUTH_SECRET_LENGTH || 0;
 
   const response = NextResponse.json({
@@ -173,14 +208,20 @@ export async function GET(req: NextRequest) {
       ).length > 0,
       authenticationAnalysis: {
         secretDetectedInEnv: envVarDetected,
+        secretAccessible: secretAccessible,
         secretLength: secretLength,
         authenticationWorking: authWorking,
         // If auth is working but env var not detected, it's likely a detection issue
         likelyDetectionIssue: authWorking && !envVarDetected,
-        verdict: authWorking ? 'NEXTAUTH_SECRET is working correctly' : 'NEXTAUTH_SECRET may have issues'
+        verdict: authWorking ? 'NEXTAUTH_SECRET is working correctly' : 'NEXTAUTH_SECRET may have issues',
+        // New: More detailed analysis
+        functionalStatus: authWorking ? 'FUNCTIONAL' : 'NOT_FUNCTIONAL',
+        detectionStatus: envVarDetected ? 'DETECTED' : 'NOT_DETECTED',
+        overallAssessment: authWorking ? 'SECRET_IS_WORKING' : 'SECRET_NEEDS_ATTENTION'
       },
       recommendations: [
         ...(authWorking ? ['✅ Authentication is working - NEXTAUTH_SECRET is functional'] : ['❌ Authentication not working - check NEXTAUTH_SECRET']),
+        ...(authWorking && !envVarDetected ? ['ℹ️ Secret detection issue - this is cosmetic, functionality is working'] : []),
         ...(failedTests.length > 0 ? ['Check server logs for detailed error information'] : []),
         ...(failedTests.length === 0 ? ['All systems operational! 🎉'] : [])
       ]

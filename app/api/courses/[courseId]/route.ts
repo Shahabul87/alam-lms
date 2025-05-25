@@ -3,6 +3,9 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+
 export async function DELETE(req: Request, props: { params: Promise<{ courseId: string }> }) {
   const params = await props.params;
   try {

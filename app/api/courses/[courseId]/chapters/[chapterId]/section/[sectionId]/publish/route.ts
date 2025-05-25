@@ -2,6 +2,9 @@ import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+
 export async function PATCH(
   req: Request,
   props: { params: Promise<{ courseId: string; chapterId: string, sectionId:string }> }

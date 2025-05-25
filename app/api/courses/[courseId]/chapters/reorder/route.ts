@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+
 export async function PUT(req: Request, props: { params: Promise<{ courseId: string; }> }) {
   const params = await props.params;
   try {
