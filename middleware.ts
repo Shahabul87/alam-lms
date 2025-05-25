@@ -1,30 +1,30 @@
-import { auth } from "@/auth"
+// Temporarily disabled middleware to test dynamic routes
+// import { auth } from "@/auth"
+// import { NextResponse } from "next/server"
 
-export default auth((req) => {
-  // req.auth contains the session information
-  console.log("[MIDDLEWARE] Processing request:", req.nextUrl.pathname);
-  console.log("[MIDDLEWARE] User authenticated:", !!req.auth);
+// export default auth((req) => {
+//   // Skip middleware for all API routes - let them handle their own auth
+//   if (req.nextUrl.pathname.startsWith('/api/')) {
+//     return NextResponse.next();
+//   }
   
-  // The middleware automatically handles authentication
-  // Dynamic routes will now work properly with authentication
+//   // req.auth contains the session information for non-API routes
+//   console.log("[MIDDLEWARE] Processing request:", req.nextUrl.pathname);
+//   console.log("[MIDDLEWARE] User authenticated:", !!req.auth);
   
-  // You can add custom logic here if needed
-  // For example, role-based access control:
-  // if (req.nextUrl.pathname.startsWith('/admin') && req.auth?.user?.role !== 'admin') {
-  //   return NextResponse.redirect(new URL('/unauthorized', req.url))
-  // }
+//   // The middleware handles authentication for pages only
+//   // API routes use their own authentication via authenticateDynamicRoute()
   
-  // Let the request continue
-  return;
-})
+//   // Let the request continue
+//   return NextResponse.next();
+// })
 
-export const config = {
-  matcher: [
-    // Match all request paths except for the ones starting with:
-    // - api/auth (auth routes)
-    // - _next/static (static files)
-    // - _next/image (image optimization files)
-    // - favicon.ico (favicon file)
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
-  ],
-}
+// export const config = {
+//   matcher: [
+//     // Match all request paths except for the ones starting with:
+//     // - _next/static (static files)
+//     // - _next/image (image optimization files)
+//     // - favicon.ico (favicon file)
+//     "/((?!_next/static|_next/image|favicon.ico).*)",
+//   ],
+// }
