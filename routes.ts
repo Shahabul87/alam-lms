@@ -17,6 +17,7 @@ export const publicRoutes = [
   "/api/search",
   "/api/search/mock",
   "/api/db-check",
+  "/api-test",
 ];
 
 /**
