@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
+import { currentUser } from "@/lib/auth";
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt
 export const runtime = 'nodejs';
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ cour
   console.log("[CHAPTERS_CREATE] Course ID:", params.courseId);
   
   try {
-    const user = await authenticateDynamicRoute(request);
+    const user = await currentUser();
     console.log("[CHAPTERS_CREATE] User authentication result:", user ? { id: user.id, email: user.email } : "No user");
     
     const { title } = await request.json();

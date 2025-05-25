@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
+import { currentUser } from "@/lib/auth";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -13,9 +13,9 @@ export async function DELETE(
     const { courseId } = await params;
     console.log("[COURSE_DELETE] Starting deletion for courseId:", courseId);
     
-    const user = await authenticateDynamicRoute(request);
+    const user = await currentUser();
 
-    if (!user) {
+    if (!user?.id) {
       console.log("[COURSE_DELETE] Authentication failed");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -56,9 +56,9 @@ export async function PATCH(
     const { courseId } = await params;
     console.log("[COURSE_PATCH] Starting update for courseId:", courseId);
     
-    const user = await authenticateDynamicRoute(request);
+    const user = await currentUser();
     
-    if (!user) {
+    if (!user?.id) {
       console.log("[COURSE_PATCH] Authentication failed");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
