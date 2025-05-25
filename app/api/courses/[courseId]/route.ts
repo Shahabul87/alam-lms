@@ -6,7 +6,8 @@ import { currentUser } from "@/lib/auth";
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function DELETE(req: Request, { params }: { params: { courseId: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ courseId: string }> }) {
+  const resolvedParams = await params;
   try {
     const session = await auth();
 
@@ -17,7 +18,7 @@ export async function DELETE(req: Request, { params }: { params: { courseId: str
     // First verify the course belongs to the user
     const course = await db.course.findUnique({
       where: {
-        id: params.courseId,
+        id: resolvedParams.courseId,
         userId: session.user.id,
       }
     });
@@ -29,7 +30,7 @@ export async function DELETE(req: Request, { params }: { params: { courseId: str
     // Delete the course
     await db.course.delete({
       where: {
-        id: params.courseId,
+        id: resolvedParams.courseId,
       }
     });
 
@@ -41,9 +42,10 @@ export async function DELETE(req: Request, { params }: { params: { courseId: str
 }
 
 
-export async function PATCH(req: Request, { params }: { params: { courseId: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ courseId: string }> }) {
+  const resolvedParams = await params;
   try {
-    console.log("PATCH request received for courseId:", params.courseId);
+    console.log("PATCH request received for courseId:", resolvedParams.courseId);
     
     // Get user session
     const session = await auth();
@@ -137,7 +139,7 @@ export async function PATCH(req: Request, { params }: { params: { courseId: stri
     // First check if the course exists and belongs to the user
     const existingCourse = await db.course.findUnique({
       where: {
-        id: params.courseId,
+        id: resolvedParams.courseId,
         userId: session.user.id,
       }
     });
@@ -145,7 +147,7 @@ export async function PATCH(req: Request, { params }: { params: { courseId: stri
     if (!existingCourse) {
       console.log("Course not found or doesn't belong to user");
       console.log("User ID:", session.user.id);
-      console.log("Course ID:", params.courseId);
+      console.log("Course ID:", resolvedParams.courseId);
       return new NextResponse("Course not found", { status: 404 });
     }
 
@@ -155,7 +157,7 @@ export async function PATCH(req: Request, { params }: { params: { courseId: stri
       // Update the course
       const course = await db.course.update({
         where: {
-          id: params.courseId,
+          id: resolvedParams.courseId,
           userId: session.user.id,
         },
         data: updateData,
