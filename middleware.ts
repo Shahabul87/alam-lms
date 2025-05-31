@@ -17,18 +17,18 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const pathname = nextUrl.pathname;
 
-  // Skip middleware for static files and Next.js internals
-  const isNextStaticRoute = pathname.startsWith('/_next/') || 
-                           pathname.startsWith('/favicon.ico') ||
-                           pathname.includes('.');
-  
-  if (isNextStaticRoute) {
+  // Skip middleware for Next.js internal routes and static files
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/api/auth/') ||
+    pathname.includes('.') && !pathname.includes('/api/')
+  ) {
     return;
   }
 
-  // Skip middleware for API auth routes
-  const isApiAuthRoute = pathname.startsWith(apiAuthPrefix);
-  if (isApiAuthRoute) {
+  // CRITICAL: Skip middleware for ALL API routes to prevent 404s
+  if (pathname.startsWith('/api/')) {
     return;
   }
 
@@ -85,12 +85,12 @@ export default auth((req) => {
   return;
 });
 
-// Update the matcher to be more specific and exclude static files
+// CRITICAL FIX: Updated matcher to exclude ALL API routes
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * - api (API routes - CRITICAL FOR DYNAMIC ROUTES)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)

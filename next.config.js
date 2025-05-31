@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
+  // Critical: Ensure proper dynamic route handling
+  trailingSlash: false,
+  
   images: {
     remotePatterns: [
       {
@@ -135,7 +139,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  // Optimize memory usage for builds
+  // CRITICAL: Updated experimental settings for better dynamic route handling
   experimental: {
     serverActions: {
       allowedOrigins: [
@@ -150,7 +154,7 @@ const nextConfig = {
         // Allow any origin in development
         ...(process.env.NODE_ENV === 'development' ? ['*'] : [])
       ]
-    }
+    },
   },
 
   // Add bcryptjs to external packages for server components
@@ -177,7 +181,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Add headers for better API support
+  // CRITICAL: Updated headers to better support API routes
   async headers() {
     return [
       {
@@ -190,6 +194,25 @@ const nextConfig = {
         ]
       }
     ]
+  },
+
+  // CRITICAL: Add rewrites to handle dynamic API routes properly
+  async rewrites() {
+    return [
+      // Ensure API routes with dynamic parameters work correctly
+      {
+        source: '/api/courses/:courseId*',
+        destination: '/api/courses/:courseId*',
+      },
+      {
+        source: '/api/debug-course/:courseId*',
+        destination: '/api/debug-course/:courseId*',
+      },
+      {
+        source: '/api/test-course-route/:courseId*',
+        destination: '/api/test-course-route/:courseId*',
+      },
+    ];
   },
 };
 

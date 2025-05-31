@@ -136,8 +136,13 @@ export const getRedirectUrl = (role?: string) => {
  * @returns {boolean} Whether the route is public
  */
 export const isPublicRoute = (pathname: string): boolean => {
+  // ALL API routes should be handled by their own authentication logic
+  if (pathname.startsWith('/api/')) {
+    return true; // Don't process API routes in middleware
+  }
+  
   return publicRoutes.some(route => {
-    // Convert route pattern to regex
+    // Convert route pattern to regex for dynamic routes
     const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
     return pattern.test(pathname);
   });
@@ -149,8 +154,13 @@ export const isPublicRoute = (pathname: string): boolean => {
  * @returns {boolean} Whether the route is protected
  */
 export const isProtectedRoute = (pathname: string): boolean => {
+  // API routes should not be processed by middleware
+  if (pathname.startsWith('/api/')) {
+    return false;
+  }
+  
   return protectedRoutes.some(route => {
-    // Convert route pattern to regex
+    // Convert route pattern to regex for dynamic routes
     const pattern = new RegExp(`^${route.replace(/\[.*?\]/g, '[^/]+')}$`);
     return pattern.test(pathname);
   });
