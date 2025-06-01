@@ -99,6 +99,7 @@ const nextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     minimumCacheTTL: 60 * 60 * 24, // 24 hours,
     unoptimized: true, // Skip image optimization for unknown domains
+    domains: ['res.cloudinary.com'],
   },
 
   webpack(config) {
@@ -156,9 +157,6 @@ const nextConfig = {
       ]
     },
   },
-
-  // Add bcryptjs to external packages for server components
-  serverExternalPackages: ["bcryptjs"],
 
   // Updated compiler configuration to replace .babelrc
   compiler: {

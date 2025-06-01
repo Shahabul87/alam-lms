@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Code2, BookOpen, Loader2, PlusCircle } from "lucide-react";
+import { Code2, BookOpen, Loader2, PlusCircle, Sparkles, Zap, Target } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -158,18 +158,21 @@ export const CodeExplanationForm = ({
         `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/explanations`,
         values
       );
-      toast.success("Explanation added");
+      toast.success("Explanation added successfully!");
       
-      // Clear form-related localStorage on successful submission
-      localStorage.removeItem('explanation-code-blocks');
-      localStorage.removeItem('explanation-heading');
+      // Clear form-related localStorage - this will be handled by ExplanationForm component
+      // localStorage.removeItem('explanation-code-blocks');
+      // localStorage.removeItem('explanation-heading');
       
-      // But do not close the form automatically - let the user decide
-      // setIsCreating(false);
-      
+      // Refresh the page to show the new explanation in the list
       router.refresh();
+      
+      // Keep the form open for adding more explanations
+      // Users can manually close it if they want
+      
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Something went wrong. Please try again.");
+      console.error("Submission error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -179,127 +182,198 @@ export const CodeExplanationForm = ({
   const buttonText = hasMounted && isCreating ? "Cancel" : "Add explanation";
 
   return (
-    <div className={cn(
-      "p-4 mt-4 rounded-xl",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      {/* Header section */}
-      <div className="font-medium flex items-center justify-between mb-6">
-        <div className="flex items-center gap-x-2">
-          <div className={cn(
-            "p-2 w-fit rounded-lg",
-            "bg-indigo-50 dark:bg-indigo-500/10"
-          )}>
-            <Code2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
-              Code Explanations
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Add code snippets with detailed explanations
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={() => setIsCreating(!isCreating)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "bg-indigo-50 dark:bg-indigo-500/10",
-            "text-indigo-700 dark:text-indigo-300",
-            "hover:bg-indigo-100 dark:hover:bg-indigo-500/20",
-            "hover:text-indigo-800 dark:hover:text-indigo-200",
-            "transition-all duration-200"
-          )}
-        >
-          {buttonText}
-          {!hasMounted && "Add explanation"}
-        </Button>
-      </div>
-
-      {/* Only render the rest if mounted to avoid hydration issues */}
-      {hasMounted && (
-        <>
-          {/* Main content section with design description when not creating */}
-          {!isCreating ? (
-            <div className="space-y-6">
-              <div className="p-6 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/20">
-                <h4 className="text-lg font-medium text-indigo-700 dark:text-indigo-300 mb-3">
-                  Interactive Code Explanation Design
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold mr-3">1</div>
-                      <p className="text-gray-700 dark:text-gray-300">Add multiple code blocks with explanations</p>
+    <div className="w-full">
+      {/* Full Width Container with Modern Design */}
+      <div className="relative overflow-hidden w-full">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-950"></div>
+        
+        {/* Main Content */}
+        <div className="relative w-full">
+          {/* Hero Header Section - Full Width */}
+          <div className="w-full px-6 py-16 bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden">
+            {/* Subtle Background Elements */}
+            <div className="absolute inset-0">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-emerald-600/10"></div>
+              <div className="absolute top-20 left-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-20 right-32 w-48 h-48 bg-purple-500/5 rounded-full blur-2xl"></div>
+              <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-emerald-500/5 rounded-full blur-xl"></div>
+            </div>
+            
+            {/* Header Content - Full Width */}
+            <div className="relative z-10 w-full max-w-7xl mx-auto">
+              <div className="flex flex-col xl:flex-row items-center justify-between gap-12">
+                <div className="flex-1 text-center xl:text-left">
+                  <div className="flex items-center justify-center xl:justify-start gap-6 mb-8">
+                    <div className="p-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl shadow-2xl">
+                      <Code2 className="h-12 w-12 text-white" />
                     </div>
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold mr-3">2</div>
-                      <p className="text-gray-700 dark:text-gray-300">Code snippet remains fixed while reading explanation</p>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold mr-3">3</div>
-                      <p className="text-gray-700 dark:text-gray-300">Add images to enhance your explanations</p>
+                    <div>
+                      <h1 className="text-5xl xl:text-6xl font-bold mb-3 text-white">
+                        Code Explainer
+                      </h1>
+                      <p className="text-xl text-gray-300 font-medium">
+                        Transform code into interactive learning experiences
+                      </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-full max-w-sm">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur opacity-25"></div>
-                      <div className="relative bg-white dark:bg-gray-800 p-4 rounded-lg shadow-xl border border-indigo-100 dark:border-indigo-800/50">
-                        <div className="flex mb-3">
-                          <div className="w-1/2 p-2 bg-gray-900 rounded-l-md">
-                            <div className="h-16 font-mono text-xs text-gray-300">
-                              {`const example = () => {
-  return "code";
-};`}
-                            </div>
-                          </div>
-                          <div className="w-1/2 p-2 bg-gray-50 dark:bg-gray-700 rounded-r-md">
-                            <div className="h-16 text-xs text-gray-700 dark:text-gray-300">This function returns a string "code"...</div>
-                          </div>
-                        </div>
-                        <div className="flex justify-center">
-                          <div className="text-xs text-gray-500">Interactive learning experience</div>
-                        </div>
-                      </div>
+                  {/* Feature Pills - Enhanced Contrast */}
+                  <div className="flex flex-wrap justify-center xl:justify-start gap-4 mb-10">
+                    <div className="flex items-center gap-3 px-6 py-3 bg-gray-800/80 backdrop-blur-sm rounded-full text-base font-medium text-gray-200 border border-gray-700/50">
+                      <Sparkles className="h-5 w-5 text-blue-400" />
+                      Interactive
+                    </div>
+                    <div className="flex items-center gap-3 px-6 py-3 bg-gray-800/80 backdrop-blur-sm rounded-full text-base font-medium text-gray-200 border border-gray-700/50">
+                      <Zap className="h-5 w-5 text-emerald-400" />
+                      Real-time Preview
+                    </div>
+                    <div className="flex items-center gap-3 px-6 py-3 bg-gray-800/80 backdrop-blur-sm rounded-full text-base font-medium text-gray-200 border border-gray-700/50">
+                      <Target className="h-5 w-5 text-purple-400" />
+                      Student Focused
                     </div>
                   </div>
                 </div>
                 
-                <Button
-                  onClick={() => setIsCreating(true)}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white"
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Create your first block-based explanation
-                </Button>
+                {/* Action Button - Full Width on Small Screens */}
+                <div className="w-full xl:w-auto xl:flex-shrink-0">
+                  <Button
+                    onClick={() => setIsCreating(!isCreating)}
+                    size="lg"
+                    className={cn(
+                      "w-full xl:w-auto px-10 py-5 text-lg font-semibold rounded-2xl shadow-2xl transition-all duration-300 transform hover:scale-105",
+                      "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white",
+                      "border border-blue-500/30"
+                    )}
+                  >
+                    {hasMounted ? buttonText : "Add explanation"}
+                    {!hasMounted && "Add explanation"}
+                  </Button>
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-500 dark:border-indigo-400 rounded-r-lg mb-4">
-                <h3 className="text-base font-semibold text-indigo-700 dark:text-indigo-300 mb-2">
-                  Create a New Code Explanation
-                </h3>
-                <p className="text-sm text-indigo-600 dark:text-indigo-300">
-                  Add code snippets with detailed explanations to help students understand complex concepts.
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ExplanationForm onSubmit={onSubmit} isSubmitting={isSubmitting} />
-              </div>
-            </div>
-          )}
-        </>
-      )}
+          </div>
+
+          {/* Content Section - Full Width */}
+          <div className="w-full">
+            {/* Only render the rest if mounted to avoid hydration issues */}
+            {hasMounted && (
+              <>
+                {/* Welcome/Demo State */}
+                {!isCreating ? (
+                  <div className="w-full py-16 px-6">
+                    <div className="w-full max-w-7xl mx-auto">
+                      {/* Features Grid */}
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+                        <div className="group p-10 bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
+                            <Code2 className="h-10 w-10 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Code Blocks</h3>
+                          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                            Add syntax-highlighted code snippets that remain visible while students read explanations.
+                          </p>
+                        </div>
+                        
+                        <div className="group p-10 bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                          <div className="w-20 h-20 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
+                            <BookOpen className="h-10 w-10 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Rich Explanations</h3>
+                          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                            Write detailed explanations with markdown support, images, and interactive elements.
+                          </p>
+                        </div>
+                        
+                        <div className="group p-10 bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                          <div className="w-20 h-20 bg-gradient-to-br from-purple-600 to-purple-700 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
+                            <Sparkles className="h-10 w-10 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Interactive Learning</h3>
+                          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+                            Students can follow along with code while reading explanations in a split-view layout.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Demo Preview */}
+                      <div className="w-full bg-gradient-to-br from-gray-900 to-black rounded-3xl p-12 shadow-2xl border border-gray-800">
+                        <h3 className="text-4xl font-bold text-white mb-12 text-center">Preview Experience</h3>
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 max-w-6xl mx-auto">
+                          {/* Code Side */}
+                          <div className="bg-gray-950 rounded-2xl p-8 border border-gray-700">
+                            <div className="flex items-center gap-3 mb-6">
+                              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                              <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                              <span className="text-gray-400 text-base ml-4 font-mono">main.js</span>
+                            </div>
+                            <pre className="text-green-400 font-mono text-base leading-relaxed">
+{`function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + 
+         fibonacci(n - 2);
+}
+
+console.log(fibonacci(10));`}
+                            </pre>
+                          </div>
+                          
+                          {/* Explanation Side */}
+                          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700">
+                            <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Understanding Recursion</h4>
+                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6 text-lg">
+                              This function demonstrates recursive computation. The base case prevents infinite recursion...
+                            </p>
+                            <div className="flex items-center gap-3 text-base text-blue-600 dark:text-blue-400">
+                              <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                              Interactive explanation continues...
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Call to Action - Full Width */}
+                      <div className="w-full text-center mt-16">
+                        <Button
+                          onClick={() => setIsCreating(true)}
+                          size="lg"
+                          className="w-full max-w-md px-12 py-6 text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                        >
+                          <PlusCircle className="h-6 w-6 mr-3" />
+                          Start Creating Now
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Form State - Full Width */
+                  <div className="w-full py-16 px-6">
+                    <div className="w-full max-w-7xl mx-auto">
+                      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        {/* Form Header - Full Width */}
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 px-12 py-10 border-b border-gray-200 dark:border-gray-700">
+                          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                            Create New Code Explanation
+                          </h2>
+                          <p className="text-xl text-gray-600 dark:text-gray-300">
+                            Build an interactive learning experience with code snippets and detailed explanations
+                          </p>
+                        </div>
+                        
+                        {/* Form Content - Full Width */}
+                        <div className="p-12 w-full">
+                          <ExplanationForm onSubmit={onSubmit} isSubmitting={isSubmitting} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }; 

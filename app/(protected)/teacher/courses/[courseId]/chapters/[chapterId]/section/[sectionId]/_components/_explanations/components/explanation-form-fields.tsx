@@ -194,6 +194,27 @@ export const ExplanationFormFields = ({ form, isSubmitting }: ExplanationFormFie
     };
   }, [form.formState.isSubmitSuccessful]);
 
+  // Listen for reset event from parent form
+  useEffect(() => {
+    const handleReset = () => {
+      // Reset codeBlocks to initial state
+      const newCodeBlocks = [{ id: generateId(), code: '', explanation: '', language: 'typescript' }];
+      setCodeBlocks(newCodeBlocks);
+      setActiveBlockId(newCodeBlocks[0].id);
+      setStoredHeading('');
+      
+      // Reset form values
+      form.setValue('heading', '');
+      form.setValue('code', '');
+      form.setValue('explanation', '');
+    };
+
+    window.addEventListener('resetExplanationForm', handleReset);
+    return () => {
+      window.removeEventListener('resetExplanationForm', handleReset);
+    };
+  }, [form, setCodeBlocks, setStoredHeading]);
+
   // Combine all code and explanations for form submission
   useEffect(() => {
     const combinedCode = codeBlocks.map(block => {
@@ -303,21 +324,21 @@ export const ExplanationFormFields = ({ form, isSubmitting }: ExplanationFormFie
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-8">
       <FormField
         control={form.control}
         name="heading"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-base font-semibold text-gray-700 dark:text-gray-300">
+          <FormItem className="w-full">
+            <FormLabel className="text-lg font-semibold text-gray-900 dark:text-white">
               Explanation Title
             </FormLabel>
             <FormControl>
               <Input
-                placeholder="E.g., Understanding React Hooks"
+                placeholder="E.g., Understanding React Hooks, Python Data Structures, etc."
                 {...field}
                 disabled={isSubmitting}
-                className="focus-visible:ring-indigo-500"
+                className="h-12 text-base focus-visible:ring-blue-500 border-gray-300 dark:border-gray-600"
               />
             </FormControl>
             <FormMessage />
@@ -325,9 +346,11 @@ export const ExplanationFormFields = ({ form, isSubmitting }: ExplanationFormFie
         )}
       />
 
-      <div className="bg-white dark:bg-gray-800/80 rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
-          <div className="flex gap-1 overflow-x-auto">
+      {/* Full Width Editor Container */}
+      <div className="w-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg">
+        {/* Header with Tabs and Controls */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-200 dark:border-gray-700 gap-4">
+          <div className="flex flex-wrap gap-2 overflow-x-auto">
             {codeBlocks.map((block, index) => (
               <Button
                 key={block.id}
@@ -336,13 +359,13 @@ export const ExplanationFormFields = ({ form, isSubmitting }: ExplanationFormFie
                 size="sm"
                 onClick={() => setActiveBlockId(block.id)}
                 className={cn(
-                  "rounded-full whitespace-nowrap",
+                  "rounded-full whitespace-nowrap font-medium",
                   activeBlockId === block.id
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-700 dark:text-gray-300"
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 )}
               >
-                <span className="text-xs">Block {index + 1}</span>
+                <span>Block {index + 1}</span>
               </Button>
             ))}
             <Button
@@ -350,151 +373,169 @@ export const ExplanationFormFields = ({ form, isSubmitting }: ExplanationFormFie
               variant="ghost"
               size="sm"
               onClick={addCodeBlock}
-              className="text-indigo-600 dark:text-indigo-400 rounded-full"
+              className="text-blue-600 dark:text-blue-400 rounded-full hover:bg-blue-50 dark:hover:bg-blue-950"
             >
               <Plus className="h-4 w-4 mr-1" />
-              <span className="text-xs">Add</span>
+              <span>Add Block</span>
             </Button>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Tabs value={mode} onValueChange={(value) => setMode(value as 'edit' | 'preview')}>
-              <TabsList className="grid grid-cols-2 h-8 w-[140px]">
-                <TabsTrigger value="edit" className="text-xs">Edit</TabsTrigger>
-                <TabsTrigger value="preview" className="text-xs">Preview</TabsTrigger>
+              <TabsList className="grid grid-cols-2 h-10 w-[160px]">
+                <TabsTrigger value="edit" className="text-sm font-medium">Edit</TabsTrigger>
+                <TabsTrigger value="preview" className="text-sm font-medium">Preview</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </div>
 
-        <div className="p-4">
+        {/* Content Area - Full Width */}
+        <div className="p-6">
           {mode === 'edit' ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Code editor panel */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Code2 className="h-4 w-4 mr-2 text-indigo-600 dark:text-indigo-400" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Code Block</span>
-                  </div>
-                  
-                  {codeBlocks.length > 1 && (
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => moveBlockUp(activeBlockId)}
-                        disabled={isSubmitting || codeBlocks.findIndex(b => b.id === activeBlockId) === 0}
-                        className="h-8 w-8 p-0 text-gray-500"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => moveBlockDown(activeBlockId)}
-                        disabled={isSubmitting || codeBlocks.findIndex(b => b.id === activeBlockId) === codeBlocks.length - 1}
-                        className="h-8 w-8 p-0 text-gray-500"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeCodeBlock(activeBlockId)}
-                        disabled={isSubmitting || codeBlocks.length <= 1}
-                        className="h-8 w-8 p-0 text-red-500"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+            <div className="w-full space-y-8">
+              {/* Full Width Grid Layout */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full">
+                {/* Code Editor Panel - Full Width */}
+                <div className="w-full space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg mr-3">
+                        <Code2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Code Block</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Write your code snippet</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-                
-                {codeBlocks.map((block) => {
-                  const isActive = block.id === activeBlockId;
-                  
-                  return (
-                    <div key={block.id} className={cn("space-y-4", isActive ? "block" : "hidden")}>
-                      <div className="flex items-center justify-between">
-                        <Select
-                          value={block.language}
-                          onValueChange={(value) => updateBlockLanguage(block.id, value)}
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="w-[180px] h-8 text-xs focus:ring-indigo-500">
-                            <SelectValue placeholder="Select language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {languageOptions.map(option => (
-                              <SelectItem key={option.value} value={option.value} className="text-xs">
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
+                    
+                    {codeBlocks.length > 1 && (
+                      <div className="flex items-center space-x-2">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => addImageDialog(block.id)}
-                          disabled={isSubmitting}
-                          className="h-8 text-xs text-indigo-600 dark:text-indigo-400"
+                          onClick={() => moveBlockUp(activeBlockId)}
+                          disabled={isSubmitting || codeBlocks.findIndex(b => b.id === activeBlockId) === 0}
+                          className="h-9 w-9 p-0 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
-                          <ImageIcon className="h-3.5 w-3.5 mr-1" />
-                          Add Image
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveBlockDown(activeBlockId)}
+                          disabled={isSubmitting || codeBlocks.findIndex(b => b.id === activeBlockId) === codeBlocks.length - 1}
+                          className="h-9 w-9 p-0 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCodeBlock(activeBlockId)}
+                          disabled={isSubmitting || codeBlocks.length <= 1}
+                          className="h-9 w-9 p-0 text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                        >
+                          <Trash className="h-4 w-4" />
                         </Button>
                       </div>
-                      
-                      <div className="border border-gray-200 dark:border-gray-700 rounded-md">
-                        <Editor
-                          height="300px"
-                          language={block.language}
-                          value={block.code}
-                          onChange={(value) => updateBlockCode(block.id, value || '')}
-                          theme="vs-dark"
-                          options={{
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            wordWrap: 'on',
-                            tabSize: 2,
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                          }}
+                    )}
+                  </div>
+                  
+                  {codeBlocks.map((block) => {
+                    const isActive = block.id === activeBlockId;
+                    
+                    return (
+                      <div key={block.id} className={cn("w-full space-y-4", isActive ? "block" : "hidden")}>
+                        <div className="flex items-center justify-between gap-4">
+                          <Select
+                            value={block.language}
+                            onValueChange={(value) => updateBlockLanguage(block.id, value)}
+                            disabled={isSubmitting}
+                          >
+                            <SelectTrigger className="w-[200px] h-10 focus:ring-blue-500">
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {languageOptions.map(option => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addImageDialog(block.id)}
+                            disabled={isSubmitting}
+                            className="h-10 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950"
+                          >
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            Add Image
+                          </Button>
+                        </div>
+                        
+                        {/* Code Editor - Fixed Height */}
+                        <div className="w-full border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+                          <Editor
+                            height="400px"
+                            language={block.language}
+                            value={block.code}
+                            onChange={(value) => updateBlockCode(block.id, value || '')}
+                            theme="vs-dark"
+                            options={{
+                              minimap: { enabled: false },
+                              fontSize: 14,
+                              wordWrap: 'on',
+                              tabSize: 2,
+                              scrollBeyondLastLine: false,
+                              automaticLayout: true,
+                              lineNumbers: 'on',
+                              renderLineHighlight: 'line',
+                              selectOnLineNumbers: true,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Explanation Editor Panel - Full Width */}
+                <div className="w-full space-y-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg mr-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-purple-600 dark:text-purple-400">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Explanation</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Explain the code with rich text and images</p>
+                    </div>
+                  </div>
+                  
+                  {codeBlocks.map((block) => {
+                    const isActive = block.id === activeBlockId;
+                    
+                    return (
+                      <div key={block.id} className={cn("w-full", isActive ? "block" : "hidden")}>
+                        <ExplanationEditor
+                          content={block.explanation}
+                          onUpdate={(html) => updateBlockExplanation(block.id, html)}
+                          isSubmitting={isSubmitting}
+                          blockId={block.id}
                         />
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Explanation editor panel */}
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 mr-2 text-indigo-600 dark:text-indigo-400">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Explanation</span>
+                    );
+                  })}
                 </div>
-                
-                {codeBlocks.map((block) => {
-                  const isActive = block.id === activeBlockId;
-                  
-                  return (
-                    <div key={block.id} className={cn(isActive ? "block" : "hidden")}>
-                      <ExplanationEditor
-                        content={block.explanation}
-                        onUpdate={(html) => updateBlockExplanation(block.id, html)}
-                        isSubmitting={isSubmitting}
-                        blockId={block.id}
-                      />
-                    </div>
-                  );
-                })}
               </div>
             </div>
           ) : (
@@ -508,45 +549,70 @@ export const ExplanationFormFields = ({ form, isSubmitting }: ExplanationFormFie
                 <div key={block.id} className="space-y-4">
                   {index > 0 && <hr className="border-gray-200 dark:border-gray-700" />}
                   
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
-                    {isImageMarkdown(block.code) ? (
-                      <div className="p-4 flex justify-center">
-                        <div className="max-w-full">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                          >
-                            {block.code}
-                          </ReactMarkdown>
+                  {/* Full-width preview layout matching final result */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full">
+                    {/* Code Section */}
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 flex items-center">
+                          <Code2 className="h-4 w-4 mr-2" />
+                          Code Block {index + 1}
+                        </h3>
+                      </div>
+                      {isImageMarkdown(block.code) ? (
+                        <div className="p-4 flex justify-center">
+                          <div className="max-w-full">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
+                            >
+                              {block.code}
+                            </ReactMarkdown>
+                          </div>
                         </div>
+                      ) : (
+                        <div className="min-h-[200px]">
+                          <Editor
+                            height="300px"
+                            language={block.language}
+                            value={block.code}
+                            theme="vs-dark"
+                            options={{
+                              readOnly: true,
+                              minimap: { enabled: false },
+                              fontSize: 14,
+                              wordWrap: 'on',
+                              scrollBeyondLastLine: false,
+                              automaticLayout: true,
+                              lineNumbers: 'on',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Explanation Section */}
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-100 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 mr-2">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
+                          </svg>
+                          Explanation {index + 1}
+                        </h3>
                       </div>
-                    ) : (
-                      <div className="border-b border-gray-200 dark:border-gray-700">
-                        <Editor
-                          height="200px"
-                          language={block.language}
-                          value={block.code}
-                          theme="vs-dark"
-                          options={{
-                            readOnly: true,
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            wordWrap: 'on',
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                          }}
-                        />
+                      <div className="p-4 min-h-[300px] overflow-y-auto">
+                        {block.explanation ? (
+                          <div 
+                            className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800"
+                            dangerouslySetInnerHTML={{ __html: block.explanation }}
+                          />
+                        ) : (
+                          <div className="text-gray-400 dark:text-gray-500 italic">
+                            No explanation written yet...
+                          </div>
+                        )}
                       </div>
-                    )}
-                  
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50">
-                      <ReactMarkdown
-                        className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300"
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                      >
-                        {block.explanation}
-                      </ReactMarkdown>
                     </div>
                   </div>
                 </div>
@@ -662,20 +728,26 @@ const ExplanationEditor = ({
   }, [content, editor]);
 
   return (
-    <div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="w-full rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
       {editor && <TipTapMenuBar editor={editor} blockId={blockId} />}
-      <div className="h-[260px] overflow-y-auto relative">
+      <div className="h-[400px] overflow-y-auto relative">
         <EditorContent
           editor={editor}
           className={cn(
-            "h-full p-4",
+            "h-full p-6",
             "prose dark:prose-invert max-w-none",
-            "focus:outline-none"
+            "focus:outline-none",
+            "prose-headings:text-gray-900 dark:prose-headings:text-gray-100",
+            "prose-p:text-gray-700 dark:prose-p:text-gray-300",
+            "prose-strong:text-gray-900 dark:prose-strong:text-gray-100",
+            "prose-code:text-blue-600 dark:prose-code:text-blue-400",
+            "prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800"
           )}
         />
         {!editor?.getText().trim() && !isSubmitting && (
-          <div className="absolute top-0 left-0 right-0 p-4 pointer-events-none text-gray-400 dark:text-gray-600">
-            <p>Write your explanation here or drag and drop images...</p>
+          <div className="absolute top-0 left-0 right-0 p-6 pointer-events-none text-gray-400 dark:text-gray-500">
+            <p className="text-base">Write your explanation here or drag and drop images...</p>
+            <p className="text-sm mt-2">Use the toolbar above to format your text, add headings, lists, and more.</p>
           </div>
         )}
       </div>
@@ -708,72 +780,72 @@ const TipTapMenuBar = ({ editor, blockId }: { editor: any, blockId: string }) =>
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs">
+      <div className="flex flex-wrap items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700">
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
-            editor.isActive('bold') ? 'bg-gray-200 dark:bg-gray-700' : ''
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
+            editor.isActive('bold') ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
           )}
           title="Bold"
         >
-          <span className="font-bold">B</span>
+          <span className="font-bold text-sm">B</span>
         </button>
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
-            editor.isActive('italic') ? 'bg-gray-200 dark:bg-gray-700' : ''
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
+            editor.isActive('italic') ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
           )}
           title="Italic"
         >
-          <span className="italic">I</span>
+          <span className="italic text-sm">I</span>
         </button>
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
-            editor.isActive('heading', { level: 1 }) ? 'bg-gray-200 dark:bg-gray-700' : ''
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
+            editor.isActive('heading', { level: 1 }) ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
           )}
           title="Heading 1"
         >
-          H1
+          <span className="text-sm font-semibold">H1</span>
         </button>
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
-            editor.isActive('heading', { level: 2 }) ? 'bg-gray-200 dark:bg-gray-700' : ''
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
+            editor.isActive('heading', { level: 2 }) ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
           )}
           title="Heading 2"
         >
-          H2
+          <span className="text-sm font-semibold">H2</span>
         </button>
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
-            editor.isActive('bulletList') ? 'bg-gray-200 dark:bg-gray-700' : ''
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
+            editor.isActive('bulletList') ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
           )}
           title="Bullet List"
         >
-          • List
+          <span className="text-sm">• List</span>
         </button>
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
-            editor.isActive('orderedList') ? 'bg-gray-200 dark:bg-gray-700' : ''
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
+            editor.isActive('orderedList') ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
           )}
           title="Numbered List"
         >
-          1. List
+          <span className="text-sm">1. List</span>
         </button>
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
-            editor.isActive('codeBlock') ? 'bg-gray-200 dark:bg-gray-700' : ''
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
+            editor.isActive('codeBlock') ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
           )}
           title="Code Block"
         >
@@ -782,7 +854,7 @@ const TipTapMenuBar = ({ editor, blockId }: { editor: any, blockId: string }) =>
         <button
           onClick={addImage}
           className={cn(
-            "p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700",
+            "p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors",
             "bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30"
           )}
           title="Insert Image"

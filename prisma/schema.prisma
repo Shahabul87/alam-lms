@@ -228,6 +228,9 @@ model MathExplanation {
   title       String
   content     String  @db.Text
   latex       String? @db.Text
+  equation    String? @db.Text // LaTeX equation string
+  imageUrl    String? @db.Text // Image URL for visual mode
+  mode        String? // "equation" or "visual"
   isPublished Boolean @default(false)
   
   sectionId   String

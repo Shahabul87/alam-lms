@@ -2,13 +2,13 @@
 
 import { NextResponse } from "next/server";
 import * as z from "zod";
-import { hash } from "bcryptjs";
 
 import { db } from "@/lib/db";
 import { RegisterSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
 import { sendVerificationEmail } from "@/lib/mail";
 import { generateVerificationToken } from "@/lib/tokens";
+import { hashPassword } from "@/lib/passwordUtils";
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt
 export const runtime = 'nodejs';
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     }
 
     // Hash password
-    const hashedPassword = await hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     // Create user
     const user = await db.user.create({

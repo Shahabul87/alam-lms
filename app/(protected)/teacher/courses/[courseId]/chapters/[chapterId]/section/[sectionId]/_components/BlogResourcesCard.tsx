@@ -1,18 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Star, Loader2, BookOpen, Globe, X, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { BookOpen, ExternalLink } from "lucide-react";
 import { BlogSectionForm } from "./_blogs/blog-section";
 
 interface BlogResourcesCardProps {
@@ -53,40 +42,37 @@ export const BlogResourcesCard = ({
   chapterId,
   sectionId
 }: BlogResourcesCardProps) => {
+  const currentSection = chapter.sections.find(section => section.id === sectionId);
+  const blogCount = currentSection?.blogs?.length || 0;
+
   return (
-    <div className="lg:pl-10 lg:transform lg:translate-y-20">
+    <div className="w-full">
       <div className={cn(
-        "rounded-2xl overflow-hidden",
-        "shadow-lg hover:shadow-xl transition-all duration-300",
-        "border border-pink-100 dark:border-pink-900/50",
-        "bg-gradient-to-br from-white/90 to-pink-50/50 dark:from-gray-800/90 dark:to-pink-900/20",
-        "backdrop-blur-sm"
+        "rounded-xl overflow-hidden",
+        "bg-white dark:bg-gray-900",
+        "border border-gray-200 dark:border-gray-700",
+        "shadow-sm hover:shadow-md transition-shadow duration-200",
+        "h-fit"
       )}>
-        {/* Card Header */}
-        <div className="bg-gradient-to-r from-pink-500 to-purple-500 dark:from-pink-600 dark:to-purple-600 p-4">
-          <div className="flex items-center">
-            <div className={cn(
-              "mr-4 p-3 rounded-lg",
-              "bg-white/20 dark:bg-white/10",
-              "shadow-inner"
-            )}>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-white">
-                <path fillRule="evenodd" d="M4.125 3C3.089 3 2.25 3.84 2.25 4.875V18a3 3 0 003 3h15a3 3 0 01-3-3V4.875C17.25 3.839 16.41 3 15.375 3H4.125zM12 9.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5H12zm-.75-2.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H12a.75.75 0 01-.75-.75zM6 12.75a.75.75 0 000 1.5h7.5a.75.75 0 000-1.5H6zm-.75 3.75a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5H6a.75.75 0 01-.75-.75zM6 6.75a.75.75 0 00-.75.75v3c0 .414.336.75.75.75h3a.75.75 0 00.75-.75v-3A.75.75 0 009 6.75H6z" clipRule="evenodd" />
-                <path d="M18.75 6.75h1.875c.621 0 1.125.504 1.125 1.125V18a1.5 1.5 0 01-3 0V6.75z" />
-              </svg>
+        
+        {/* Clean Header */}
+        <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Blog Resources
               </h2>
-              <p className="text-pink-50 text-sm">
-                In-depth articles and explanations for deeper understanding
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {blogCount} {blogCount === 1 ? 'article' : 'articles'} • External learning content
               </p>
             </div>
           </div>
         </div>
         
-        {/* Card Content */}
+        {/* Content */}
         <div className="p-5">
           <BlogSectionForm 
             chapter={chapter}

@@ -30,54 +30,17 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Get only code explanations that are marked as math equations
-    const mathEquations = await db.codeExplanation.findMany({
+    // Get math explanations using the proper MathExplanation model
+    const mathEquations = await db.mathExplanation.findMany({
       where: {
         sectionId: params.sectionId,
-        code: {
-          not: null,  // Ensure code field is not null (could be equation or JSON data)
-        },
-        explanation: {
-          not: null,  // Ensure explanation field exists
-        },
-        // We'll use metadata in the code field to determine if it's a math equation
       },
       orderBy: {
         createdAt: "desc"
       }
     });
 
-    // Filter to only return math equations by checking content structure
-    const filteredMathEquations = mathEquations.filter(item => {
-      // Check if it looks like a math equation
-      try {
-        // If it starts with a proper math equation marker, or is simple LaTeX
-        if (item.heading?.toLowerCase().includes('math') || 
-            item.heading?.includes('equation') ||
-            (item.code && !item.code.includes('{') && !item.code.includes('[') && !item.code.includes('<'))) {
-          return true;
-        }
-        
-        // Try to parse JSON data for visual mode
-        const parsedData = JSON.parse(item.code || "{}");
-        return parsedData.isMathEquation === true;
-      } catch (e) {
-        // If not valid JSON and doesn't contain programming language syntax, assume it's a math equation
-        const codeString = item.code || "";
-        const containsProgrammingSyntax = 
-          codeString.includes('function') || 
-          codeString.includes('class') || 
-          codeString.includes('const') || 
-          codeString.includes('let') || 
-          codeString.includes('var') ||
-          codeString.includes('import') || 
-          codeString.includes('export');
-        
-        return !containsProgrammingSyntax;
-      }
-    });
-
-    return NextResponse.json(filteredMathEquations);
+    return NextResponse.json(mathEquations);
   } catch (error) {
     console.log("[MATH_EQUATIONS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
@@ -92,6 +55,8 @@ export async function POST(
   try {
     const user = await currentUser();
     const { title, equation, explanation, imageUrl, content, mode } = await req.json();
+
+    console.log("Received data:", { title, equation, explanation, imageUrl, content, mode });
 
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -110,36 +75,38 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Prepare the data to be stored
-    let codeData;
-    let explanationData;
+    // Prepare the data to be stored in MathExplanation model
+    let contentData;
+    let equationData;
+    let imageUrlData;
     
     if (mode === "visual") {
-      // Store visual mode data as JSON in the code field
-      codeData = JSON.stringify({
-        isMathEquation: true,
-        mode: "visual",
-        imageUrl: imageUrl || "",
-        content: content || ""
-      });
-      
-      // Use content or explanation as the explanation
-      explanationData = content || explanation || "";
+      // Store visual mode data
+      contentData = content || explanation || "";
+      equationData = null; // No equation for visual mode
+      imageUrlData = imageUrl || "";
     } else {
-      // For equation mode, store LaTeX directly
-      codeData = equation;
-      explanationData = explanation;
+      // For equation mode, store LaTeX equation
+      equationData = equation || "";
+      contentData = explanation || "";
+      imageUrlData = null; // No image for equation mode
     }
 
-    // Since we don't have a MathEquation model yet, we'll create a CodeExplanation
-    const mathEquation = await db.codeExplanation.create({
+    // Use the proper MathExplanation model with new fields
+    const mathEquation = await db.mathExplanation.create({
       data: {
-        heading: title,
-        code: codeData,       // Store the equation or JSON data
-        explanation: explanationData,
+        title: title,
+        content: contentData,
+        latex: equationData, // Keep backward compatibility with existing latex field
+        equation: equationData, // New equation field
+        imageUrl: imageUrlData, // New imageUrl field
+        mode: mode || "equation", // New mode field
         sectionId: params.sectionId,
+        isPublished: true, // Set as published by default
       }
     });
+
+    console.log("Created math equation:", mathEquation);
 
     return NextResponse.json(mathEquation);
   } catch (error) {

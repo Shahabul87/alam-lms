@@ -50,6 +50,17 @@ const SectionIdPage = async (
           code: true,
           explanation: true,
         }
+      },
+      mathExplanations: {
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          latex: true,
+          equation: true,
+          imageUrl: true,
+          mode: true,
+        }
       }
     },
   });
@@ -70,6 +81,7 @@ const SectionIdPage = async (
           articles: true,
           notes: true,
           codeExplanations: true,
+          mathExplanations: true,
         },
       },
     },
@@ -310,6 +322,7 @@ const SectionIdPage = async (
               initialData={{
                 chapter,
                 codeExplanations: section.codeExplanations || [],
+                mathExplanations: section.mathExplanations || [],
                 videos: section.videos || [],
                 blogs: section.blogs || [],
                 articles: section.articles || [],

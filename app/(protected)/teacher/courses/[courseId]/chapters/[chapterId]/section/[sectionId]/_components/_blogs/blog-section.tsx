@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, BookOpen, Loader2, Star, Link as LinkIcon, ExternalLink, Globe, X, ChevronDown, ArrowUp, ArrowDown, Clock, Calendar, Clipboard } from "lucide-react";
+import { Pencil, BookOpen, Loader2, Star, Link as LinkIcon, ExternalLink, Globe, X, ChevronDown, ArrowUp, ArrowDown, Clock, Calendar, Clipboard, Grid3X3, List, Eye, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -76,6 +76,15 @@ const formSchema = z.object({
 });
 
 type SortOption = "rating" | "title" | "newest" | "oldest";
+type ViewMode = "grid" | "list";
+
+interface BlogPreviewData {
+  title: string;
+  thumbnail: string | null;
+  description: string | null;
+  siteName: string | null;
+  author: string | null;
+}
 
 export const BlogSectionForm = ({
   chapter,
@@ -84,18 +93,14 @@ export const BlogSectionForm = ({
   sectionId,
 }: BlogSectionFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
-  const router = useRouter();
-  const [hoveredRating, setHoveredRating] = useState(0);
-  const [selectedRating, setSelectedRating] = useState(0);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
-  const [previewData, setPreviewData] = useState<{
-    title: string;
-    thumbnail: string | null;
-    description: string | null;
-    siteName: string | null;
-    author: string | null;
-  } | null>(null);
+  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [hoveredRating, setHoveredRating] = useState<number>(0);
+  const [previewData, setPreviewData] = useState<BlogPreviewData | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("rating");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  const router = useRouter();
   
   // Find the current section's blogs
   const currentSection = chapter.sections.find(section => section.id === sectionId);
@@ -134,12 +139,16 @@ export const BlogSectionForm = ({
     
     try {
       setIsLoadingMetadata(true);
-      // Call our real API endpoint to fetch blog metadata
-      const response = await axios.get(`/api/fetch-blog-metadata?url=${encodeURIComponent(url)}`);
+      
+      // Call our real API endpoint to fetch blog metadata with timeout
+      const response = await axios.get(`/api/fetch-blog-metadata?url=${encodeURIComponent(url)}`, {
+        timeout: 15000, // 15 second timeout
+      });
       
       if (response.data) {
         const metadata = response.data;
         
+        // Set preview data with fallback values
         setPreviewData({
           title: metadata.title || `Article from ${new URL(url).hostname}`,
           thumbnail: metadata.thumbnail || null,
@@ -148,6 +157,7 @@ export const BlogSectionForm = ({
           author: metadata.author || null,
         });
         
+        // Set form values if available
         if (metadata.title) {
           form.setValue("title", metadata.title);
         }
@@ -156,25 +166,59 @@ export const BlogSectionForm = ({
           form.setValue("description", metadata.description);
         }
         
-        toast.success("Blog details fetched successfully");
+        // Show success message based on whether it was a fallback
+        if (metadata.is_fallback) {
+          toast.warning("Limited blog details fetched. Please verify and add any missing information.");
+        } else {
+          toast.success("Blog details fetched successfully");
+        }
       } else {
         throw new Error("No metadata returned");
       }
     } catch (error) {
       console.error("Error fetching blog metadata:", error);
-      toast.error("Could not fetch blog metadata. Please enter details manually.");
       
-      // Set default values from URL
-      const domain = new URL(url).hostname.replace('www.', '');
-      setPreviewData({
-        title: `Article from ${domain}`,
-        thumbnail: null,
-        description: null,
-        siteName: domain,
-        author: null,
-      });
+      // Handle different types of errors
+      let errorMessage = "Could not fetch blog metadata. Please enter details manually.";
       
-      form.setValue("title", `Article from ${domain}`);
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          errorMessage = "Request timed out. Please try again or enter details manually.";
+        } else if (error.response?.status === 500) {
+          errorMessage = "Server error while fetching metadata. Please enter details manually.";
+        } else if (error.response?.status === 404) {
+          errorMessage = "Blog not found. Please check the URL and try again.";
+        } else if (error.response?.status >= 400 && error.response?.status < 500) {
+          errorMessage = "Invalid URL or access denied. Please enter details manually.";
+        }
+      }
+      
+      toast.error(errorMessage);
+      
+      // Set fallback preview data
+      try {
+        const domain = new URL(url).hostname.replace('www.', '');
+        setPreviewData({
+          title: `Article from ${domain}`,
+          thumbnail: null,
+          description: null,
+          siteName: domain,
+          author: null,
+        });
+        
+        form.setValue("title", `Article from ${domain}`);
+      } catch (urlError) {
+        // If URL parsing fails, set generic fallback
+        setPreviewData({
+          title: "Blog Article",
+          thumbnail: null,
+          description: null,
+          siteName: "Blog",
+          author: null,
+        });
+        
+        form.setValue("title", "Blog Article");
+      }
     } finally {
       setIsLoadingMetadata(false);
     }
@@ -519,66 +563,186 @@ export const BlogSectionForm = ({
         )}
       </AnimatePresence>
 
-      {/* Blog list with sorting */}
+      {/* Blog list with sorting and view toggle */}
       {blogs.length > 0 && (
         <div className="mb-4">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {blogs.length} Blog Resources
             </h4>
-            <div className="flex items-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Sort by:</span>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                <SelectTrigger className="w-[130px] h-8 text-xs bg-white/80 dark:bg-gray-800/80">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rating" className="text-xs">
-                    <div className="flex items-center">
-                      <Star className="h-3 w-3 mr-2 text-yellow-500" />
-                      Highest Rated
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="title" className="text-xs">
-                    <div className="flex items-center">
-                      <BookOpen className="h-3 w-3 mr-2 text-gray-500" />
-                      Title (A-Z)
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="newest" className="text-xs">
-                    <div className="flex items-center">
-                      <Clock className="h-3 w-3 mr-2 text-blue-500" />
-                      Newest First
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="oldest" className="text-xs">
-                    <div className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-2 text-green-500" />
-                      Oldest First
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-3">
+              {/* View Toggle */}
+              <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                    viewMode === "list"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  )}
+                >
+                  <List className="h-3 w-3 mr-1.5" />
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                    viewMode === "grid"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  )}
+                >
+                  <Grid3X3 className="h-3 w-3 mr-1.5" />
+                  Grid
+                </button>
+              </div>
+
+              {/* Sort Dropdown */}
+              <div className="flex items-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Sort by:</span>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                  <SelectTrigger className="w-[130px] h-8 text-xs bg-white/80 dark:bg-gray-800/80">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rating" className="text-xs">
+                      <div className="flex items-center">
+                        <Star className="h-3 w-3 mr-2 text-yellow-500" />
+                        Highest Rated
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="title" className="text-xs">
+                      <div className="flex items-center">
+                        <BookOpen className="h-3 w-3 mr-2 text-gray-500" />
+                        Title (A-Z)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="newest" className="text-xs">
+                      <div className="flex items-center">
+                        <Clock className="h-3 w-3 mr-2 text-blue-500" />
+                        Newest First
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="oldest" className="text-xs">
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-2 text-green-500" />
+                        Oldest First
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          <ul className="space-y-2 rounded-xl overflow-hidden bg-white dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800/50">
-            {blogs.map((blog) => (
-              <li 
-                key={blog.id}
-                className="group relative"
-              >
+          {/* List View */}
+          {viewMode === "list" && (
+            <div className="space-y-2 rounded-xl overflow-hidden bg-white dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800/50">
+              {blogs.map((blog) => (
                 <div 
-                  className="px-4 py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                  key={blog.id}
+                  className="group relative"
+                >
+                  <div 
+                    className="px-4 py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                    onClick={() => handleBlogClick(blog.url)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-8 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {blog.title}
+                      </h4>
+                      <div className="flex items-center mt-1">
+                        <div className={cn(
+                          "flex items-center gap-0.5 mr-3",
+                          `text-${getRatingColor(blog.rating)}-500`
+                        )}>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={cn(
+                                "h-3 w-3",
+                                i < (blog.rating || 0)
+                                  ? `text-${getRatingColor(blog.rating)}-500 fill-${getRatingColor(blog.rating)}-500`
+                                  : "text-gray-300 dark:text-gray-600"
+                              )}
+                            />
+                          ))}
+                        </div>
+                        {blog.siteName && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {blog.siteName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Grid View */}
+          {viewMode === "grid" && (
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {blogs.map((blog) => (
+                <div 
+                  key={blog.id}
+                  className="group relative bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
                   onClick={() => handleBlogClick(blog.url)}
                 >
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate pr-8 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
+                  {/* Thumbnail */}
+                  {blog.thumbnail ? (
+                    <div className="relative h-32 w-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                      <img
+                        src={blog.thumbnail}
+                        alt={blog.title}
+                        className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-200"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      {blog.siteName && (
+                        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded">
+                          <span className="text-white text-xs font-medium">{blog.siteName}</span>
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <ExternalLink className="h-4 w-4 text-white/80 group-hover:text-white transition-colors" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative h-32 w-full bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center">
+                      <BookOpen className="h-8 w-8 text-blue-400 dark:text-blue-500" />
+                      {blog.siteName && (
+                        <div className="absolute top-2 left-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-2 py-1 rounded">
+                          <span className="text-gray-700 dark:text-gray-300 text-xs font-medium">{blog.siteName}</span>
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <ExternalLink className="h-4 w-4 text-gray-500 group-hover:text-blue-500 transition-colors" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="p-4">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-5">
                       {blog.title}
                     </h4>
-                    <div className="flex items-center mt-1">
+                    
+                    {blog.description && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-3 leading-4">
+                        {blog.description}
+                      </p>
+                    )}
+
+                    {/* Rating */}
+                    <div className="flex items-center justify-between">
                       <div className={cn(
-                        "flex items-center gap-0.5 mr-3",
+                        "flex items-center gap-0.5",
                         `text-${getRatingColor(blog.rating)}-500`
                       )}>
                         {Array.from({ length: 5 }).map((_, i) => (
@@ -592,62 +756,35 @@ export const BlogSectionForm = ({
                             )}
                           />
                         ))}
-                      </div>
-                      {blog.siteName && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {blog.siteName}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-pink-500 transition-colors" />
-
-                  {/* Blog card on hover */}
-                  <div className="absolute top-full left-0 z-10 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform group-hover:translate-y-0 translate-y-2 pointer-events-none group-hover:pointer-events-auto">
-                    <div className="mt-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-                      {blog.thumbnail && (
-                        <div className="relative h-32 w-full bg-gray-100 dark:bg-gray-700">
-                          <img
-                            src={blog.thumbnail}
-                            alt={blog.title}
-                            className="object-cover h-full w-full"
-                            onError={(e) => {
-                              // If image fails to load, hide it
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                          {blog.siteName && (
-                            <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded">
-                              <span className="text-white text-xs">{blog.siteName}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <div className="p-3">
-                        <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-1">{blog.title}</h5>
-                        {blog.description && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
-                            {blog.description}
-                          </p>
+                        {blog.rating && (
+                          <span className="ml-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {blog.rating}/5
+                          </span>
                         )}
-                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>
-                            {blog.author ? `By ${blog.author}` : 'Unknown author'}
-                          </span>
-                          <span>
-                            {blog.createdAt && format(new Date(blog.createdAt), 'MMM d, yyyy')}
-                          </span>
-                        </div>
-                        <button className="w-full mt-2 text-xs bg-pink-50 hover:bg-pink-100 dark:bg-pink-900/20 dark:hover:bg-pink-800/30 text-pink-600 dark:text-pink-400 px-3 py-1.5 rounded transition-colors">
-                          Read Article
-                        </button>
+                      </div>
+                      
+                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                        {blog.author && (
+                          <div className="flex items-center">
+                            <User className="h-3 w-3 mr-1" />
+                            <span className="truncate max-w-20">{blog.author}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    {/* Date */}
+                    <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                      {blog.createdAt && format(new Date(blog.createdAt), 'MMM d, yyyy')}
+                    </div>
                   </div>
+
+                  {/* Hover Action */}
+                  <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
                 </div>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

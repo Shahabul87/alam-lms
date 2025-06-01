@@ -22,7 +22,9 @@ export default auth((req) => {
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon.ico') ||
     pathname.startsWith('/api/auth/') ||
-    pathname.includes('.') && !pathname.includes('/api/')
+    pathname.includes('.') && !pathname.includes('/api/') ||
+    pathname.startsWith('/api/_next/') ||
+    pathname.startsWith('/__nextjs_original-stack-frame')
   ) {
     return;
   }
@@ -41,8 +43,8 @@ export default auth((req) => {
   // Check if it's a protected route using the improved function
   const isProtected = isProtectedRoute(pathname);
 
-  // Debug logging for dynamic routes (only in development)
-  if (process.env.NODE_ENV === 'development') {
+  // Reduced debug logging - only log when necessary
+  if (process.env.NODE_ENV === 'development' && !isPublic && !pathname.startsWith('/_next')) {
     console.log(`[MIDDLEWARE] ${pathname} - Public: ${isPublic}, Protected: ${isProtected}, LoggedIn: ${isLoggedIn}`);
   }
 
@@ -85,7 +87,7 @@ export default auth((req) => {
   return;
 });
 
-// CRITICAL FIX: Updated matcher to exclude ALL API routes
+// CRITICAL FIX: More specific matcher to reduce middleware calls
 export const config = {
   matcher: [
     /*
@@ -96,6 +98,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files (images, etc.)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.css$|.*\\.js$).*)',
+    '/((?!api|_next/static|_next/image|_next/webpack-hmr|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.css$|.*\\.js$|.*\\.map$).*)',
   ],
 };

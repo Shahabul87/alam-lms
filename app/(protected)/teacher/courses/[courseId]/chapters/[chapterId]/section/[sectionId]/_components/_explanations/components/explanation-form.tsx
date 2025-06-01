@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from "sonner";
 import { Form } from "@/components/ui/form";
 import { ExplanationFormFields } from "./explanation-form-fields";
 import { ExplanationSubmitButton } from "./explanation-submit-button";
@@ -42,11 +43,26 @@ export const ExplanationForm = ({
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await onSubmit(values);
-      // On successful submission, clear localStorage
+      
+      // On successful submission, reset the form and clear localStorage
+      form.reset({
+        heading: "",
+        code: "",
+        explanation: "",
+      });
+      
+      // Clear localStorage
       localStorage.removeItem('explanation-code-blocks');
       localStorage.removeItem('explanation-heading');
+      
+      // Dispatch a custom event to notify ExplanationFormFields to reset
+      window.dispatchEvent(new CustomEvent('resetExplanationForm'));
+      
+      toast.success("Explanation form reset successfully!");
+      
     } catch (error) {
       console.error("Form submission error:", error);
+      // Don't reset on error - let user see their data
     }
   };
 

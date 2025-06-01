@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import axios from "axios";
 import TipTapEditor from "@/components/tiptap/editor";
 import ContentViewer from "@/components/tiptap/content-viewer";
-
 import {
   Form,
   FormControl,
@@ -48,40 +47,6 @@ const formSchema = z.object({
   imageUrl: z.string().optional(),
   content: z.string().optional(),
   mode: z.enum(["equation", "visual"]),
-}).refine((data, ctx) => {
-  // For equation mode, require equation and explanation
-  if (data.mode === "equation") {
-    if (!data.equation) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Equation is required in equation mode",
-        path: ["equation"]
-      });
-      return false;
-    }
-    if (!data.explanation) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Explanation is required in equation mode",
-        path: ["explanation"]
-      });
-      return false;
-    }
-  }
-  
-  // For visual mode, require either imageUrl or content
-  if (data.mode === "visual") {
-    if (!data.imageUrl && !data.content) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Either an image or rich text content is required in visual mode",
-        path: ["content"]
-      });
-      return false;
-    }
-  }
-  
-  return true;
 });
 
 export const MathEquationForm = ({
@@ -97,6 +62,7 @@ export const MathEquationForm = ({
   const [editorMode, setEditorMode] = useState<"equation" | "visual">("equation");
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   // Example templates to help users get started
@@ -128,6 +94,29 @@ export const MathEquationForm = ({
       content: "",
       mode: "equation",
     },
+    mode: "onChange", // Validate on change to catch errors early
+  });
+
+  // Simple mount effect
+  useEffect(() => {
+    setIsMounted(true);
+    console.log("🔧 Component mounted");
+  }, []);
+
+  // Don't render form until component is mounted
+  if (!isMounted) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  // Debug form setup
+  console.log("🔍 Form setup complete:", {
+    defaultValues: form.formState.defaultValues,
+    errors: form.formState.errors,
+    isValid: form.formState.isValid
   });
 
   const { watch, setValue } = form;
@@ -137,48 +126,173 @@ export const MathEquationForm = ({
   const content = watch("content");
   const formImageUrl = watch("imageUrl");
 
+  // Custom validation function to avoid Zod refinement issues
+  const validateFormData = (values: z.infer<typeof formSchema>) => {
+    const errors: string[] = [];
+    
+    if (!values.title?.trim()) {
+      errors.push("Title is required");
+    }
+    
+    if (values.mode === "equation") {
+      if (!values.equation?.trim()) {
+        errors.push("Equation is required in equation mode");
+      }
+      if (!values.explanation?.trim()) {
+        errors.push("Explanation is required in equation mode");
+      }
+    }
+    
+    if (values.mode === "visual") {
+      const hasImage = values.imageUrl?.trim();
+      const hasContent = values.content?.trim();
+      if (!hasImage && !hasContent) {
+        errors.push("Either an image or content is required in visual mode");
+      }
+    }
+    
+    return errors;
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
+    try {
+      setIsUploading(true);
+      const file = e.target.files?.[0];
+      
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+
+      if (file.size > 4 * 1024 * 1024) { // 4MB limit
+        toast.error('File size must be less than 4MB');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations/image`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      
+      if (data.secure_url) {
+        onChange(data.secure_url);
+        toast.success("Image uploaded successfully!");
+      } else {
+        toast.error("Upload failed");
+      }
+    } catch (error) {
+      toast.error("Something went wrong during upload");
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+      // Reset the input value so the same file can be selected again
+      e.target.value = '';
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log("🚀 Form onSubmit triggered with values:", values);
+    console.log("🔍 Current editor mode:", editorMode);
+    console.log("🔍 Form mode value:", values.mode);
+    
     try {
       setIsSubmitting(true);
       setSubmitError(null);
       
-      console.log("Form values before preparing payload:", values);
-      
-      // Create a payload that handles both equation and visual modes
-      const payload = {
+      // Ensure the mode value matches the current editor mode
+      const currentMode = editorMode;
+      const submitValues = {
         ...values,
-        // For equation mode - ensure empty fields are handled
-        equation: values.mode === "equation" ? values.equation : "", 
-        
-        // For visual mode - set explanation based on content if available
-        explanation: values.mode === "visual" && values.content 
-          ? values.content 
-          : values.explanation || "",
-        
-        // Content is only relevant for visual mode
-        content: values.mode === "visual" ? values.content : "",
-        
-        // ImageUrl is only relevant for visual mode
-        imageUrl: values.mode === "visual" ? values.imageUrl : "",
+        mode: currentMode
       };
       
-      console.log("Final payload for submission:", payload);
-      console.log(`POST to /api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`);
+      console.log("📝 Submit values with corrected mode:", submitValues);
       
-      // Add validation console log to check form state
-      console.log("Form validation state:", {
-        isValid: form.formState.isValid,
-        errors: form.formState.errors,
-        dirtyFields: form.formState.dirtyFields,
-        isSubmitting: form.formState.isSubmitting
-      });
+      // Custom validation based on current editor mode (not form mode)
+      const validationErrors: string[] = [];
+      
+      if (!submitValues.title?.trim()) {
+        validationErrors.push("Title is required");
+      }
+      
+      if (currentMode === "equation") {
+        if (!submitValues.equation?.trim()) {
+          validationErrors.push("Equation is required in equation mode");
+        }
+        if (!submitValues.explanation?.trim()) {
+          validationErrors.push("Explanation is required in equation mode");
+        }
+      } else if (currentMode === "visual") {
+        const hasImage = submitValues.imageUrl?.trim();
+        const hasContent = submitValues.content?.trim();
+        if (!hasImage && !hasContent) {
+          validationErrors.push("Either an image or content is required in visual mode");
+        }
+      }
+      
+      if (validationErrors.length > 0) {
+        const errorMessage = validationErrors.join("; ");
+        setSubmitError(errorMessage);
+        toast.error(errorMessage);
+        console.log("❌ Validation failed:", validationErrors);
+        return;
+      }
+      
+      console.log("✅ Validation passed, preparing payload...");
+      
+      // Prepare the payload based on current editor mode
+      let finalPayload;
+      
+      if (currentMode === "visual") {
+        console.log("📸 Visual mode payload preparation");
+        
+        finalPayload = {
+          title: submitValues.title,
+          mode: "visual",
+          imageUrl: submitValues.imageUrl || "",
+          content: submitValues.content || "",
+          explanation: submitValues.content || "", // Use content as explanation for visual mode
+          equation: "", // No equation in visual mode
+        };
+        
+        console.log("📸 Visual mode payload prepared:", finalPayload);
+        
+      } else {
+        console.log("📝 Equation mode payload preparation");
+        
+        finalPayload = {
+          title: submitValues.title,
+          mode: "equation",
+          equation: submitValues.equation,
+          explanation: submitValues.explanation,
+          imageUrl: "", // No image in equation mode
+          content: "", // No content in equation mode
+        };
+        
+        console.log("📝 Equation mode payload prepared:", finalPayload);
+      }
+      
+      console.log("🚀 Final payload for submission:", finalPayload);
+      console.log(`📡 POST to /api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`);
       
       const response = await axios.post(
         `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`, 
-        payload
+        finalPayload
       );
       
-      console.log("API Response:", response.data);
+      console.log("✅ API Response:", response.data);
       
       toast.success("Math equation added successfully");
       
@@ -188,10 +302,18 @@ export const MathEquationForm = ({
       }
       
       router.refresh();
-      form.reset();
+      form.reset({
+        title: "",
+        equation: "",
+        explanation: "",
+        imageUrl: "",
+        content: "",
+        mode: "equation",
+      });
+      setEditorMode("equation");
       setActiveTab("edit");
     } catch (error: any) {
-      console.error("Math equation submission error:", error);
+      console.error("❌ Math equation submission error:", error);
       
       // Extract meaningful error message
       let errorMessage = "Something went wrong";
@@ -208,53 +330,32 @@ export const MathEquationForm = ({
     }
   };
 
-  // Handle image upload
-  const handleImageUpload = async (file: File) => {
-    try {
-      setIsUploading(true);
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await axios.post('/api/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      if (response.data.uploadedFiles && response.data.uploadedFiles.length > 0) {
-        const uploadedUrl = response.data.uploadedFiles[0].url;
-        form.setValue("imageUrl", uploadedUrl);
-        return uploadedUrl;
-      }
-      
-      throw new Error('Upload failed');
-    } catch (error) {
-      console.error('Image upload error:', error);
-      toast.error('Failed to upload image');
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   // Toggle between equation and visual modes
   const toggleEditorMode = (mode: "equation" | "visual") => {
+    console.log("🔄 Switching to mode:", mode);
     setEditorMode(mode);
-    form.setValue("mode", mode);
+    
+    // Update form mode
+    form.setValue("mode", mode, { shouldValidate: true });
     // Reset any errors related to the mode switch
     form.clearErrors();
     
+    // Clear fields that don't apply to the new mode
     if (mode === "visual") {
-      // Show helpful toast when switching to visual mode
-      toast.info("In visual mode, you can add either an image or rich text content");
+      form.setValue("equation", "");
+      form.setValue("explanation", "");
+      toast.info("Visual mode: Add an image or rich text content");
+    } else {
+      form.setValue("imageUrl", "");
+      form.setValue("content", "");
+      toast.info("Equation mode: Write LaTeX equation and explanation");
     }
   };
 
   const applyTemplate = (template: { title: string; equation: string; explanation: string }) => {
-    setValue("title", template.title);
-    setValue("equation", template.equation);
-    setValue("explanation", template.explanation);
+    form.setValue("title", template.title);
+    form.setValue("equation", template.equation);
+    form.setValue("explanation", template.explanation);
     toast.success("Template applied");
   };
 
@@ -456,98 +557,116 @@ export const MathEquationForm = ({
                       ) : (
                         /* Visual Mode UI */
                         <div className="space-y-6">
-                          {/* Image Upload Section */}
-                          <FormField
-                            control={form.control}
-                            name="imageUrl"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
-                                  Math Equation Image
-                                </FormLabel>
-                                <div className="flex flex-col space-y-3">
-                                  {field.value && (
-                                    <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-blue-200 dark:border-blue-800">
-                                      <img
-                                        src={field.value}
-                                        alt="Math equation"
-                                        className="object-contain w-full h-full"
-                                      />
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="destructive"
-                                        className="absolute top-2 right-2"
-                                        onClick={() => {
-                                          field.onChange("");
-                                        }}
-                                      >
-                                        <XCircle className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                  
-                                  {!field.value && (
-                                    <div className="flex items-center justify-center w-full">
-                                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                          <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                          </svg>
-                                          <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG or GIF (MAX. 2MB)</p>
-                                        </div>
-                                        <input 
-                                          type="file" 
-                                          className="hidden" 
-                                          accept="image/*"
-                                          onChange={async (e) => {
-                                            if (e.target.files && e.target.files[0]) {
-                                              const file = e.target.files[0];
-                                              const url = await handleImageUpload(file);
-                                              if (url) {
-                                                field.onChange(url);
-                                              }
-                                            }
-                                          }}
-                                          disabled={isSubmitting || isUploading}
+                          {/* Image and Explanation Side by Side Layout */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Left Column - Image Upload */}
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="imageUrl"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
+                                      Math Equation Image
+                                    </FormLabel>
+                                    <FormControl>
+                                      <div className="border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                                        {field.value ? (
+                                          <div className="relative">
+                                            <img 
+                                              src={field.value} 
+                                              alt="Math equation" 
+                                              className="max-w-full h-auto rounded-lg mx-auto"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => field.onChange("")}
+                                              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
+                                            >
+                                              <XCircle className="h-4 w-4" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div>
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              onChange={(e) => handleImageUpload(e, field.onChange)}
+                                              className="hidden"
+                                              disabled={isUploading}
+                                              id="mathEquationImageUpload"
+                                            />
+                                            <label
+                                              htmlFor="mathEquationImageUpload"
+                                              className={cn(
+                                                "flex flex-col items-center justify-center gap-4",
+                                                "w-full p-6 sm:p-8",
+                                                "border-2 border-dashed rounded-xl",
+                                                "border-blue-200 dark:border-blue-500/20",
+                                                "bg-blue-50/50 dark:bg-blue-500/5",
+                                                "cursor-pointer",
+                                                "hover:border-blue-300 dark:hover:border-blue-500/30",
+                                                "hover:bg-blue-50 dark:hover:bg-blue-500/10",
+                                                "transition-all duration-200",
+                                                isUploading && "opacity-50 cursor-not-allowed"
+                                              )}
+                                            >
+                                              <div className="p-4 rounded-full bg-blue-100/50 dark:bg-blue-500/10">
+                                                {isUploading ? (
+                                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                                ) : (
+                                                  <PlusCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                                                )}
+                                              </div>
+                                              <div className="text-center space-y-1">
+                                                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                                  {isUploading ? "Uploading..." : "Click to upload math equation image"}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                  PNG, JPG, or GIF (Max 4MB)
+                                                </p>
+                                              </div>
+                                            </label>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            {/* Right Column - Explanation */}
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="content"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
+                                      Explanation
+                                    </FormLabel>
+                                    <FormControl>
+                                      <div className="border rounded-md border-gray-200 dark:border-gray-700">
+                                        <TipTapEditor
+                                          value={field.value || ""}
+                                          onChange={field.onChange}
+                                          placeholder="Write an explanation for your math concept..."
+                                          editorClassName="text-gray-900 dark:text-gray-100 min-h-[320px]"
                                         />
-                                      </label>
-                                    </div>
-                                  )}
-                                </div>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          {/* TipTap Editor for content */}
-                          <FormField
-                            control={form.control}
-                            name="content"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
-                                  Explanation
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="border rounded-md border-gray-200 dark:border-gray-700">
-                                    <TipTapEditor
-                                      value={field.value || ""}
-                                      onChange={field.onChange}
-                                      placeholder="Write an explanation for your math concept..."
-                                      editorClassName="text-gray-900 dark:text-gray-100 min-h-[200px]"
-                                    />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {!field.value && !formImageUrl && 
-                                    "Either provide rich text content or upload an image above."}
-                                </p>
-                              </FormItem>
-                            )}
-                          />
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {!field.value && !formImageUrl && 
+                                        "Either provide rich text content or upload an image above."}
+                                    </p>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
                     </TabsContent>
@@ -559,40 +678,71 @@ export const MathEquationForm = ({
                           <span>{previewError}</span>
                         </div>
                       ) : (
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                           {title && (
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-6">
                               {title}
                             </h3>
                           )}
                           
-                          {editorMode === "equation" && equation && (
-                            <div className="py-4 flex justify-center">
-                              <div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 p-6 rounded-lg shadow-sm w-fit max-w-full overflow-x-auto">
-                                <BlockMath math={equation} />
+                          {/* Two Column Layout for Preview */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[400px]">
+                            {/* Left Column - Equation/Image */}
+                            <div className="flex flex-col">
+                              <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">
+                                {editorMode === "equation" ? "Mathematical Equation" : "Equation Image"}
+                              </h4>
+                              <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                {editorMode === "equation" && equation ? (
+                                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 max-w-full overflow-x-auto">
+                                    <BlockMath math={equation} />
+                                  </div>
+                                ) : editorMode === "visual" && formImageUrl ? (
+                                  <div className="rounded-lg shadow-sm max-w-full overflow-hidden">
+                                    <img src={formImageUrl} alt={title} className="max-w-full h-auto rounded-lg" />
+                                  </div>
+                                ) : (
+                                  <div className="text-center text-gray-500 dark:text-gray-400">
+                                    <div className="w-16 h-16 mx-auto mb-3 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                      {editorMode === "equation" ? "∫" : "🖼️"}
+                                    </div>
+                                    <p className="text-sm">
+                                      {editorMode === "equation" ? "No equation entered" : "No image uploaded"}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          )}
-                          
-                          {editorMode === "visual" && formImageUrl && (
-                            <div className="py-4 flex justify-center">
-                              <div className="rounded-lg shadow-sm max-w-full overflow-hidden">
-                                <img src={formImageUrl} alt={title} className="max-w-full h-auto" />
+
+                            {/* Right Column - Explanation */}
+                            <div className="flex flex-col">
+                              <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">
+                                Explanation
+                              </h4>
+                              <div className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                <div className="h-full bg-white dark:bg-gray-800 rounded-md p-4 overflow-y-auto max-h-[350px]">
+                                  {editorMode === "equation" && explanation ? (
+                                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                      {explanation}
+                                    </div>
+                                  ) : editorMode === "visual" && content ? (
+                                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                                      <ContentViewer content={content} />
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">
+                                      <div>
+                                        <div className="w-12 h-12 mx-auto mb-3 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                                          📝
+                                        </div>
+                                        <p className="text-sm">No explanation provided</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          )}
-                          
-                          {editorMode === "equation" && explanation && (
-                            <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                              {explanation}
-                            </div>
-                          )}
-                          
-                          {editorMode === "visual" && content && (
-                            <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                              <ContentViewer content={content} />
-                            </div>
-                          )}
+                          </div>
                         </div>
                       )}
                     </TabsContent>
@@ -614,6 +764,17 @@ export const MathEquationForm = ({
                     type="submit"
                     disabled={isSubmitting}
                     className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                    onClick={() => {
+                      console.log("🔘 Submit button clicked!");
+                      console.log("📊 Current state:", {
+                        editorMode,
+                        formMode: form.getValues().mode,
+                        isSubmitting,
+                        formErrors: form.formState.errors,
+                        formValues: form.getValues(),
+                        isValid: form.formState.isValid
+                      });
+                    }}
                   >
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Add Equation
