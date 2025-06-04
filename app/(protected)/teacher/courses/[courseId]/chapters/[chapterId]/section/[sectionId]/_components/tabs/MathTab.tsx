@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Calculator, Sigma, BookOpen, Sparkles, Zap, Target } from "lucide-react";
-import { MathEquationForm } from "../_explanations/math-equation-form";
+import { MathEquationForm } from "../_explanations/_MathTabComponents/math-equation-form";
 import { ExplanationsList } from "../explanations-list-new";
 
 interface MathTabProps {
@@ -74,7 +74,7 @@ export const MathTab = ({
       console.error("Error deleting math explanation:", error);
       throw error;
     }
-  }, [axios, courseId, chapterId, sectionId, debouncedRefresh, isRefreshing]);
+  }, [courseId, chapterId, sectionId, debouncedRefresh, isRefreshing]);
 
   // Create new math explanation
   const handleCreate = useCallback(() => {
@@ -102,45 +102,7 @@ export const MathTab = ({
 
   return (
     <div className="animate-fadeIn">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 rounded-2xl p-8 mb-8 text-white">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm">
-              <Calculator className="h-8 w-8 text-white" />
-            </div>
-            <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm">
-              <Sigma className="h-8 w-8 text-white" />
-            </div>
-            <div className="p-4 bg-white/20 rounded-full backdrop-blur-sm">
-              <BookOpen className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold mb-4">Mathematical Explanations</h1>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Create comprehensive mathematical explanations with equations, visual aids, and detailed descriptions to help students master complex concepts.
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-            <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Sparkles className="h-6 w-6 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">LaTeX Equations</h3>
-              <p className="text-sm text-white/80">Write complex mathematical expressions</p>
-            </div>
-            <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Zap className="h-6 w-6 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Visual Learning</h3>
-              <p className="text-sm text-white/80">Upload diagrams and illustrations</p>
-            </div>
-            <div className="p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Target className="h-6 w-6 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Clear Explanations</h3>
-              <p className="text-sm text-white/80">Step-by-step solutions and reasoning</p>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       <div className="space-y-8">
         {/* Math Equation Form - now full width */}
@@ -183,6 +145,7 @@ export const MathTab = ({
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onCreateClick={handleCreate}
+                    type="math"
                   />
                 </div>
               </div>

@@ -4,7 +4,7 @@ import * as z from "zod";
 import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Pencil, Video, Loader2, YoutubeIcon } from "lucide-react";
+import { Pencil, Video, Loader2, YoutubeIcon, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -43,6 +43,7 @@ export const SectionYoutubeVideoForm = ({
   sectionId,
 }: SectionYoutubeVideoFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -73,147 +74,201 @@ export const SectionYoutubeVideoForm = ({
     }
   };
 
+  const openVideoInNewTab = () => {
+    if (initialData.videoUrl) {
+      window.open(initialData.videoUrl, '_blank');
+    }
+  };
+
   return (
-    <div className={cn(
-      "p-4 mt-4 rounded-lg",
-      "border border-gray-200 dark:border-gray-700/50",
-      "bg-white/50 dark:bg-gray-800/40",
-      "hover:bg-gray-50 dark:hover:bg-gray-800/60",
-      "transition-all duration-200",
-      "backdrop-blur-sm"
-    )}>
-      <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2">
-        <div className="flex items-center gap-x-2">
-          <div className={cn(
-            "p-2 w-fit rounded-lg",
-            "bg-rose-50 dark:bg-rose-500/10"
-          )}>
-            <YoutubeIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
-          </div>
-          <div>
-            <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-rose-600 to-pink-600 dark:from-rose-400 dark:to-pink-400 bg-clip-text text-transparent">
-              Section Video URL
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Add a YouTube video URL for this section
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={() => setIsEditing(!isEditing)}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "bg-rose-50 dark:bg-rose-500/10",
-            "text-rose-700 dark:text-rose-300",
-            "hover:bg-rose-100 dark:hover:bg-rose-500/20",
-            "hover:text-rose-800 dark:hover:text-rose-200",
-            "w-full sm:w-auto",
-            "justify-center",
-            "transition-all duration-200"
-          )}
-        >
-          {isEditing ? (
-            "Cancel"
-          ) : (
-            <>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
-            </>
-          )}
-        </Button>
-      </div>
-      {!isEditing && (
+    <div className="space-y-3">
+      {!isEditing && initialData.videoUrl && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-6"
-        >
-          {initialData.videoUrl ? (
-            <div className="w-full max-w-3xl mx-auto">
-              <div className={cn(
-                "relative aspect-video rounded-xl overflow-hidden",
-                "border border-gray-200 dark:border-gray-700/50",
-                "bg-gray-100 dark:bg-gray-900/50",
-                "shadow-lg hover:shadow-xl",
-                "transition-all duration-200"
-              )}>
-                <iframe
-                  className="absolute top-0 left-0 w-full h-full"
-                  src={`https://www.youtube.com/embed/${getVideoId(initialData.videoUrl)}`}
-                  title="YouTube video player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="w-full max-w-3xl mx-auto">
-              <div className={cn(
-                "flex flex-col items-center justify-center",
-                "h-48 sm:h-60 md:h-[400px]",
-                "bg-white/40 dark:bg-gray-900/40",
-                "rounded-xl",
-                "border border-dashed",
-                "border-gray-200 dark:border-gray-700/50",
-                "transition-all duration-200"
-              )}>
-                <Video className="h-12 w-12 mb-4 text-gray-400 dark:text-gray-500" />
-                <p className="text-base text-gray-600 dark:text-gray-400 italic">
-                  No video has been added yet
-                </p>
-              </div>
-            </div>
+          className={cn(
+            "p-3 rounded-lg",
+            "border border-gray-200/60 dark:border-gray-700/40",
+            "bg-white/40 dark:bg-gray-800/30",
+            "backdrop-blur-sm"
           )}
-        </motion.div>
-      )}
-      {isEditing && (
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 mt-4"
-          >
-            <FormField
-              control={form.control}
-              name="videoUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      disabled={isSubmitting}
-                      placeholder="e.g. https://www.youtube.com/watch?v=..."
-                      className={cn(
-                        "bg-white dark:bg-gray-900/50",
-                        "border-gray-200 dark:border-gray-700/50",
-                        "text-gray-900 dark:text-gray-200",
-                        "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-                        "focus:ring-rose-500/20",
-                        "text-sm sm:text-base font-medium",
-                        "transition-all duration-200"
-                      )}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
-                </FormItem>
-              )}
-            />
-            <div className="flex items-center gap-x-2">
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Video URL
+            </span>
+            <div className="flex items-center gap-1">
               <Button
-                disabled={!isValid || isSubmitting}
-                type="submit"
+                onClick={() => setShowPreview(!showPreview)}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "bg-rose-50 dark:bg-rose-500/10",
-                  "text-rose-700 dark:text-rose-300",
-                  "hover:bg-rose-100 dark:hover:bg-rose-500/20",
-                  "hover:text-rose-800 dark:hover:text-rose-200",
-                  "border border-rose-200/20 dark:border-rose-500/20",
-                  "w-full sm:w-auto",
-                  "justify-center",
+                  "h-6 px-2 text-xs",
+                  "bg-emerald-50 dark:bg-emerald-500/10",
+                  "text-emerald-700 dark:text-emerald-300",
+                  "hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
+                )}
+              >
+                {showPreview ? (
+                  <>
+                    <EyeOff className="h-3 w-3 mr-1" />
+                    Hide
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-3 w-3 mr-1" />
+                    Preview
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => setIsEditing(true)}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-6 px-2 text-xs",
+                  "bg-blue-50 dark:bg-blue-500/10",
+                  "text-blue-700 dark:text-blue-300",
+                  "hover:bg-blue-100 dark:hover:bg-blue-500/20"
+                )}
+              >
+                <Pencil className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+            </div>
+          </div>
+          
+          {/* Clickable URL Link */}
+          <button
+            onClick={openVideoInNewTab}
+            className={cn(
+              "w-full p-2 rounded-md text-left",
+              "bg-gray-50 dark:bg-gray-800/50",
+              "border border-gray-200/50 dark:border-gray-700/30",
+              "hover:bg-gray-100 dark:hover:bg-gray-700/50",
+              "transition-all duration-200 group"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate mr-2">
+                {initialData.videoUrl}
+              </span>
+              <ExternalLink className="h-3 w-3 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
+            </div>
+          </button>
+        </motion.div>
+      )}
+
+      {!isEditing && !initialData.videoUrl && (
+        <div className={cn(
+          "flex flex-col items-center justify-center",
+          "h-24 p-4 rounded-lg",
+          "bg-white/40 dark:bg-gray-800/30",
+          "border border-dashed border-gray-200 dark:border-gray-700/50"
+        )}>
+          <Video className="h-6 w-6 mb-2 text-gray-400 dark:text-gray-500" />
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            No video added
+          </p>
+          <Button
+            onClick={() => setIsEditing(true)}
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+          >
+            <Pencil className="h-3 w-3 mr-1" />
+            Add Video URL
+          </Button>
+        </div>
+      )}
+
+      {/* Video Preview */}
+      {showPreview && initialData.videoUrl && (
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden"
+        >
+          <div className={cn(
+            "relative aspect-video rounded-lg overflow-hidden",
+            "border border-gray-200 dark:border-gray-700/50",
+            "bg-gray-100 dark:bg-gray-900/50",
+            "shadow-sm"
+          )}>
+            <iframe
+              className="absolute top-0 left-0 w-full h-full"
+              src={`https://www.youtube.com/embed/${getVideoId(initialData.videoUrl)}`}
+              title="YouTube video player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Edit Form */}
+      {isEditing && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            "p-3 rounded-lg",
+            "border border-gray-200 dark:border-gray-700/50",
+            "bg-white/60 dark:bg-gray-800/40",
+            "backdrop-blur-sm"
+          )}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Edit Video URL
+            </span>
+            <Button
+              onClick={() => setIsEditing(false)}
+              variant="ghost"
+              size="sm"
+              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              Cancel
+            </Button>
+          </div>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+              <FormField
+                control={form.control}
+                name="videoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        disabled={isSubmitting}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        className={cn(
+                          "bg-white dark:bg-gray-900/50",
+                          "border-gray-200 dark:border-gray-700/50",
+                          "text-gray-900 dark:text-gray-200",
+                          "placeholder:text-gray-400 dark:placeholder:text-gray-500",
+                          "text-sm",
+                          "transition-all duration-200"
+                        )}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-500 dark:text-red-400 text-xs" />
+                  </FormItem>
+                )}
+              />
+              <Button
+                disabled={!isValid || isSubmitting}
+                type="submit"
+                size="sm"
+                className={cn(
+                  "w-full bg-emerald-500 hover:bg-emerald-600",
+                  "text-white text-sm",
                   "transition-all duration-200",
-                  !isValid && "opacity-50 cursor-not-allowed"
+                  (!isValid || isSubmitting) && "opacity-50 cursor-not-allowed"
                 )}
               >
                 {isSubmitting ? (
@@ -222,17 +277,17 @@ export const SectionYoutubeVideoForm = ({
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     >
-                      <Loader2 className="h-4 w-4" />
+                      <Loader2 className="h-3 w-3" />
                     </motion.div>
                     <span>Saving...</span>
                   </div>
                 ) : (
-                  "Save"
+                  "Save Video URL"
                 )}
               </Button>
-            </div>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </motion.div>
       )}
     </div>
   );

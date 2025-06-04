@@ -8,18 +8,18 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExplanationsList } from "./explanations-list-new";
+import { ExplanationActions } from "./explanation-actions";
 import axios from "axios";
 
-// Dynamically import components with no SSR
-const MathEquationForm = dynamic(
-  () => import("../_components/_explanations/math-equation-form").then(mod => mod.MathEquationForm),
-  { ssr: false, loading: () => <p className="text-center py-8">Loading equation editor...</p> }
-);
-
+// Dynamically import components with no SSR to avoid hydration issues
 const CodeExplanationForm = dynamic(
   () => import("../_components/_explanations/code-explanation-form").then(mod => mod.CodeExplanationForm),
   { ssr: false, loading: () => <p className="text-center py-8">Loading code editor...</p> }
+);
+
+const MathEquationForm = dynamic(
+  () => import("../_components/_explanations/math-equation-form").then(mod => mod.MathEquationForm),
+  { ssr: false, loading: () => <p className="text-center py-8">Loading equation editor...</p> }
 );
 
 interface InteractiveSectionsProps {
@@ -41,18 +41,6 @@ export const InteractiveSections = ({
   const [showMathEditor, setShowMathEditor] = useState(false);
   const [showCodeEditor, setShowCodeEditor] = useState(false);
   const [activeTab, setActiveTab] = useState<"math" | "code" | null>(null);
-
-  // Get combined explanations list with types
-  const combinedExplanations = [
-    ...(initialData.mathExplanations || []).map((item: any) => ({
-      ...item,
-      type: "math"
-    })),
-    ...(initialData.codeExplanations || []).map((item: any) => ({
-      ...item,
-      type: "code"
-    }))
-  ];
   
   // Toggle the math editor visibility
   const toggleMathEditor = () => {
@@ -94,26 +82,6 @@ export const InteractiveSections = ({
         }
       }, 100);
     }
-  };
-
-  // Edit explanation (navigate to edit page)
-  const onEdit = (id: string) => {
-    router.push(`/teacher/courses/${courseId}/chapters/${chapterId}/section/${sectionId}/explanations/${id}`);
-  };
-
-  // Delete explanation
-  const onDelete = async (id: string) => {
-    try {
-      await axios.delete(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/explanations/${id}`);
-      router.refresh();
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  // Create new explanation
-  const onCreate = () => {
-    router.push(`/teacher/courses/${courseId}/chapters/${chapterId}/section/${sectionId}/explanations/create`);
   };
   
   return (
@@ -183,15 +151,13 @@ export const InteractiveSections = ({
               </div>
             </div>
             
-            {/* Math explanations list */}
+            {/* Math explanations list with proper modal editing */}
             <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-              <ExplanationsList
-                items={combinedExplanations}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onCreateClick={onCreate}
-                type="math"
-              />
+              <div className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Math Explanations</div>
+              {/* TODO: Add MathExplanationActions component when available */}
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                Math explanations list coming soon...
+              </div>
             </div>
           </div>
           
@@ -267,14 +233,13 @@ export const InteractiveSections = ({
               </div>
             </div>
             
-            {/* Code explanations list */}
+            {/* Code explanations list with proper modal editing */}
             <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-              <ExplanationsList
-                items={combinedExplanations}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onCreateClick={onCreate}
-                type="code"
+              <ExplanationActions
+                courseId={courseId}
+                chapterId={chapterId}
+                sectionId={sectionId}
+                codeExplanations={initialData.codeExplanations || []}
               />
             </div>
           </div>

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Code2 } from "lucide-react";
 import { CodeExplanationForm } from "../_explanations/code-explanation-form";
-import { ExplanationsList } from "../explanations-list-new";
+import { ExplanationActions } from "../explanation-actions";
 
 interface CodeTabProps {
   courseId: string;
@@ -21,37 +21,14 @@ export const CodeTab = ({
 }: CodeTabProps) => {
   const router = useRouter();
 
-  // Get only code explanations and map them properly
+  // Get only code explanations and ensure they have the right structure
   const codeExplanations = (initialData.codeExplanations || []).map((item: any) => ({
     id: item.id,
     heading: item.heading,
     code: item.code,
     explanation: item.explanation,
-    type: "code" as const
+    language: item.language || 'typescript' // Add language field
   }));
-
-  // Edit explanation (navigate to edit page)
-  const onEdit = (id: string) => {
-    console.log("🔧 Edit code explanation:", id);
-    router.push(`/teacher/courses/${courseId}/chapters/${chapterId}/section/${sectionId}/explanations/${id}`);
-  };
-
-  // Delete explanation
-  const onDelete = async (id: string) => {
-    try {
-      console.log("🗑️ Delete code explanation:", id);
-      await axios.delete(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/explanations/${id}`);
-      router.refresh();
-    } catch (error) {
-      console.error("Error deleting code explanation:", error);
-      throw error;
-    }
-  };
-
-  // Create new explanation
-  const onCreate = () => {
-    router.push(`/teacher/courses/${courseId}/chapters/${chapterId}/section/${sectionId}/explanations/create`);
-  };
 
   return (
     <div className="animate-fadeIn">
@@ -80,17 +57,16 @@ export const CodeTab = ({
           </div>
         </div>
         
-        {/* Code explanations list - now shown below */}
+        {/* Code explanations list with modal editing */}
         <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
           <h3 className="text-lg font-semibold mb-4 bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
             Created Code Explanations
           </h3>
-          <ExplanationsList
-            items={codeExplanations}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onCreateClick={onCreate}
-            type="code"
+          <ExplanationActions
+            courseId={courseId}
+            chapterId={chapterId}
+            sectionId={sectionId}
+            codeExplanations={codeExplanations}
           />
         </div>
       </div>

@@ -8,7 +8,6 @@ import * as z from "zod";
 import { toast } from "sonner";
 import axios from "axios";
 import TipTapEditor from "@/components/tiptap/editor";
-import ContentViewer from "@/components/tiptap/content-viewer";
 import {
   Form,
   FormControl,
@@ -22,13 +21,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { PlusCircle, Sparkles, XCircle } from "lucide-react";
-import "katex/dist/katex.min.css";
-import "./styles/editor.css";
-import styles from "./styles/editor.module.css";
-import { InlineMath, BlockMath } from "react-katex";
+import { PlusCircle, XCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Import modular components
+import { MathModeSelector } from "./_MathTabComponents/MathModeSelector";
+import { LatexTips } from "./_MathTabComponents/LatexTips";
+import { MathImageUpload } from "./_MathTabComponents/MathImageUpload";
+import { MathPreview } from "./_MathTabComponents/MathPreview";
+import QuickTemplateComponent, { Template } from "@/components/QuickTemplateComponent";
+import LatexEnabledEditor from "@/components/LatexEnabledEditor";
+import mathTemplates from "./_MathTabComponents/mathTemplatesData";
 
 interface MathEquationFormProps {
   initialData: any;
@@ -63,26 +66,6 @@ export const MathEquationForm = ({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-
-  // Example templates to help users get started
-  const templates = [
-    { 
-      title: "Quadratic Formula", 
-      equation: "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}", 
-      explanation: "The quadratic formula helps solve quadratic equations in the form ax² + bx + c = 0." 
-    },
-    { 
-      title: "Pythagorean Theorem", 
-      equation: "a^2 + b^2 = c^2", 
-      explanation: "In a right triangle, the square of the length of the hypotenuse (c) equals the sum of squares of the other two sides (a and b)." 
-    },
-    { 
-      title: "Derivative Rule", 
-      equation: "\\frac{d}{dx}[x^n] = nx^{n-1}", 
-      explanation: "The power rule for differentiation states that if you have x raised to a power n, the derivative is n times x raised to the power of n-1." 
-    },
-  ];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,16 +77,13 @@ export const MathEquationForm = ({
       content: "",
       mode: "equation",
     },
-    mode: "onChange", // Validate on change to catch errors early
+    mode: "onChange",
   });
 
-  // Simple mount effect
   useEffect(() => {
     setIsMounted(true);
-    console.log("🔧 Component mounted");
   }, []);
 
-  // Don't render form until component is mounted
   if (!isMounted) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -112,13 +92,6 @@ export const MathEquationForm = ({
     );
   }
 
-  // Debug form setup
-  console.log("🔍 Form setup complete:", {
-    defaultValues: form.formState.defaultValues,
-    errors: form.formState.errors,
-    isValid: form.formState.isValid
-  });
-
   const { watch, setValue } = form;
   const equation = watch("equation");
   const explanation = watch("explanation");
@@ -126,101 +99,15 @@ export const MathEquationForm = ({
   const content = watch("content");
   const formImageUrl = watch("imageUrl");
 
-  // Custom validation function to avoid Zod refinement issues
-  const validateFormData = (values: z.infer<typeof formSchema>) => {
-    const errors: string[] = [];
-    
-    if (!values.title?.trim()) {
-      errors.push("Title is required");
-    }
-    
-    if (values.mode === "equation") {
-      if (!values.equation?.trim()) {
-        errors.push("Equation is required in equation mode");
-      }
-      if (!values.explanation?.trim()) {
-        errors.push("Explanation is required in equation mode");
-      }
-    }
-    
-    if (values.mode === "visual") {
-      const hasImage = values.imageUrl?.trim();
-      const hasContent = values.content?.trim();
-      if (!hasImage && !hasContent) {
-        errors.push("Either an image or content is required in visual mode");
-      }
-    }
-    
-    return errors;
-  };
-
-  // Handle image upload
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
-    try {
-      setIsUploading(true);
-      const file = e.target.files?.[0];
-      
-      if (!file) return;
-
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-
-      if (file.size > 4 * 1024 * 1024) { // 4MB limit
-        toast.error('File size must be less than 4MB');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch(`/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations/image`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const data = await response.json();
-      
-      if (data.secure_url) {
-        onChange(data.secure_url);
-        toast.success("Image uploaded successfully!");
-      } else {
-        toast.error("Upload failed");
-      }
-    } catch (error) {
-      toast.error("Something went wrong during upload");
-      console.error(error);
-    } finally {
-      setIsUploading(false);
-      // Reset the input value so the same file can be selected again
-      e.target.value = '';
-    }
-  };
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log("🚀 Form onSubmit triggered with values:", values);
-    console.log("🔍 Current editor mode:", editorMode);
-    console.log("🔍 Form mode value:", values.mode);
-    
     try {
       setIsSubmitting(true);
       setSubmitError(null);
       
-      // Ensure the mode value matches the current editor mode
       const currentMode = editorMode;
-      const submitValues = {
-        ...values,
-        mode: currentMode
-      };
+      const submitValues = { ...values, mode: currentMode };
       
-      console.log("📝 Submit values with corrected mode:", submitValues);
-      
-      // Custom validation based on current editor mode (not form mode)
+      // Custom validation
       const validationErrors: string[] = [];
       
       if (!submitValues.title?.trim()) {
@@ -246,57 +133,38 @@ export const MathEquationForm = ({
         const errorMessage = validationErrors.join("; ");
         setSubmitError(errorMessage);
         toast.error(errorMessage);
-        console.log("❌ Validation failed:", validationErrors);
         return;
       }
       
-      console.log("✅ Validation passed, preparing payload...");
-      
-      // Prepare the payload based on current editor mode
+      // Prepare payload
       let finalPayload;
-      
       if (currentMode === "visual") {
-        console.log("📸 Visual mode payload preparation");
-        
         finalPayload = {
           title: submitValues.title,
           mode: "visual",
           imageUrl: submitValues.imageUrl || "",
           content: submitValues.content || "",
-          explanation: submitValues.content || "", // Use content as explanation for visual mode
-          equation: "", // No equation in visual mode
+          explanation: submitValues.content || "",
+          equation: "",
         };
-        
-        console.log("📸 Visual mode payload prepared:", finalPayload);
-        
       } else {
-        console.log("📝 Equation mode payload preparation");
-        
         finalPayload = {
           title: submitValues.title,
           mode: "equation",
           equation: submitValues.equation,
           explanation: submitValues.explanation,
-          imageUrl: "", // No image in equation mode
-          content: "", // No content in equation mode
+          imageUrl: "",
+          content: "",
         };
-        
-        console.log("📝 Equation mode payload prepared:", finalPayload);
       }
       
-      console.log("🚀 Final payload for submission:", finalPayload);
-      console.log(`📡 POST to /api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`);
-      
-      const response = await axios.post(
+      await axios.post(
         `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/math-equations`, 
         finalPayload
       );
       
-      console.log("✅ API Response:", response.data);
-      
       toast.success("Math equation added successfully");
       
-      // Call the callback to trigger a refresh of the equations list
       if (onEquationAdded) {
         onEquationAdded();
       }
@@ -313,9 +181,8 @@ export const MathEquationForm = ({
       setEditorMode("equation");
       setActiveTab("edit");
     } catch (error: any) {
-      console.error("❌ Math equation submission error:", error);
+      console.error("Math equation submission error:", error);
       
-      // Extract meaningful error message
       let errorMessage = "Something went wrong";
       if (error.response?.data) {
         errorMessage = error.response.data;
@@ -330,17 +197,11 @@ export const MathEquationForm = ({
     }
   };
 
-  // Toggle between equation and visual modes
   const toggleEditorMode = (mode: "equation" | "visual") => {
-    console.log("🔄 Switching to mode:", mode);
     setEditorMode(mode);
-    
-    // Update form mode
     form.setValue("mode", mode, { shouldValidate: true });
-    // Reset any errors related to the mode switch
     form.clearErrors();
     
-    // Clear fields that don't apply to the new mode
     if (mode === "visual") {
       form.setValue("equation", "");
       form.setValue("explanation", "");
@@ -352,26 +213,26 @@ export const MathEquationForm = ({
     }
   };
 
-  const applyTemplate = (template: { title: string; equation: string; explanation: string }) => {
+  const applyTemplate = (template: Template) => {
     form.setValue("title", template.title);
     form.setValue("equation", template.equation);
     form.setValue("explanation", template.explanation);
-    toast.success("Template applied");
+    toast.success(`Applied template: ${template.title}`);
   };
 
   return (
-    <div className="relative">
+    <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 rounded-2xl border border-slate-700/50 shadow-2xl">
       {/* Background decoration */}
-      <div className="absolute top-0 right-0 -z-10 w-72 h-72 bg-pink-500/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 -z-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl"></div>
+      <div className="absolute top-0 right-0 -z-10 w-72 h-72 bg-gold-400/10 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-0 left-0 -z-10 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl"></div>
       
       {submitError && (
-        <div className="mb-6 p-4 border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800 rounded-lg">
+        <div className="mb-6 p-4 border border-red-400/50 bg-red-500/20 rounded-lg">
           <div className="flex items-center">
-            <XCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-700 dark:text-red-400 font-medium">Error: {submitError}</p>
+            <XCircle className="h-5 w-5 text-red-300 mr-2" />
+            <p className="text-red-200 font-medium">Error: {submitError}</p>
           </div>
-          <p className="mt-2 text-sm text-red-600 dark:text-red-300">
+          <p className="mt-2 text-sm text-red-300">
             Please try again or check your network connection.
           </p>
         </div>
@@ -380,63 +241,41 @@ export const MathEquationForm = ({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div className="grid grid-cols-1 gap-6">
-            {/* Editor Column - Now full width */}
             <div className="space-y-6">
-              <Card className="border border-pink-200 dark:border-pink-800 shadow-md">
-                <CardHeader className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950 dark:to-purple-950 rounded-t-lg border-b border-pink-100 dark:border-pink-800">
-                  <CardTitle className="text-xl bg-gradient-to-r from-pink-600 to-purple-600 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+              <Card className="border border-amber-400/30 shadow-lg bg-slate-800/50 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-amber-400/20 to-yellow-400/20 rounded-t-lg border-b border-amber-400/30">
+                  <CardTitle className="text-xl text-white font-bold">
                     Create Math Equation
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-gray-300">
                     Add mathematical equations with LaTeX syntax or use visual editor
                   </CardDescription>
                   
-                  {/* Editor Mode Selector */}
-                  <div className="mt-4">
-                    <Tabs 
-                      value={editorMode} 
-                      onValueChange={(value) => toggleEditorMode(value as "equation" | "visual")}
-                      className="w-full"
-                    >
-                      <TabsList className="w-full grid grid-cols-2">
-                        <TabsTrigger 
-                          value="equation" 
-                          className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
-                        >
-                          <span className="font-mono mr-2">∫</span>
-                          Equation Mode
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="visual" 
-                          className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-500 data-[state=active]:text-white"
-                        >
-                          <span className="mr-2">🖼️</span>
-                          Visual Mode
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </div>
+                  <MathModeSelector 
+                    editorMode={editorMode} 
+                    onModeChange={toggleEditorMode} 
+                  />
                 </CardHeader>
                 
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 bg-slate-800/30">
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid grid-cols-2 mb-4 w-full">
-                      <TabsTrigger value="edit" className="data-[state=active]:bg-pink-100 dark:data-[state=active]:bg-pink-900/30">
+                    <TabsList className="grid grid-cols-2 mb-4 w-full bg-slate-700/50">
+                      <TabsTrigger value="edit" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-600 data-[state=active]:to-slate-700 data-[state=active]:text-gold-300 data-[state=active]:border data-[state=active]:border-gold-400/50 text-gray-200 font-medium">
                         Edit
                       </TabsTrigger>
-                      <TabsTrigger value="preview" className="data-[state=active]:bg-purple-100 dark:data-[state=active]:bg-purple-900/30">
+                      <TabsTrigger value="preview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-600 data-[state=active]:to-slate-700 data-[state=active]:text-gold-300 data-[state=active]:border data-[state=active]:border-gold-400/50 text-gray-200 font-medium">
                         Preview
                       </TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="edit" className="space-y-4">
-                      {/* Title field - common to both modes */}
+                      {/* Title field */}
                       <FormField
                         control={form.control}
                         name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
+                            <FormLabel className="font-semibold text-gray-200">
                               Title
                             </FormLabel>
                             <FormControl>
@@ -444,221 +283,140 @@ export const MathEquationForm = ({
                                 disabled={isSubmitting}
                                 placeholder="e.g., 'Quadratic Formula'"
                                 {...field}
-                                className="border-pink-200 dark:border-pink-800 focus-visible:ring-pink-500"
+                                className="border-amber-400/50 bg-slate-700/30 text-white placeholder:text-gray-400 focus-visible:ring-amber-400/50"
                               />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-red-300" />
                           </FormItem>
                         )}
                       />
 
-                      {/* Conditional rendering based on editor mode */}
+                      {/* Conditional content based on mode */}
                       {editorMode === "equation" ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <FormField
-                              control={form.control}
-                              name="equation"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
-                                    Equation (LaTeX)
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Textarea
-                                      disabled={isSubmitting}
-                                      placeholder="e.g., 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}'"
-                                      {...field}
-                                      className="min-h-24 font-mono text-sm border-pink-200 dark:border-pink-800 focus-visible:ring-pink-500"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            {/* Template card has been moved inside the form */}
-                            <Card className="border border-purple-200 dark:border-purple-800 shadow-sm">
-                              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-t-lg border-b border-purple-100 dark:border-purple-800 py-3">
-                                <CardTitle className="text-sm bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                                  <div className="flex items-center">
-                                    <Sparkles className="h-4 w-4 mr-2 text-purple-500 dark:text-purple-400" />
-                                    Quick Templates
-                                  </div>
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-0">
-                                <ScrollArea className="h-[120px]">
-                                  <div className="p-2 space-y-2">
-                                    {templates.map((template, index) => (
-                                      <div 
-                                        key={index} 
-                                        className={cn(
-                                          "p-2 rounded-lg cursor-pointer transition-all text-xs",
-                                          "border border-purple-100 dark:border-purple-800",
-                                          "hover:bg-purple-50 dark:hover:bg-purple-900/20",
-                                          "hover:shadow-sm"
-                                        )}
-                                        onClick={() => applyTemplate(template)}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <div className="bg-white dark:bg-gray-800 p-1 rounded border border-gray-100 dark:border-gray-700 flex-1 text-center">
-                                            <InlineMath math={template.equation} />
-                                          </div>
-                                          <span className="text-purple-700 dark:text-purple-300 font-medium">{template.title}</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </ScrollArea>
-                              </CardContent>
-                            </Card>
-                          </div>
-
-                          <div className="space-y-4">
-                            <FormField
-                              control={form.control}
-                              name="explanation"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
-                                    Explanation
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Textarea
-                                      disabled={isSubmitting}
-                                      placeholder="Explain the mathematical concept..."
-                                      {...field}
-                                      className="min-h-[280px] border-pink-200 dark:border-pink-800 focus-visible:ring-pink-500"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            {/* LaTeX tips */}
-                            <Card className="border border-purple-200 dark:border-purple-800 shadow-sm">
-                              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-t-lg border-b border-purple-100 dark:border-purple-800 py-3">
-                                <CardTitle className="text-sm bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                                  LaTeX Tips
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="pt-2 pb-3">
-                                <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
-                                  <li><strong className="text-purple-600 dark:text-purple-400">Fractions:</strong> <code className="bg-gray-100 dark:bg-gray-800 p-1 rounded text-[10px]">\frac&#123;numerator&#125;&#123;denominator&#125;</code></li>
-                                  <li><strong className="text-purple-600 dark:text-purple-400">Exponents:</strong> <code className="bg-gray-100 dark:bg-gray-800 p-1 rounded text-[10px]">x^&#123;power&#125;</code></li>
-                                  <li><strong className="text-purple-600 dark:text-purple-400">Square roots:</strong> <code className="bg-gray-100 dark:bg-gray-800 p-1 rounded text-[10px]">\sqrt&#123;expression&#125;</code></li>
-                                </ul>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Visual Mode UI */
                         <div className="space-y-6">
-                          {/* Image and Explanation Side by Side Layout */}
+                          {/* Top Row - Equation and Explanation Side by Side */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Left Column - Image Upload */}
+                            {/* Left Column - Equation Editor */}
                             <div className="space-y-4">
                               <FormField
                                 control={form.control}
-                                name="imageUrl"
+                                name="equation"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
-                                      Math Equation Image
+                                    <FormLabel className="font-semibold text-gray-200">
+                                      Equation (LaTeX)
                                     </FormLabel>
                                     <FormControl>
-                                      <div className="border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-lg p-6">
-                                        {field.value ? (
-                                          <div className="relative">
-                                            <img 
-                                              src={field.value} 
-                                              alt="Math equation" 
-                                              className="max-w-full h-auto rounded-lg mx-auto"
-                                            />
-                                            <button
-                                              type="button"
-                                              onClick={() => field.onChange("")}
-                                              className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
-                                            >
-                                              <XCircle className="h-4 w-4" />
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <div>
-                                            <input
-                                              type="file"
-                                              accept="image/*"
-                                              onChange={(e) => handleImageUpload(e, field.onChange)}
-                                              className="hidden"
-                                              disabled={isUploading}
-                                              id="mathEquationImageUpload"
-                                            />
-                                            <label
-                                              htmlFor="mathEquationImageUpload"
-                                              className={cn(
-                                                "flex flex-col items-center justify-center gap-4",
-                                                "w-full p-6 sm:p-8",
-                                                "border-2 border-dashed rounded-xl",
-                                                "border-blue-200 dark:border-blue-500/20",
-                                                "bg-blue-50/50 dark:bg-blue-500/5",
-                                                "cursor-pointer",
-                                                "hover:border-blue-300 dark:hover:border-blue-500/30",
-                                                "hover:bg-blue-50 dark:hover:bg-blue-500/10",
-                                                "transition-all duration-200",
-                                                isUploading && "opacity-50 cursor-not-allowed"
-                                              )}
-                                            >
-                                              <div className="p-4 rounded-full bg-blue-100/50 dark:bg-blue-500/10">
-                                                {isUploading ? (
-                                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                                ) : (
-                                                  <PlusCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                                                )}
-                                              </div>
-                                              <div className="text-center space-y-1">
-                                                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                                                  {isUploading ? "Uploading..." : "Click to upload math equation image"}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                  PNG, JPG, or GIF (Max 4MB)
-                                                </p>
-                                              </div>
-                                            </label>
-                                          </div>
-                                        )}
+                                      <div className="space-y-3">
+                                        <Textarea
+                                          disabled={isSubmitting}
+                                          placeholder="e.g., 'x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}'"
+                                          {...field}
+                                          className="h-[320px] font-mono text-sm border-amber-400/50 bg-slate-700/30 text-white placeholder:text-gray-400 focus-visible:ring-amber-400/50 resize-none"
+                                        />
+                                        <LatexTips />
                                       </div>
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="text-red-300" />
                                   </FormItem>
                                 )}
                               />
                             </div>
 
-                            {/* Right Column - Explanation */}
+                            {/* Right Column - LaTeX Enabled Explanation Editor */}
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="explanation"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="font-semibold text-gray-200">
+                                      Explanation (Text + LaTeX)
+                                    </FormLabel>
+                                    <FormControl>
+                                      <LatexEnabledEditor
+                                        value={field.value || ""}
+                                        onChange={field.onChange}
+                                        placeholder="Explain the mathematical concept... Use $equation$ for inline LaTeX."
+                                        minHeight="320px"
+                                        maxHeight="400px"
+                                        showHelp={false}
+                                        disabled={isSubmitting}
+                                        showPreview={true}
+                                        theme="dark"
+                                        className="h-[400px]"
+                                      />
+                                    </FormControl>
+                                    <FormMessage className="text-red-300" />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Bottom Row - Math Templates (Full Width) */}
+                          <div className="w-full">
+                            <div className="mb-3">
+                              <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                                <span className="text-amber-400">📚</span>
+                                Quick Math Templates
+                              </h3>
+                              <p className="text-sm text-gray-400 mt-1">
+                                Click any template to quickly apply equation and explanation
+                              </p>
+                            </div>
+                            <QuickTemplateComponent
+                              templates={mathTemplates}
+                              onApplyTemplate={applyTemplate}
+                              showSearch={true}
+                              showCategoryFilter={true}
+                              maxHeight="320px"
+                              title="Browse Templates"
+                              theme="dark"
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <FormField
+                                control={form.control}
+                                name="imageUrl"
+                                render={({ field }) => (
+                                  <MathImageUpload
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    courseId={courseId}
+                                    chapterId={chapterId}
+                                    sectionId={sectionId}
+                                  />
+                                )}
+                              />
+                            </div>
+
                             <div className="space-y-4">
                               <FormField
                                 control={form.control}
                                 name="content"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="font-semibold text-gray-700 dark:text-gray-300">
+                                    <FormLabel className="font-semibold text-gray-200">
                                       Explanation
                                     </FormLabel>
                                     <FormControl>
-                                      <div className="border rounded-md border-gray-200 dark:border-gray-700">
+                                      <div className="border rounded-md border-amber-400/50 bg-slate-700/20">
                                         <TipTapEditor
                                           value={field.value || ""}
                                           onChange={field.onChange}
                                           placeholder="Write an explanation for your math concept..."
-                                          editorClassName="text-gray-900 dark:text-gray-100 min-h-[320px]"
+                                          editorClassName="text-white min-h-[320px]"
                                         />
                                       </div>
                                     </FormControl>
-                                    <FormMessage />
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <FormMessage className="text-red-300" />
+                                    <p className="text-xs text-gray-400 mt-1">
                                       {!field.value && !formImageUrl && 
                                         "Either provide rich text content or upload an image above."}
                                     </p>
@@ -671,84 +429,21 @@ export const MathEquationForm = ({
                       )}
                     </TabsContent>
                     
-                    <TabsContent value="preview" className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 min-h-[20rem]">
-                      {previewError ? (
-                        <div className="flex items-center justify-center h-full text-red-500">
-                          <XCircle className="h-5 w-5 mr-2" />
-                          <span>{previewError}</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {title && (
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-6">
-                              {title}
-                            </h3>
-                          )}
-                          
-                          {/* Two Column Layout for Preview */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[400px]">
-                            {/* Left Column - Equation/Image */}
-                            <div className="flex flex-col">
-                              <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">
-                                {editorMode === "equation" ? "Mathematical Equation" : "Equation Image"}
-                              </h4>
-                              <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                {editorMode === "equation" && equation ? (
-                                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 max-w-full overflow-x-auto">
-                                    <BlockMath math={equation} />
-                                  </div>
-                                ) : editorMode === "visual" && formImageUrl ? (
-                                  <div className="rounded-lg shadow-sm max-w-full overflow-hidden">
-                                    <img src={formImageUrl} alt={title} className="max-w-full h-auto rounded-lg" />
-                                  </div>
-                                ) : (
-                                  <div className="text-center text-gray-500 dark:text-gray-400">
-                                    <div className="w-16 h-16 mx-auto mb-3 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                                      {editorMode === "equation" ? "∫" : "🖼️"}
-                                    </div>
-                                    <p className="text-sm">
-                                      {editorMode === "equation" ? "No equation entered" : "No image uploaded"}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Right Column - Explanation */}
-                            <div className="flex flex-col">
-                              <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3 uppercase tracking-wide">
-                                Explanation
-                              </h4>
-                              <div className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1">
-                                <div className="h-full bg-white dark:bg-gray-800 rounded-md p-4 overflow-y-auto max-h-[350px]">
-                                  {editorMode === "equation" && explanation ? (
-                                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                      {explanation}
-                                    </div>
-                                  ) : editorMode === "visual" && content ? (
-                                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
-                                      <ContentViewer content={content} />
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">
-                                      <div>
-                                        <div className="w-12 h-12 mx-auto mb-3 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                                          📝
-                                        </div>
-                                        <p className="text-sm">No explanation provided</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                    <TabsContent value="preview" className="bg-slate-800/40 rounded-lg border border-amber-400/30 p-6 min-h-[20rem]">
+                      <MathPreview
+                        title={title}
+                        editorMode={editorMode}
+                        equation={equation || ""}
+                        explanation={explanation || ""}
+                        content={content || ""}
+                        imageUrl={formImageUrl || ""}
+                        previewError={previewError}
+                      />
                     </TabsContent>
                   </Tabs>
                 </CardContent>
-                <CardFooter className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950 dark:to-purple-950 rounded-b-lg border-t border-pink-100 dark:border-pink-800 flex justify-between">
+                
+                <CardFooter className="bg-gradient-to-r from-amber-400/20 to-yellow-400/20 rounded-b-lg border-t border-amber-400/30 flex justify-between">
                   <Button
                     type="button"
                     variant="ghost"
@@ -757,24 +452,14 @@ export const MathEquationForm = ({
                       setActiveTab("edit");
                     }}
                     disabled={isSubmitting}
+                    className="text-gray-200 hover:text-slate-900 hover:bg-amber-400/30"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-                    onClick={() => {
-                      console.log("🔘 Submit button clicked!");
-                      console.log("📊 Current state:", {
-                        editorMode,
-                        formMode: form.getValues().mode,
-                        isSubmitting,
-                        formErrors: form.formState.errors,
-                        formValues: form.getValues(),
-                        isValid: form.formState.isValid
-                      });
-                    }}
+                    className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-900 font-semibold"
                   >
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Add Equation

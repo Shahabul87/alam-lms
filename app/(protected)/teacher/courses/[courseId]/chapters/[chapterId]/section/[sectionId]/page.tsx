@@ -188,98 +188,71 @@ const SectionIdPage = async (
           )}
         </div>
 
-        {/* Basic Section Information - Two Column Layout */}
-        <div className="mt-8">
-          <div className="flex items-center mb-6">
-            <div className="flex-shrink-0 h-10 w-1 bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full mr-3"></div>
-            <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
+        {/* Basic Section Information - Compact Layout */}
+        <div className="mt-6">
+          <div className="flex items-center mb-3">
+            <div className="flex-shrink-0 h-6 w-1 bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full mr-2"></div>
+            <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
               Basic Section Information
             </h2>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
             {/* Left Column - Title and Access Forms */}
-            <div className="space-y-6">
-              {/* Section Title Card */}
-              <div className={cn(
-                "p-5 rounded-2xl",
-                "bg-gradient-to-br from-white/80 to-purple-50/50 dark:from-gray-800/80 dark:to-purple-900/20",
+            <div className={cn(
+                "h-full p-3 rounded-lg flex flex-col",
+                "bg-gradient-to-br from-white/80 to-emerald-50/50 dark:from-gray-800/80 dark:to-emerald-900/20",
                 "border border-gray-200/80 dark:border-gray-700/50",
                 "shadow-sm hover:shadow-md transition-shadow duration-300",
                 "backdrop-blur-sm"
               )}>
-                <div className="flex items-center gap-x-3 mb-4">
-                  <div className={cn(
-                    "p-2.5 rounded-lg",
-                    "bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-800/30 dark:to-purple-900/10",
-                    "border border-purple-200/50 dark:border-purple-700/30"
-                  )}>
-                    <LayoutDashboard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-cyan-600 dark:from-purple-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                    Section Title
-                  </h3>
-                </div>
+            <div className="flex flex-col space-y-3 h-full">
+              {/* Section Title Card */}
+            
+                
                 <SectionTitleForm
                   initialData={section}
                   courseId={params.courseId}
                   chapterId={params.chapterId}
                   sectionId={params.sectionId}
                 />
-              </div>
+             
 
               {/* Access Settings Card */}
-              <div className={cn(
-                "p-5 rounded-2xl",
-                "bg-gradient-to-br from-white/80 to-cyan-50/50 dark:from-gray-800/80 dark:to-cyan-900/20",
-                "border border-gray-200/80 dark:border-gray-700/50",
-                "shadow-sm hover:shadow-md transition-shadow duration-300",
-                "backdrop-blur-sm"
-              )}>
-                <div className="flex items-center gap-x-3 mb-4">
-                  <div className={cn(
-                    "p-2.5 rounded-lg",
-                    "bg-gradient-to-br from-cyan-100 to-cyan-50 dark:from-cyan-800/30 dark:to-cyan-900/10",
-                    "border border-cyan-200/50 dark:border-cyan-700/30"
-                  )}>
-                    <Eye className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 dark:from-cyan-400 dark:to-teal-400 bg-clip-text text-transparent">
-                    Access Settings
-                  </h3>
-                </div>
+            
+               
                 <SectionAccessForm
                   initialData={section}
                   courseId={params.courseId}
                   chapterId={params.chapterId}
                   sectionId={params.sectionId}
                 />
-              </div>
+               </div>
             </div>
 
-            {/* Right Column - Video Link */}
-            <div className="h-full flex">
-              {/* Video Link Card */}
+            {/* Right Column - Video */}
+            <div className="h-full">
+              {/* Video Card */}
               <div className={cn(
-                "h-full flex-1 p-5 rounded-2xl flex flex-col",
+                "h-full p-3 rounded-lg flex flex-col",
                 "bg-gradient-to-br from-white/80 to-emerald-50/50 dark:from-gray-800/80 dark:to-emerald-900/20",
                 "border border-gray-200/80 dark:border-gray-700/50",
                 "shadow-sm hover:shadow-md transition-shadow duration-300",
                 "backdrop-blur-sm"
               )}>
-                <div className="flex items-center gap-x-3 mb-4">
+                <div className="flex items-center gap-x-2 mb-2">
                   <div className={cn(
-                    "p-2.5 rounded-lg",
+                    "p-1.5 rounded-md",
                     "bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-800/30 dark:to-emerald-900/10",
                     "border border-emerald-200/50 dark:border-emerald-700/30"
                   )}>
-                    <Video className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <Video className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <h3 className="text-lg font-semibold bg-gradient-to-r from-emerald-600 to-cyan-600 dark:from-emerald-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                    Section Video Link
+                  <h3 className="text-sm font-semibold bg-gradient-to-r from-emerald-600 to-cyan-600 dark:from-emerald-400 dark:to-cyan-400 bg-clip-text text-transparent">
+                    Section Video
                   </h3>
                 </div>
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col min-h-0">
                   <SectionYoutubeVideoForm
                     initialData={section}
                     courseId={params.courseId}

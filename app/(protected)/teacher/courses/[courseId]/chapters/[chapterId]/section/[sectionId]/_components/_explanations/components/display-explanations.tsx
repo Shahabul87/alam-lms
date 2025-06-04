@@ -99,28 +99,22 @@ export const DisplayExplanations = ({
   };
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-4 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center">
-          <Code2 className="h-10 w-10 text-gray-400 dark:text-gray-600 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            No explanations yet
+        <div className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-800 dark:via-gray-800 dark:to-indigo-900/20 rounded border border-gray-200 dark:border-gray-600 shadow-sm">
+          <Code2 className="h-8 w-8 text-gray-500 dark:text-gray-400 mb-3" />
+          <h3 className="text-md font-medium text-gray-800 dark:text-gray-200">
+            No Explanations Yet
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4">
-            Add your first code explanation to help others understand the concepts better.
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 mb-3">
+            Add your first code explanation
           </p>
           <Button
             onClick={onCreateClick}
-            variant="ghost"
-            className={cn(
-              "bg-indigo-50 dark:bg-indigo-500/10",
-              "text-indigo-700 dark:text-indigo-300",
-              "hover:bg-indigo-100 dark:hover:bg-indigo-500/20",
-              "hover:text-indigo-800 dark:hover:text-indigo-200",
-              "transition-all duration-200"
-            )}
+            size="sm"
+            className="h-8 px-3 text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm"
           >
-            Add explanation
+            Add Explanation
           </Button>
         </div>
       ) : (
@@ -134,38 +128,32 @@ export const DisplayExplanations = ({
               key={item.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                "rounded-xl overflow-hidden",
-                "bg-white dark:bg-gray-800",
-                "border border-gray-200 dark:border-gray-700",
-                "shadow-md hover:shadow-lg",
-                "transition-all duration-200"
-              )}
+              className="rounded border border-gray-300 dark:border-gray-600 bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-900/20 shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden"
             >
-              {/* Header with expand/collapse controls */}
-              <div className="flex justify-between items-center bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 p-4 border-b border-gray-200 dark:border-gray-700">
+              {/* Header with controls */}
+              <div className="flex justify-between items-center bg-gradient-to-r from-gray-100 via-blue-100 to-indigo-100 dark:from-gray-800 dark:via-gray-800 dark:to-indigo-900/30 p-3 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-2">
-                  <Code2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-200">
+                  <Code2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
                     {item.heading}
                   </h4>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Button
                     onClick={() => toggleExpand(item.id)}
                     variant="ghost"
                     size="sm"
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    className="h-7 w-7 p-0 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-gray-700/50"
                   >
-                    {expandedItems[item.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {expandedItems[item.id] ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                   </Button>
                   <Button
                     onClick={() => onEdit(item.id)}
                     variant="ghost"
                     size="sm"
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    className="h-7 w-7 p-0 text-gray-600 hover:text-blue-700 dark:text-gray-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-3 w-3" />
                   </Button>
                   <ConfirmModal 
                     onConfirm={() => handleDelete(item.id)}
@@ -173,22 +161,22 @@ export const DisplayExplanations = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200"
+                      className="h-7 w-7 p-0 text-gray-600 hover:text-red-700 dark:text-gray-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30"
                       disabled={isDeleting}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </ConfirmModal>
                 </div>
               </div>
               
               {/* Block navigation (if multiple blocks) */}
-              {codeBlocks.length > 1 && (
-                <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {expandedItems[item.id] && codeBlocks.length > 1 && (
+                <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-gray-50 to-purple-50 dark:from-gray-800 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700">
+                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     Block {currentBlockIndex + 1} of {codeBlocks.length}
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1">
                     <Button
                       onClick={() => setExpandedBlocks(prev => ({
                         ...prev,
@@ -197,9 +185,9 @@ export const DisplayExplanations = ({
                       variant="outline"
                       size="sm"
                       disabled={currentBlockIndex === 0}
-                      className="h-7"
+                      className="h-6 px-2 text-xs bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
-                      Previous
+                      Prev
                     </Button>
                     <Button
                       onClick={() => setExpandedBlocks(prev => ({
@@ -209,7 +197,7 @@ export const DisplayExplanations = ({
                       variant="outline"
                       size="sm"
                       disabled={currentBlockIndex === codeBlocks.length - 1}
-                      className="h-7"
+                      className="h-6 px-2 text-xs bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
                       Next
                     </Button>
@@ -217,62 +205,71 @@ export const DisplayExplanations = ({
                 </div>
               )}
               
-              {/* Content area (always visible or collapsible based on expandedItems state) */}
-              <div className={cn(
-                "transition-all duration-300 ease-in-out",
-                !expandedItems[item.id] && codeBlocks.length > 1 ? "max-h-[500px]" : ""
-              )}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-gray-700">
-                  {/* Code section - always visible, sticky on scroll */}
-                  <div className="lg:sticky lg:top-4 lg:self-start h-full max-h-[500px] overflow-auto">
-                    <div className="p-1 bg-gray-900 h-full">
+              {/* Content area */}
+              {expandedItems[item.id] && (
+                <div className="h-96 overflow-hidden">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 divide-y xl:divide-y-0 xl:divide-x divide-gray-200 dark:divide-gray-700 h-full">
+                    {/* Code section */}
+                    <div className="h-full overflow-auto bg-gray-900">
                       <SyntaxHighlighter
                         language={currentBlock.language || "typescript"}
                         style={atomDark}
                         customStyle={{
                           margin: 0,
-                          borderRadius: '0.25rem',
+                          padding: '12px',
+                          fontSize: '12px',
+                          lineHeight: '1.4',
                           height: '100%',
-                          minHeight: '200px',
+                          minHeight: '100%',
+                          background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
                         }}
                         showLineNumbers
+                        lineNumberStyle={{
+                          fontSize: '10px',
+                          color: '#6b7280'
+                        }}
                       >
                         {currentBlock.code || '// No code available'}
                       </SyntaxHighlighter>
                     </div>
-                  </div>
 
-                  {/* Explanation section - scrolls independently */}
-                  <div className="p-4 overflow-auto max-h-[500px]">
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        components={{
-                          img: ({ node, ...props }) => (
-                            <div className="my-4 flex justify-center">
-                              <img 
-                                {...props} 
-                                className="max-h-64 rounded-lg shadow-md" 
-                                style={{ maxWidth: '100%', height: 'auto' }}
-                                alt={props.alt || "Explanation image"} 
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
-                                }}
-                              />
-                            </div>
-                          ),
-                          p: ({ node, ...props }) => {
-                            return <p {...props} />;
-                          }
-                        }}
-                      >
-                        {currentBlock.explanation || 'No explanation available.'}
-                      </ReactMarkdown>
+                    {/* Explanation section */}
+                    <div className="p-3 overflow-auto h-full bg-gradient-to-br from-white via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10">
+                      <div className="prose prose-xs prose-gray dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            img: ({ node, ...props }) => (
+                              <div className="my-2 flex justify-center">
+                                <img 
+                                  {...props} 
+                                  className="max-h-32 rounded shadow-sm max-w-full h-auto" 
+                                  alt={props.alt || "Explanation image"} 
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
+                                  }}
+                                />
+                              </div>
+                            ),
+                            p: ({ node, ...props }) => {
+                              return <p {...props} className="text-xs leading-relaxed" />;
+                            },
+                            h1: ({ node, ...props }) => <h1 {...props} className="text-sm font-semibold mb-2" />,
+                            h2: ({ node, ...props }) => <h2 {...props} className="text-xs font-semibold mb-1" />,
+                            h3: ({ node, ...props }) => <h3 {...props} className="text-xs font-medium mb-1" />,
+                            code: ({ node, ...props }) => <code {...props} className="text-xs bg-purple-100 dark:bg-purple-900/30 px-1 rounded" />,
+                            ul: ({ node, ...props }) => <ul {...props} className="text-xs space-y-1" />,
+                            ol: ({ node, ...props }) => <ol {...props} className="text-xs space-y-1" />,
+                          }}
+                        >
+                          {currentBlock.explanation || 'No explanation available.'}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </motion.div>
           );
         })

@@ -31,8 +31,8 @@ import { useSearch } from './hooks/useSearch';
 
 export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
@@ -52,18 +52,19 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const dashboardLink = user?.role === "ADMIN" ? "/dashboard/admin" : "/user";
   const isAuthenticated = !!user?.id;
 
+  // Handle hydration
   useEffect(() => {
-    setIsMounted(true);
-    console.log("Header component mounted, authenticated:", isAuthenticated);
-  }, [isAuthenticated]);
+    setMounted(true);
+  }, []);
 
+  // Optimized effect - only handle click outside for search
   useEffect(() => {
-    // Add click outside listener to close search when clicking outside
+    if (!isSearchOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         searchContainerRef.current && 
-        !searchContainerRef.current.contains(event.target as Node) &&
-        isSearchOpen
+        !searchContainerRef.current.contains(event.target as Node)
       ) {
         setIsSearchOpen(false);
         clearSearch();
@@ -71,9 +72,8 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
     };
 
     // Focus input when search is opened
-    if (isSearchOpen && searchInputRef.current) {
+    if (searchInputRef.current) {
       searchInputRef.current.focus();
-      console.log("Search opened, input focused");
     }
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -84,18 +84,15 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
 
   const handleSearchIconClick = () => {
     setIsSearchOpen(true);
-    console.log("Search icon clicked, opening search");
   };
 
   const handleCloseSearch = () => {
     setIsSearchOpen(false);
     clearSearch();
-    console.log("Search closed");
   };
 
   const navigateToResult = (result: SearchResult) => {
     const path = result.type === 'course' ? `/courses/${result.id}` : `/blog/${result.id}`;
-    console.log("Navigating to:", path);
     router.push(path);
     handleCloseSearch();
   };
@@ -103,25 +100,19 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // If user presses Enter, perform search immediately
     if (e.key === 'Enter' && searchQuery.trim().length >= 2) {
-      console.log("Enter key pressed, performing search");
       performSearch().catch(err => {
         console.error("Search error when pressing Enter:", err);
       });
     }
     // If user presses Escape, close search
     if (e.key === 'Escape') {
-      console.log("Escape key pressed, closing search");
       handleCloseSearch();
     }
   };
 
-  if (!isMounted) {
-    return null;
-  }
-
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 w-full z-[40] bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
+      <header className="fixed top-0 left-0 right-0 w-full z-[50] bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm border-b border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full relative overflow-hidden">
           {/* Subtle header glow effects to match PageBackground */}
           <div className="absolute -top-20 -right-20 w-60 h-60 bg-purple-500 rounded-full mix-blend-multiply filter blur-[100px] opacity-10 pointer-events-none"></div>
@@ -160,15 +151,21 @@ export const MainHeader = ({ user }: HeaderAfterLoginProps) => {
                 <Search className="w-4 h-4 md:w-5 md:h-5 text-gray-300" />
               </button>
               
-              {/* Theme Toggle */}
+              {/* Theme Toggle - Fixed hydration */}
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="p-1.5 md:p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition-colors"
+                aria-label="Toggle theme"
               >
-                {theme === "dark" ? (
-                  <Sun className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                {mounted ? (
+                  theme === "dark" ? (
+                    <Sun className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                  ) : (
+                    <Moon className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+                  )
                 ) : (
-                  <Moon className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
+                  // Render a placeholder that matches the server during hydration
+                  <div className="w-4 h-4 md:w-5 md:h-5 bg-gray-400 rounded animate-pulse" />
                 )}
               </button>
 

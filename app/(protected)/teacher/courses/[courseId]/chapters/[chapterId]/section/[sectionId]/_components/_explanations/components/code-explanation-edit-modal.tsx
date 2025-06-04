@@ -4,31 +4,40 @@ import * as z from "zod";
 import axios from "axios";
 import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Import modular components
-import { CodeFormHeader } from "./_CodeTabComponents/CodeFormHeader";
-import { CodeBlockTabs } from "./_CodeTabComponents/CodeBlockTabs";
-import { useCodeExplanationLocalStorage } from "./_CodeTabComponents/useCodeExplanationLocalStorage";
-import { CodeBlock, generateId } from "./_CodeTabComponents/types";
+import { CodeFormHeader } from "../_CodeTabComponents/CodeFormHeader";
+import { CodeBlockTabs } from "../_CodeTabComponents/CodeBlockTabs";
+import { useCodeExplanationLocalStorage } from "../_CodeTabComponents/useCodeExplanationLocalStorage";
+import { CodeBlock, generateId } from "../_CodeTabComponents/types";
 
-interface CodeExplanationFormProps {
+interface CodeExplanationEditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   courseId: string;
   chapterId: string;
   sectionId: string;
-  initialData: {
-    codeExplanations?: {
-      id: string;
-      heading: string | null;
-      code: string | null;
-      explanation: string | null;
-    }[];
+  explanationId: string;
+  initialData?: {
+    heading: string | null;
+    code: string | null;
+    explanation: string | null;
+    language?: string;
   };
+  onSuccess?: () => void;
 }
 
 const formSchema = z.object({
@@ -55,18 +64,21 @@ const formSchema = z.object({
     }),
 });
 
-export const CodeExplanationForm = ({
+export const CodeExplanationEditModal = ({
+  isOpen,
+  onClose,
   courseId,
   chapterId,
   sectionId,
-  initialData = { codeExplanations: [] }
-}: CodeExplanationFormProps) => {
+  explanationId,
+  initialData,
+  onSuccess
+}: CodeExplanationEditModalProps) => {
   // State management
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [title, setTitle] = useState("");
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  const router = useRouter();
   
   // Form setup
   const form = useForm<z.infer<typeof formSchema>>({
@@ -79,7 +91,7 @@ export const CodeExplanationForm = ({
   });
 
   // Use local storage to persist code blocks - single block now
-  const [codeBlocks, setCodeBlocks] = useCodeExplanationLocalStorage<CodeBlock[]>('code-explanation-code-blocks', [
+  const [codeBlocks, setCodeBlocks] = useCodeExplanationLocalStorage<CodeBlock[]>(`code-edit-${explanationId}`, [
     { id: generateId(), code: '', explanation: '', language: 'typescript' }
   ]);
   
@@ -90,19 +102,42 @@ export const CodeExplanationForm = ({
     setHasMounted(true);
   }, []);
 
-  // Listen for reset event from parent form
+  // Initialize form with existing data when modal opens
   useEffect(() => {
-    const handleReset = () => {
-      setCodeBlocks([{ id: generateId(), code: '', explanation: '', language: 'typescript' }]);
-      setTitle("");
-      form.reset();
-    };
+    if (isOpen && initialData && !initializedRef.current) {
+      const language = initialData.language || 'typescript';
+      const heading = initialData.heading || '';
+      const code = initialData.code || '';
+      const explanation = initialData.explanation || '';
+      
+      setTitle(heading);
+      setCodeBlocks([{ 
+        id: generateId(), 
+        code: code, 
+        explanation: explanation, 
+        language: language 
+      }]);
+      
+      form.reset({
+        title: heading,
+        code: code,
+        explanation: explanation,
+      });
+      
+      initializedRef.current = true;
+    }
+  }, [isOpen, initialData, form, setCodeBlocks]);
 
-    window.addEventListener('resetCodeExplanationForm', handleReset);
-    return () => {
-      window.removeEventListener('resetCodeExplanationForm', handleReset);
-    };
-  }, [form, setCodeBlocks]);
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      initializedRef.current = false;
+      setTitle("");
+      setCodeBlocks([{ id: generateId(), code: '', explanation: '', language: 'typescript' }]);
+      form.reset();
+      setMode('edit');
+    }
+  }, [isOpen, form, setCodeBlocks]);
 
   const updateBlockCode = (id: string, code: string) => {
     setCodeBlocks(blocks => blocks.map(block => 
@@ -152,19 +187,24 @@ export const CodeExplanationForm = ({
   // Manual reset function for better UX
   const handleManualReset = () => {
     if (window.confirm('Are you sure you want to reset the form? All unsaved data will be lost.')) {
-      setCodeBlocks([{ id: generateId(), code: '', explanation: '', language: 'typescript' }]);
-      setTitle("");
+      const language = initialData?.language || 'typescript';
+      const heading = initialData?.heading || '';
+      const code = initialData?.code || '';
+      const explanation = initialData?.explanation || '';
+      
+      setTitle(heading);
+      setCodeBlocks([{ 
+        id: generateId(), 
+        code: code, 
+        explanation: explanation, 
+        language: language 
+      }]);
+      
       form.reset({
-        title: "",
-        code: "",
-        explanation: "",
+        title: heading,
+        code: code,
+        explanation: explanation,
       });
-      
-      // Clear localStorage
-      localStorage.removeItem('code-explanation-code-blocks');
-      
-      // Dispatch reset event
-      window.dispatchEvent(new CustomEvent('resetCodeExplanationForm'));
       
       toast.success("Form reset successfully!");
     }
@@ -178,63 +218,63 @@ export const CodeExplanationForm = ({
       const block = codeBlocks[0];
       if (!block) return;
       
-      // Create payload with single code block
+      // Create payload for update
       const payload = {
-        codeBlocks: [{
-          title: title,
-          code: block.code,
-          explanation: block.explanation,
-          language: block.language,
-          order: 0
-        }]
+        heading: title,
+        code: block.code,
+        explanation: block.explanation,
+        language: block.language,
+        order: 0
       };
 
-      await axios.post(
-        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/code-explanations`,
+      await axios.patch(
+        `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/code-explanations/${explanationId}`,
         payload
       );
       
-      toast.success("Code explanation added successfully!");
+      toast.success("Code explanation updated successfully!");
       
-      // Hold form data for a moment before reset for better UX
-      setTimeout(() => {
-        // Reset the form and clear localStorage
-        form.reset({
-          title: "",
-          code: "",
-          explanation: "",
-        });
-        
-        setCodeBlocks([{ id: generateId(), code: '', explanation: '', language: 'typescript' }]);
-        setTitle("");
-        
-        // Clear localStorage
-        localStorage.removeItem('code-explanation-code-blocks');
-        
-        // Dispatch reset event
-        window.dispatchEvent(new CustomEvent('resetCodeExplanationForm'));
-        
-        toast.info("Form reset for next entry");
-        
-        // Refresh the page to show the new explanation in the list
-        router.refresh();
-      }, 2000); // Hold for 2 seconds
+      // Clear localStorage for this edit session
+      localStorage.removeItem(`code-edit-${explanationId}`);
+      
+      // Call success callback and close modal
+      onSuccess?.();
+      onClose();
       
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
-      console.error("Submission error:", error);
+      console.error("Update error:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (!hasMounted) return null;
+
   return (
-    <div className="w-full h-screen overflow-hidden">
-      {hasMounted && (
-        <div className="w-full h-full">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-7xl h-[90vh] p-0 gap-0">
+        <DialogHeader className="p-6 pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-lg font-semibold">Edit Code Explanation</DialogTitle>
+              <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
+                Modify the code block and explanation content
+              </DialogDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-hidden p-6">
           <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-indigo-900/20 rounded border border-gray-300 dark:border-gray-600 shadow-lg h-full flex flex-col">
-            <CodeFormHeader />
-            
             {/* Form Content */}
             <div className="p-6 flex-1 overflow-hidden">
               <Form {...form}>
@@ -262,42 +302,43 @@ export const CodeExplanationForm = ({
 
                   {/* Submit Button */}
                   <div className="flex justify-center pt-4 border-t border-gray-300 dark:border-gray-600 mt-4">
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting || !isFormValid()}
-                      size="sm"
-                      className="h-10 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          Create Code Explanation
-                        </>
-                      )}
-                    </Button>
-                    {/* Debug info - remove in production */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <div className="ml-4 text-xs text-gray-500 dark:text-gray-400 max-w-xs">
-                        <div>Valid: {isFormValid().toString()}</div>
-                        <div>Errors: {Object.keys(form.formState.errors).join(', ') || 'None'}</div>
-                        <div>Title: "{form.getValues().title}" ({form.getValues().title?.length || 0})</div>
-                        <div>Code: {form.getValues().code?.length || 0} chars</div>
-                        <div>Explanation: {form.getValues().explanation?.length || 0} chars</div>
-                        <div className="break-all">Expl content: "{form.getValues().explanation?.substring(0, 50)}..."</div>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                        size="sm"
+                        className="h-10 px-6"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting || !isFormValid()}
+                        size="sm"
+                        className="h-10 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Update Code Explanation
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </form>
               </Form>
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }; 

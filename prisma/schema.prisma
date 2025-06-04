@@ -213,6 +213,8 @@ model CodeExplanation {
   heading     String?
   code        String?  @db.Text
   explanation String?  @db.Text
+  language    String?  @default("typescript")
+  order       Int?     @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
