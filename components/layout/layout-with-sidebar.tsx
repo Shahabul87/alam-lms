@@ -24,12 +24,14 @@ const FULL_WIDTH_ROUTES = [
   "/features",
   "/",
   "/about",
+  "/profile",
 ];
 
 // Patterns for routes where the sidebar should be hidden
 const SIDEBAR_HIDDEN_PATTERNS = [
   /^\/courses\/[^\/]+$/, // Course detail pages
   /^\/blog\/[^\/]+$/, 
+  /^\/courses\/[^\/]+\/learn\/[^\/]+\/sections\/[^\/]+$/, // Course learning section pages
 ];
 
 export default function LayoutWithSidebar({ user, children }: LayoutWithSidebarProps) {

@@ -70,7 +70,7 @@ model User {
 
   bills       Bill[]
   enrollments Enrollment[]
-  examAttempts ExamAttempt[]   // Add relation to exam attempts
+  // Exam attempts are handled via userExamAttempts relation
 
   // Add calendar settings relation
   calendarSettings UserCalendarSettings?
@@ -108,6 +108,17 @@ model User {
   totpSecret      TOTPSecret?
 
   tasks         Task[]        // Add relation for tasks
+
+  // New relations for enhanced profile
+  socialMediaAccounts   SocialMediaAccount[]
+  contentCollections    ContentCollection[]
+  contentItems          ContentItem[]
+  userSubscriptions     UserSubscription[]
+  userAnalytics         UserAnalytics[]
+  goals                 Goal[]
+
+  // Exam System Models
+  userExamAttempts  UserExamAttempt[]
 }
 
 model Course {
@@ -246,80 +257,69 @@ model MathExplanation {
 
 // Exam model for assessments and tests
 model Exam {
-  id          String  @id @default(uuid())
+  id          String   @id @default(cuid())
   title       String
-  description String? @db.Text
-  duration    Int? // Duration in minutes
-  isPublished Boolean @default(false)
-  isTimeLimited Boolean @default(false)
+  description String?  @db.Text
+  instructions String? @db.Text
   
+  // Exam Settings
+  timeLimit   Int?     // Time limit in minutes
+  attempts    Int      @default(1) // Number of allowed attempts
+  passingScore Float   @default(70) // Passing score percentage
+  shuffleQuestions Boolean @default(false)
+  showResults Boolean @default(true)
+  
+  // Scheduling
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  // Status
+  isPublished Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  // Relations
   sectionId   String
-  section     Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   
   questions   ExamQuestion[]
-  attempts    ExamAttempt[]
+  userAttempts UserExamAttempt[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@index([sectionId])
+  @@index([isPublished, isActive])
 }
 
 // ExamQuestion model for questions within an exam
 model ExamQuestion {
-  id          String  @id @default(uuid())
-  question    String  @db.Text
-  options     Json? // Array of possible answers
-  correctAnswer String? @db.Text
-  points      Int     @default(1)
-  questionType String  @default("MULTIPLE_CHOICE") // MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER, ESSAY
+  id            String        @id @default(cuid())
+  question      String        @db.Text
+  questionType  QuestionType  @default(MULTIPLE_CHOICE)
+  points        Float         @default(1)
+  order         Int
   
-  examId      String
-  exam        Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  // Question content
+  options       Json?         // For multiple choice questions
+  correctAnswer Json          // Stores correct answer(s)
+  explanation   String?       @db.Text
   
-  answers     ExamAnswer[]
+  // Media attachments
+  imageUrl      String?
+  videoUrl      String?
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  examId        String
+  exam          Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
   
-  @@index([examId])
+  userAnswers   UserAnswer[]
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([examId, order])
 }
 
-// ExamAttempt model to track user attempts at exams
-model ExamAttempt {
-  id          String  @id @default(uuid())
-  examId      String
-  exam        Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  startedAt   DateTime @default(now())
-  completedAt DateTime?
-  score       Float?
-  
-  answers     ExamAnswer[]
-  
-  @@index([examId])
-  @@index([userId])
-}
 
-// ExamAnswer model to store user answers to exam questions
-model ExamAnswer {
-  id          String  @id @default(uuid())
-  answer      String  @db.Text
-  isCorrect   Boolean?
-  
-  questionId  String
-  question    ExamQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
-  attemptId   String
-  attempt     ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime @default(now())
-  
-  @@index([questionId])
-  @@index([attemptId])
-}
 
 model Video {
   id            String   @id @default(cuid())
@@ -1419,28 +1419,507 @@ model TOTPSecret {
 
 // Task model for user's planned tasks with reminders
 model Task {
-  id          String   @id @default(uuid())
-  title       String
-  description String?  @db.Text
-  startTime   DateTime? // New field for when the task begins
-  dueDate     DateTime
-  priority    String
-  category    String
-  completed   Boolean  @default(false)
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  status        TaskStatus  @default(TODO)
+  priority      TaskPriority @default(MEDIUM)
+  dueDate       DateTime?
+  completedDate DateTime?
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Social Media Platform Integration Models
+model SocialMediaAccount {
+  id                String              @id @default(cuid())
+  platform          SocialPlatform
+  platformUserId    String
+  username          String
+  displayName       String?
+  profileUrl        String?
+  profileImageUrl   String?
+  accessToken       String?            // Encrypted
+  refreshToken      String?            // Encrypted
+  tokenExpiresAt    DateTime?
+  isActive          Boolean            @default(true)
+  lastSyncAt        DateTime?
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  // Reminder related fields
-  hasReminder Boolean  @default(false)
-  reminderDate DateTime?
-  reminderType String? // email, push, in-app
-  reminderSent Boolean  @default(false)
+  // Stats
+  followerCount     Int?               @default(0)
+  followingCount    Int?               @default(0)
+  postsCount        Int?               @default(0)
   
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Related data
+  socialPosts       SocialPost[]
+  socialMetrics     SocialMetric[]
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  @@unique([userId, platform, platformUserId])
+  @@index([userId, platform])
+}
+
+model SocialPost {
+  id                  String              @id @default(cuid())
+  platformPostId      String
+  platform            SocialPlatform
+  content             String?
+  mediaUrls           String[]           @default([])
+  postUrl             String?
+  publishedAt         DateTime
+  
+  // Engagement metrics
+  likesCount          Int?               @default(0)
+  commentsCount       Int?               @default(0)
+  sharesCount         Int?               @default(0)
+  viewsCount          Int?               @default(0)
+  
+  // Classification
+  postType            PostType?
+  hashtags            String[]           @default([])
+  mentions            String[]           @default([])
+  
+  socialMediaAccount  SocialMediaAccount @relation(fields: [socialMediaAccountId], references: [id], onDelete: Cascade)
+  socialMediaAccountId String
+  
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  
+  @@unique([platformPostId, socialMediaAccountId])
+  @@index([socialMediaAccountId, publishedAt])
+}
+
+model SocialMetric {
+  id                  String              @id @default(cuid())
+  platform            SocialPlatform
+  metricType          MetricType
+  value               Int
+  percentage          Float?
+  recordedAt          DateTime
+  
+  socialMediaAccount  SocialMediaAccount @relation(fields: [socialMediaAccountId], references: [id], onDelete: Cascade)
+  socialMediaAccountId String
+  
+  createdAt           DateTime           @default(now())
+  
+  @@index([socialMediaAccountId, recordedAt])
+}
+
+// Content Management Models
+model ContentCollection {
+  id              String                @id @default(cuid())
+  name            String
+  description     String?
+  color           String?               @default("#6366f1")
+  icon            String?
+  isPublic        Boolean               @default(false)
+  
+  userId          String
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  contentItems    ContentItem[]
+  
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
   
   @@index([userId])
-  @@index([dueDate])
-  @@index([completed])
+}
+
+model ContentItem {
+  id                String              @id @default(cuid())
+  title             String
+  description       String?
+  url               String
+  thumbnailUrl      String?
+  platform          String?
+  contentType       ContentType
+  
+  // Metadata
+  author            String?
+  duration          Int?               // in seconds
+  publishedAt       DateTime?
+  tags              String[]           @default([])
+  
+  // User interaction
+  isFavorite        Boolean            @default(false)
+  rating            Int?               // 1-5 stars
+  notes             String?
+  watchedAt         DateTime?
+  watchProgress     Float?             // 0-100%
+  
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  collectionId      String?
+  collection        ContentCollection? @relation(fields: [collectionId], references: [id])
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  @@index([userId, contentType])
+  @@index([collectionId])
+}
+
+// Subscription & Financial Management
+model SubscriptionService {
+  id                String              @id @default(cuid())
+  name              String
+  category          SubscriptionCategory
+  logoUrl           String?
+  websiteUrl        String?
+  description       String?
+  
+  subscriptions     UserSubscription[]
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model UserSubscription {
+  id                String              @id @default(cuid())
+  serviceName       String              // Fallback if service not in SubscriptionService
+  planName          String?
+  cost              Float
+  currency          String              @default("USD")
+  billingCycle      BillingCycle
+  startDate         DateTime
+  nextBillingDate   DateTime
+  endDate           DateTime?
+  isActive          Boolean            @default(true)
+  autoRenew         Boolean            @default(true)
+  
+  // Payment details
+  paymentMethod     String?
+  lastPaymentDate   DateTime?
+  lastPaymentAmount Float?
+  
+  // Usage tracking
+  usageLimit        Int?
+  currentUsage      Int?               @default(0)
+  
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  serviceId         String?
+  service           SubscriptionService? @relation(fields: [serviceId], references: [id])
+  
+  transactions      SubscriptionTransaction[]
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  @@index([userId, isActive])
+}
+
+model SubscriptionTransaction {
+  id                String              @id @default(cuid())
+  amount            Float
+  currency          String              @default("USD")
+  transactionType   TransactionType
+  status            TransactionStatus
+  transactionDate   DateTime
+  description       String?
+  
+  subscriptionId    String
+  subscription      UserSubscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime           @default(now())
+  
+  @@index([subscriptionId, transactionDate])
+}
+
+// Analytics & Insights
+model UserAnalytics {
+  id                String              @id @default(cuid())
+  analyticsType     AnalyticsType
+  value             Float
+  metadata          Json?
+  recordedAt        DateTime
+  
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime           @default(now())
+  
+  @@index([userId, analyticsType, recordedAt])
+}
+
+// Goals & Planning
+model Goal {
+  id                String              @id @default(cuid())
+  title             String
+  description       String?
+  category          GoalCategory
+  targetValue       Float?
+  currentValue      Float?             @default(0)
+  unit              String?
+  startDate         DateTime
+  targetDate        DateTime
+  status            GoalStatus         @default(ACTIVE)
+  
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  milestones        Milestone[]
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  @@index([userId, status])
+}
+
+model Milestone {
+  id                String              @id @default(cuid())
+  title             String
+  description       String?
+  targetValue       Float?
+  isCompleted       Boolean            @default(false)
+  completedAt       DateTime?
+  dueDate           DateTime?
+  
+  goalId            String
+  goal              Goal               @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  @@index([goalId])
+}
+
+// Enums
+enum SocialPlatform {
+  YOUTUBE
+  INSTAGRAM
+  TWITTER
+  FACEBOOK
+  LINKEDIN
+  TIKTOK
+  TWITCH
+  DISCORD
+  REDDIT
+  MEDIUM
+  GITHUB
+  DRIBBBLE
+  BEHANCE
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  VIDEO
+  CAROUSEL
+  STORY
+  REEL
+  SHORT
+  LIVE
+}
+
+enum MetricType {
+  FOLLOWERS
+  FOLLOWING
+  POSTS
+  LIKES
+  COMMENTS
+  SHARES
+  VIEWS
+  ENGAGEMENT_RATE
+  REACH
+  IMPRESSIONS
+}
+
+enum ContentType {
+  VIDEO
+  AUDIO
+  ARTICLE
+  BLOG
+  PODCAST
+  COURSE
+  BOOK
+  DOCUMENT
+  IMAGE
+  OTHER
+}
+
+enum SubscriptionCategory {
+  STREAMING
+  EDUCATION
+  PRODUCTIVITY
+  DESIGN
+  DEVELOPMENT
+  FITNESS
+  MUSIC
+  NEWS
+  GAMING
+  SOCIAL
+  STORAGE
+  OTHER
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  LIFETIME
+}
+
+enum TransactionType {
+  PAYMENT
+  REFUND
+  CHARGEBACK
+  CREDIT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AnalyticsType {
+  CONTENT_CONSUMED
+  TIME_SPENT
+  COURSE_PROGRESS
+  SOCIAL_ENGAGEMENT
+  SUBSCRIPTION_SPENDING
+  GOAL_PROGRESS
+  PRODUCTIVITY_SCORE
+}
+
+enum GoalCategory {
+  LEARNING
+  CONTENT_CREATION
+  SOCIAL_GROWTH
+  FINANCIAL
+  PRODUCTIVITY
+  HEALTH
+  CAREER
+  PERSONAL
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+// Exam System Models
+model UserExamAttempt {
+  id              String          @id @default(cuid())
+  attemptNumber   Int
+  
+  // Attempt status
+  status          AttemptStatus   @default(IN_PROGRESS)
+  startedAt       DateTime        @default(now())
+  submittedAt     DateTime?
+  timeSpent       Int?            // Time spent in seconds
+  
+  // Scoring
+  totalQuestions  Int
+  correctAnswers  Int             @default(0)
+  scorePercentage Float?
+  isPassed        Boolean?
+  
+  // Relations
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  examId          String
+  exam            Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  
+  answers         UserAnswer[]
+  analytics       ExamAnalytics[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@unique([userId, examId, attemptNumber])
+  @@index([userId, examId])
+  @@index([status])
+}
+
+model UserAnswer {
+  id              String            @id @default(cuid())
+  answer          Json              // User's answer (can be string, array, etc.)
+  isCorrect       Boolean?
+  pointsEarned    Float             @default(0)
+  timeSpent       Int?              // Time spent on this question in seconds
+  
+  // Relations
+  attemptId       String
+  attempt         UserExamAttempt   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  questionId      String
+  question        ExamQuestion      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+model ExamAnalytics {
+  id                String            @id @default(cuid())
+  analyticsType     ExamAnalyticsType
+  value             Float
+  metadata          Json?
+  
+  // Relations
+  attemptId         String
+  attempt           UserExamAttempt   @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  recordedAt        DateTime          @default(now())
+  
+  @@index([attemptId, analyticsType])
+}
+
+// Enums for Exam System
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+  FILL_IN_BLANK
+  MATCHING
+  ORDERING
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+  EXPIRED
+  CANCELLED
+}
+
+enum ExamAnalyticsType {
+  QUESTION_TIME
+  DIFFICULTY_SCORE
+  CONFIDENCE_LEVEL
+  REVIEW_COUNT
+  HINT_USAGE
 }

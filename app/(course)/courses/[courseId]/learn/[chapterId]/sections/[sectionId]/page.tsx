@@ -1,11 +1,10 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { MainHeader } from "@/app/(homepage)/main-header";
-import { SectionContent } from "@/app/(course)/courses/[courseId]/learn/_components/section-content";
 import { getCourse } from "@/actions/get-course";
 import { getChapter } from "@/actions/get-chapter";
 import { getSection } from "@/actions/get-section";
 import { db } from "@/lib/db";
+import { EnhancedSectionLearning } from "./_components/enhanced-section-learning";
 
 interface SectionPageProps {
   params: Promise<{
@@ -23,7 +22,7 @@ const SectionPage = async (props: SectionPageProps) => {
     return redirect("/auth/login");
   }
 
-  // Verify enrollment (keeping this as is for access control)
+  // Verify enrollment
   const enrollment = await db.enrollment.findUnique({
     where: {
       userId_courseId: {
@@ -37,46 +36,111 @@ const SectionPage = async (props: SectionPageProps) => {
     return redirect(`/courses/${params.courseId}`);
   }
 
-  // Fetch course, chapter and section data using actions
-  const { course, error: courseError } = await getCourse(params.courseId);
+  // Fetch course data with full relationships
+  const courseData = await db.course.findUnique({
+    where: {
+      id: params.courseId,
+    },
+    include: {
+      chapters: {
+        orderBy: {
+          position: "asc",
+        },
+        include: {
+          sections: {
+            orderBy: {
+              position: "asc",
+            },
+            include: {
+              userProgress: {
+                where: {
+                  userId: user.id,
+                },
+              },
+              videos: true,
+              blogs: true,
+              articles: true,
+              notes: true,
+              codeExplanations: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
-  if (courseError) {
-    console.error("[COURSE_ERROR]", courseError);
+  if (!courseData) {
     return redirect("/error");
   }
 
-  const { chapter, error: chapterError } = await getChapter(params.chapterId, params.courseId);
-
-  if (chapterError) {
-    console.error("[CHAPTER_ERROR]", chapterError);
-    return redirect("/error");
-  }
-
-  const { section, nextSection, prevSection, error: sectionError } = await getSection(
-    params.sectionId,
-    params.chapterId,
-    params.courseId
+  // Find the current chapter and section
+  const currentChapter = courseData.chapters.find(
+    (chapter) => chapter.id === params.chapterId
   );
 
-  if (sectionError) {
-    console.error("[SECTION_ERROR]", sectionError);
+  if (!currentChapter) {
     return redirect("/error");
   }
 
-  if (!course || !chapter || !section) {
-    return redirect("/");
+  const currentSection = currentChapter.sections.find(
+    (section) => section.id === params.sectionId
+  );
+
+  if (!currentSection) {
+    return redirect("/error");
+  }
+
+  // Calculate progress data
+  const totalSections = courseData.chapters.reduce(
+    (acc, chapter) => acc + chapter.sections.length,
+    0
+  );
+  
+  const completedSections = courseData.chapters.reduce(
+    (acc, chapter) => 
+      acc + chapter.sections.filter(section => 
+        section.userProgress.some(p => p.isCompleted)
+      ).length,
+    0
+  );
+
+  const currentSectionIndex = currentChapter.sections.findIndex(
+    (s) => s.id === params.sectionId
+  );
+
+  const nextSection = currentChapter.sections[currentSectionIndex + 1] || null;
+  const prevSection = currentChapter.sections[currentSectionIndex - 1] || null;
+
+  // Find next section from next chapter if current chapter is complete
+  let nextChapterSection = null;
+  if (!nextSection) {
+    const currentChapterIndex = courseData.chapters.findIndex(
+      (c) => c.id === params.chapterId
+    );
+    const nextChapter = courseData.chapters[currentChapterIndex + 1];
+    if (nextChapter && nextChapter.sections.length > 0) {
+      nextChapterSection = {
+        section: nextChapter.sections[0],
+        chapter: nextChapter,
+      };
+    }
   }
 
   return (
-    <>
-      <MainHeader user={user} />
-      <SectionContent
-        courseId={params.courseId}
-        chapterId={params.chapterId}
-        section={section}
-        
-      />
-    </>
+    <EnhancedSectionLearning
+      user={user}
+      course={courseData}
+      currentChapter={currentChapter}
+      currentSection={currentSection}
+      nextSection={nextSection}
+      prevSection={prevSection}
+      nextChapterSection={nextChapterSection}
+      totalSections={totalSections}
+      completedSections={completedSections}
+      courseId={params.courseId}
+      chapterId={params.chapterId}
+      sectionId={params.sectionId}
+    />
   );
 };
 

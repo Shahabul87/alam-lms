@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { CourseLearningDashboard } from "./_components/course-learning-dashboard";
 
 const CourseLearningPage = async (
   props: {
@@ -27,6 +28,49 @@ const CourseLearningPage = async (
         include: {
           chapters: {
             include: {
+              sections: {
+                include: {
+                  userProgress: {
+                    where: {
+                      userId: user.id
+                    }
+                  },
+                  videos: {
+                    select: {
+                      id: true,
+                      title: true,
+                      duration: true,
+                    }
+                  },
+                  blogs: {
+                    select: {
+                      id: true,
+                      title: true,
+                    }
+                  },
+                  articles: {
+                    select: {
+                      id: true,
+                      title: true,
+                    }
+                  },
+                  notes: {
+                    select: {
+                      id: true,
+                      title: true,
+                    }
+                  },
+                  codeExplanations: {
+                    select: {
+                      id: true,
+                      heading: true,
+                    }
+                  }
+                },
+                orderBy: {
+                  position: 'asc'
+                }
+              },
               userProgress: {
                 where: {
                   userId: user.id
@@ -35,6 +79,19 @@ const CourseLearningPage = async (
             },
             orderBy: {
               position: 'asc'
+            }
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            }
+          },
+          category: true,
+          _count: {
+            select: {
+              enrollments: true
             }
           }
         }
@@ -46,18 +103,30 @@ const CourseLearningPage = async (
     return redirect(`/courses/${params.courseId}`);
   }
 
-  // Find the first incomplete chapter or default to first chapter
-  const firstChapter = enrollment.course.chapters[0];
-  const nextChapter = enrollment.course.chapters.find(chapter => 
-    !chapter.userProgress?.[0]?.isCompleted
-  ) || firstChapter;
+  // Calculate overall progress
+  const totalSections = enrollment.course.chapters.reduce(
+    (acc, chapter) => acc + chapter.sections.length, 
+    0
+  );
+  
+  const completedSections = enrollment.course.chapters.reduce(
+    (acc, chapter) => acc + chapter.sections.filter(
+      section => section.userProgress.some(progress => progress.isCompleted)
+    ).length,
+    0
+  );
 
-  if (!nextChapter) {
-    return redirect(`/courses/${params.courseId}`);
-  }
+  const progressPercentage = totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
 
-  // Redirect to the specific chapter learning page
-  return redirect(`/courses/${params.courseId}/learn/${nextChapter.id}`);
+  return (
+    <CourseLearningDashboard 
+      course={enrollment.course}
+      user={{ ...user, id: user.id! }}
+      progressPercentage={progressPercentage}
+      totalSections={totalSections}
+      completedSections={completedSections}
+    />
+  );
 };
 
 export default CourseLearningPage; 

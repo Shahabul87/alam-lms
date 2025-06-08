@@ -33,7 +33,7 @@ export const EnrollButton = ({ courseId, price, userId }: EnrollButtonProps) => 
         
         toast.success("Successfully enrolled in the course!");
         router.refresh(); // Refresh the page data
-        router.push(`/courses/${courseId}/learn`);
+        router.push(`/courses/${courseId}/success?success=1`);
       } else {
         console.log("Initiating paid course checkout...");
         const response = await axios.post(`/api/courses/${courseId}/checkout`);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { CodeExplanation as CodeExplanationType } from "@prisma/client";
 import { Code, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -20,8 +20,8 @@ export const CodeExplanation = ({ content }: CodeExplanationProps) => {
   const [codeHeights, setCodeHeights] = useState<{ [key: string]: number }>({});
   const codeRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  // Create a reversed copy of the content array
-  const reversedContent = [...content].reverse();
+  // Memoize the reversed content array to prevent infinite re-renders
+  const reversedContent = useMemo(() => [...content].reverse(), [content]);
 
   useEffect(() => {
     const updateHeights = () => {

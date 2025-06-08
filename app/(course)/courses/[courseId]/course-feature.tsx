@@ -52,7 +52,7 @@ export const CourseCard = ({ course, userId }: CourseCardProps) => {
           const response = await axios.post(`/api/courses/${course.id}/enroll`);
           toast.success("Successfully enrolled in the course!");
           router.refresh();
-          router.push("/dashboard/student");
+          router.push(`/courses/${course.id}/success?success=1`);
         } catch (error: any) {
           toast.error(error.response?.data || "Failed to enroll in the course");
         }

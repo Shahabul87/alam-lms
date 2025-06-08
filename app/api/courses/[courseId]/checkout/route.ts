@@ -77,7 +77,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
       customer: stripeCustomer.stripeCustomerId,
       line_items,
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/student?success=1`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}/success?success=1`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}?canceled=1`,
       metadata: {
         courseId: course.id,

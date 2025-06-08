@@ -7,7 +7,6 @@ import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
 import { PageBackground } from '@/components/ui/page-background';
 import { MainHeader } from './(homepage)/main-header';
-import { SidebarContainer } from '@/components/ui/sidebar-container';
 import { currentUser } from '@/lib/auth';
 import LayoutWithSidebar from '@/components/layout/layout-with-sidebar';
 import ClientToaster from '@/components/client-toaster';
@@ -71,6 +70,24 @@ async function AsyncHeader() {
   return <MainHeader user={user} />;
 }
 
+// Async Layout Component that handles user data
+async function AsyncLayoutWithSidebar({ children }: { children: React.ReactNode }) {
+  let user;
+  
+  try {
+    user = await currentUser();
+  } catch (error) {
+    console.error("Error fetching user for sidebar:", error);
+    user = null;
+  }
+
+  return (
+    <LayoutWithSidebar user={user}>
+      {children}
+    </LayoutWithSidebar>
+  );
+}
+
 export default async function RootLayout({
   children,
 }: {
@@ -116,9 +133,9 @@ export default async function RootLayout({
                 <div className="text-white">Loading...</div>
               </div>
             }>
-              <LayoutWithSidebar user={null}>
+              <AsyncLayoutWithSidebar>
                 {children}
-              </LayoutWithSidebar>
+              </AsyncLayoutWithSidebar>
             </Suspense>
           </PageBackground>
         </Providers>
