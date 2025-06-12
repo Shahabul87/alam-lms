@@ -29,9 +29,10 @@ interface CourseCardProps {
     whatYouWillLearn?: string[];
   };
   userId?: string;
+  isEnrolled?: boolean;
 }
 
-export const CourseCard = ({ course, userId }: CourseCardProps) => {
+export const CourseCard = ({ course, userId, isEnrolled = false }: CourseCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllObjectives, setShowAllObjectives] = useState(false);
@@ -302,28 +303,51 @@ export const CourseCard = ({ course, userId }: CourseCardProps) => {
                 transition={{ delay: 0.8 }}
                 className="w-full"
               >
-                <button 
-                  className="w-full group relative px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-purple-500/25"
-                  onClick={handleEnroll}
-                  disabled={isLoading}
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Enroll Now
-                        <span className="text-white/90">
-                          {course.price ? `$${course.price}` : 'Free'}
-                        </span>
-                      </>
-                    )}
-                  </span>
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600/50 to-blue-600/50 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </button>
+                {isEnrolled ? (
+                  <button 
+                    className="w-full group relative px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-green-500/25"
+                    onClick={() => router.push(`/courses/${course.id}/learn`)}
+                    disabled={isLoading}
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          Go to Course
+                          <span className="text-white/90">✓ Enrolled</span>
+                        </>
+                      )}
+                    </span>
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-600/50 to-emerald-600/50 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </button>
+                ) : (
+                  <button 
+                    className="w-full group relative px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-purple-500/25"
+                    onClick={handleEnroll}
+                    disabled={isLoading}
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          Enroll Now
+                          <span className="text-white/90">
+                            {course.price ? `$${course.price}` : 'Free'}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600/50 to-blue-600/50 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </button>
+                )}
               </motion.div>
 
               <div className="space-y-4">

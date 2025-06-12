@@ -7,6 +7,8 @@ import { getActivityData } from "@/app/actions/get-activity-data";
 import { ProfileLink, FavoriteVideo, FavoriteAudio, FavoriteBlog, FavoriteArticle, Subscription } from "@prisma/client";
 import { ProfileTabsList } from "./_components/ProfileTabsList";
 import { ProfileTabsContent } from "./_components/ProfileTabsContent";
+import { UserDebugPanel } from "@/components/debug/UserDebugPanel";
+import { DebugModeToggle } from "@/components/debug/DebugModeToggle";
 
 // Define the user type to include all needed properties
 interface ExtendedUser {
@@ -64,6 +66,10 @@ export default async function ProfilePage() {
             <ProfileTabsContent user={user} activities={activities || []} />
           </Tabs>
         </div>
+        
+        {/* Debug Panel - only shows in development or when enabled */}
+        <UserDebugPanel />
+        <DebugModeToggle />
       </div>
     </div>
   );

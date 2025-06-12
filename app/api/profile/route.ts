@@ -193,12 +193,23 @@ export async function GET() {
       console.warn("[PROFILE_GET] Error fetching subscriptions:", subscriptionError);
     }
 
+    // Try to get profile links safely
+    let profileLinks: any[] = [];
+    try {
+      profileLinks = await db.profileLink.findMany({
+        where: { userId: session.user.id },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (profileLinksError) {
+      console.warn("[PROFILE_GET] Error fetching profile links:", profileLinksError);
+    }
+
     const enhancedUserData = {
       ...userData,
       stats,
       socialMediaAccounts,
       userSubscriptions,
-      profileLinks: [] // Empty for now, will add later if needed
+      profileLinks
     };
 
     console.log("[PROFILE_GET] Returning enhanced user data:", enhancedUserData);

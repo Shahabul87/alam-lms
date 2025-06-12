@@ -88,6 +88,48 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Message for New Users */}
+      {(!stats || (
+        (stats.socialAccounts?.length || 0) === 0 && 
+        (stats.contentStats?.length || 0) === 0 && 
+        (stats.goalStats?.length || 0) === 0 &&
+        (stats.recentActivity?.length || 0) === 0
+      )) && (
+        <Card className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border-indigo-700/50 backdrop-blur-sm">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome to Your Dashboard! 🎉</h2>
+              <p className="text-indigo-200 mb-4">
+                Start by connecting your social media accounts and adding content to track your digital presence
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <ConnectPlatformModal 
+                  userId={userId}
+                  onProfileLinksUpdated={(links) => {
+                    console.log('Profile links updated:', links);
+                    // Optionally refresh the data
+                  }}
+                >
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-700 text-white hover:from-blue-700 hover:to-purple-800">
+                    Connect Social Media
+                  </Button>
+                </ConnectPlatformModal>
+                <Button 
+                  variant="outline" 
+                  className="border-indigo-600 text-indigo-300 hover:bg-indigo-700"
+                  onClick={() => {
+                    const contentTab = document.querySelector('[data-value="content"]') as HTMLElement;
+                    contentTab?.click();
+                  }}
+                >
+                  Add Content
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Social Media Stats */}
@@ -198,8 +240,15 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
             ) : (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400">No social media accounts connected</p>
-                <ConnectPlatformModal>
+                <p className="text-slate-400 mb-2">No social media accounts connected</p>
+                <p className="text-slate-500 text-sm mb-4">Connect your social media accounts to track your online presence and engagement</p>
+                <ConnectPlatformModal 
+                  userId={userId}
+                  onProfileLinksUpdated={(links) => {
+                    console.log('Profile links updated:', links);
+                    // Optionally refresh the data
+                  }}
+                >
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -257,16 +306,20 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
             ) : (
               <div className="text-center py-8">
                 <BookOpen className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400">No content saved yet</p>
-                <ConnectPlatformModal>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2 border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    Connect Platform
-                  </Button>
-                </ConnectPlatformModal>
+                <p className="text-slate-400 mb-2">No content saved yet</p>
+                <p className="text-slate-500 text-sm mb-4">Start curating your favorite videos, articles, and other content</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  onClick={() => {
+                    // Navigate to content tab
+                    const contentTab = document.querySelector('[data-value="content"]') as HTMLElement;
+                    contentTab?.click();
+                  }}
+                >
+                  Add Content
+                </Button>
               </div>
             )}
           </CardContent>
@@ -363,7 +416,20 @@ export function ProfileOverview({ userId }: ProfileOverviewProps) {
           ) : (
             <div className="text-center py-8">
               <Activity className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400">No recent activity</p>
+              <p className="text-slate-400 mb-2">No recent activity</p>
+              <p className="text-slate-500 text-sm mb-4">Your activity will appear here as you use the platform</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                onClick={() => {
+                  // Navigate to activity tab
+                  const activityTab = document.querySelector('[data-value="activity"]') as HTMLElement;
+                  activityTab?.click();
+                }}
+              >
+                View Activity Dashboard
+              </Button>
             </div>
           )}
         </CardContent>

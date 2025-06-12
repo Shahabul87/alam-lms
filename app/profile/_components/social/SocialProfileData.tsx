@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, BarChart3 } from "lucide-react";
+import { ProfileMetadataExtractor } from "./ProfileMetadataExtractor";
 
 interface ProfileMetrics {
   platform: string;
@@ -117,38 +118,58 @@ export function SocialProfileData() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          Social Metrics
-        </CardTitle>
-        <CardDescription>Performance data from your connected platforms</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {metrics.map((metric, index) => (
-            <div key={index} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4 last:border-0 last:pb-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  {getPlatformIcon(metric.platform)}
+    <div className="space-y-6">
+      {/* Profile Metadata Extractor */}
+      <ProfileMetadataExtractor 
+        profileLinks={profileLinks}
+        onMetadataUpdated={(metadata) => {
+          // Update metrics with real extracted data
+          const realMetrics = metadata.filter(m => !m.error).map(m => ({
+            platform: m.platform,
+            followers: m.followerCount || 0,
+            engagement: Math.floor(Math.random() * 15) + 1, // Mock for now
+            growth: Math.floor(Math.random() * 30) - 10 // Mock for now
+          }));
+          if (realMetrics.length > 0) {
+            setMetrics(realMetrics);
+          }
+        }}
+      />
+
+      {/* Original Social Metrics Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Social Metrics
+          </CardTitle>
+          <CardDescription>Performance data from your connected platforms</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {metrics.map((metric, index) => (
+              <div key={index} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4 last:border-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    {getPlatformIcon(metric.platform)}
+                  </div>
+                  <div>
+                    <h3 className="font-medium">{metric.platform}</h3>
+                    <p className="text-xs text-gray-500">{metric.followers.toLocaleString()} followers</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium">{metric.platform}</h3>
-                  <p className="text-xs text-gray-500">{metric.followers.toLocaleString()} followers</p>
+                <div className="text-right">
+                  <div className={`text-sm font-semibold ${metric.growth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {metric.growth >= 0 ? '+' : ''}{metric.growth}%
+                  </div>
+                  <p className="text-xs text-gray-500">{metric.engagement}% engagement</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className={`text-sm font-semibold ${metric.growth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {metric.growth >= 0 ? '+' : ''}{metric.growth}%
-                </div>
-                <p className="text-xs text-gray-500">{metric.engagement}% engagement</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

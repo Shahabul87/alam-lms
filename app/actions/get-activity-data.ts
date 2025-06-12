@@ -3,8 +3,7 @@ import { auth } from "@/auth";
 import { ActivityItem, ActivityStatus, ActivityType } from "../profile/_components/activity-dashboard/types";
 
 /**
- * Get sample activities for the activity dashboard
- * In a real app, this would fetch actual activities from the database
+ * Get real user activities from the database
  */
 export const getActivityData = async () => {
   try {
@@ -16,8 +15,14 @@ export const getActivityData = async () => {
     
     const userId = session.user.id;
     
-    // Return sample activities since the database table doesn't exist yet
-    return createSampleActivities(userId);
+    // Try to fetch real activities from database
+    try {
+      const activities = await fetchRealActivities(userId);
+      return activities;
+    } catch (error) {
+      console.warn("Activity table not available, returning empty array:", error);
+      return [];
+    }
     
   } catch (error) {
     console.error("Error fetching activity data:", error);
@@ -26,123 +31,165 @@ export const getActivityData = async () => {
 };
 
 /**
- * Create sample activities for demonstration purposes
+ * Fetch real activities from database
  */
-const createSampleActivities = (userId: string): ActivityItem[] => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const nextWeek = new Date(today);
-  nextWeek.setDate(nextWeek.getDate() + 7);
-  
-  const twoWeeksAgo = new Date(today);
-  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-  
-  const completedDate = new Date(yesterday);
-  completedDate.setHours(completedDate.getHours() - 5);
-  
-  return [
-    // Today's activities
-    {
-      id: "1",
-      title: "Complete website homepage redesign",
-      description: "Finish the responsive design for the website homepage and submit for review",
-      type: "plan",
-      status: "in-progress",
-      priority: "high",
-      createdAt: twoWeeksAgo,
-      updatedAt: yesterday,
-      dueDate: today,
-      progress: 75,
-      userId,
-    },
-    {
-      id: "2",
-      title: "Review new mind map feature",
-      description: "Test the new mind map feature and provide feedback to the development team",
-      type: "mind",
-      status: "not-started",
-      priority: "medium",
-      createdAt: yesterday,
-      updatedAt: yesterday,
-      dueDate: today,
-      progress: 0,
-      userId,
-    },
+const fetchRealActivities = async (userId: string): Promise<ActivityItem[]> => {
+  // Try to fetch from an activities table if it exists
+  try {
+    const activities = await db.activity.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
     
-    // Upcoming activities
-    {
-      id: "3",
-      title: "Prepare script for product demo",
-      description: "Write a script for the upcoming product demonstration video",
-      type: "script",
-      status: "not-started",
-      priority: "high",
-      createdAt: yesterday,
-      updatedAt: yesterday,
-      dueDate: tomorrow,
-      progress: 0,
-      userId,
-    },
-    {
-      id: "4",
-      title: "Research AI integration options",
-      description: "Research available AI solutions for integrating into our platform",
-      type: "idea",
-      status: "in-progress",
-      priority: "medium",
-      createdAt: twoWeeksAgo,
-      updatedAt: yesterday,
-      dueDate: nextWeek,
-      progress: 30,
-      userId,
-    },
+    return activities.map(activity => ({
+      id: activity.id,
+      title: activity.title,
+      description: activity.description || "",
+      type: activity.type as ActivityType,
+      status: activity.status as ActivityStatus,
+      priority: activity.priority || "medium",
+      createdAt: activity.createdAt,
+      updatedAt: activity.updatedAt,
+      dueDate: activity.dueDate,
+      completedDate: activity.completedDate,
+      progress: activity.progress || 0,
+      userId: activity.userId
+    }));
+  } catch (error) {
+    // If Activity table doesn't exist, try to get activities from other sources
+    const userActivities = await getActivitiesFromUserData(userId);
+    return userActivities;
+  }
+};
+
+/**
+ * Get activities from user's existing data (posts, ideas, courses, etc.)
+ */
+const getActivitiesFromUserData = async (userId: string): Promise<ActivityItem[]> => {
+  const activities: ActivityItem[] = [];
+  
+  try {
+    // Get user data
+    const userData = await db.user.findUnique({
+      where: { id: userId },
+      include: {
+        posts: {
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        },
+        ideas: {
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        },
+        courses: {
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        },
+        profileLinks: {
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        },
+        socialMediaAccounts: {
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        }
+      }
+    });
+
+    if (!userData) return [];
+
+    // Convert posts to activities
+    userData.posts.forEach(post => {
+      activities.push({
+        id: `post_${post.id}`,
+        title: `Blog Post: ${post.title}`,
+        description: post.content ? post.content.substring(0, 100) + "..." : "Blog post content",
+        type: "script" as ActivityType,
+        status: "completed" as ActivityStatus,
+        priority: "medium",
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        completedDate: post.publishedAt || post.createdAt,
+        progress: 100,
+        userId
+      });
+    });
+
+    // Convert ideas to activities
+    userData.ideas.forEach(idea => {
+      activities.push({
+        id: `idea_${idea.id}`,
+        title: `Idea: ${idea.title}`,
+        description: idea.description || "New idea to explore",
+        type: "idea" as ActivityType,
+        status: idea.status === 'PUBLISHED' ? "completed" : "in-progress" as ActivityStatus,
+        priority: "medium",
+        createdAt: idea.createdAt,
+        updatedAt: idea.updatedAt,
+        completedDate: idea.status === 'PUBLISHED' ? idea.updatedAt : null,
+        progress: idea.status === 'PUBLISHED' ? 100 : 30,
+        userId
+      });
+    });
+
+    // Convert courses to activities
+    userData.courses.forEach(course => {
+      activities.push({
+        id: `course_${course.id}`,
+        title: `Course: ${course.title}`,
+        description: course.description || "Course content",
+        type: "plan" as ActivityType,
+        status: course.isPublished ? "completed" : "in-progress" as ActivityStatus,
+        priority: "high",
+        createdAt: course.createdAt,
+        updatedAt: course.updatedAt,
+        completedDate: course.isPublished ? course.updatedAt : null,
+        progress: course.isPublished ? 100 : 60,
+        userId
+      });
+    });
+
+    // Convert profile links to activities
+    userData.profileLinks.forEach(link => {
+      activities.push({
+        id: `profile_${link.id}`,
+        title: `Connected: ${link.platform}`,
+        description: `Added profile link for ${link.platform}`,
+        type: "subscription" as ActivityType,
+        status: "completed" as ActivityStatus,
+        priority: "low",
+        createdAt: link.createdAt,
+        updatedAt: link.updatedAt,
+        completedDate: link.createdAt,
+        progress: 100,
+        userId
+      });
+    });
+
+    // Convert social media accounts to activities
+    userData.socialMediaAccounts.forEach(account => {
+      activities.push({
+        id: `social_${account.id}`,
+        title: `Connected: ${account.platform}`,
+        description: `Connected ${account.platform} account (@${account.username})`,
+        type: "subscription" as ActivityType,
+        status: account.isActive ? "completed" : "in-progress" as ActivityStatus,
+        priority: "medium",
+        createdAt: account.createdAt,
+        updatedAt: account.updatedAt,
+        completedDate: account.isActive ? account.createdAt : null,
+        progress: account.isActive ? 100 : 50,
+        userId
+      });
+    });
+
+    // Sort by most recent first
+    activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    // Completed activities
-    {
-      id: "5",
-      title: "Renew premium subscription",
-      description: "Renew the annual premium subscription for the design tools",
-      type: "subscription",
-      status: "completed",
-      priority: "critical",
-      createdAt: twoWeeksAgo,
-      updatedAt: yesterday,
-      completedDate,
-      progress: 100,
-      userId,
-    },
-    {
-      id: "6",
-      title: "Pay hosting invoice",
-      description: "Process payment for the monthly hosting services",
-      type: "billing",
-      status: "completed",
-      priority: "high",
-      createdAt: twoWeeksAgo,
-      updatedAt: yesterday,
-      completedDate,
-      progress: 100,
-      userId,
-    },
+    return activities;
     
-    // Overdue activities
-    {
-      id: "7",
-      title: "Submit quarterly tax report",
-      description: "Prepare and submit the quarterly tax report",
-      type: "billing",
-      status: "overdue",
-      priority: "critical",
-      createdAt: twoWeeksAgo,
-      updatedAt: twoWeeksAgo,
-      dueDate: yesterday,
-      progress: 25,
-      userId,
-    },
-  ];
+  } catch (error) {
+    console.error("Error getting activities from user data:", error);
+    return [];
+  }
 }; 

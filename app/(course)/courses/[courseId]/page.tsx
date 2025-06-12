@@ -84,6 +84,23 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
     return redirect("/");
   }
 
+  // Check if user is enrolled in this course
+  let enrollment = null;
+  if (user?.id) {
+    try {
+      enrollment = await db.enrollment.findUnique({
+        where: {
+          userId_courseId: {
+            userId: user.id,
+            courseId: courseId,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Error checking enrollment:", error);
+    }
+  }
+
   const chapters = course?.chapters || [];
 
   // Fetch initial reviews with error handling
@@ -110,6 +127,7 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
       <CourseCard 
         course={course} 
         userId={user?.id}
+        isEnrolled={!!enrollment}
       />
       <div className="mb-10">
         <GradientHeading 

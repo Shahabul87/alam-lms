@@ -420,6 +420,7 @@ model ProfileLink {
   platform  String // Name of the social media platform (e.g., "Twitter", "Facebook")
   url       String // URL of the social media profile
   position  Int?
+  metadata  Json? // Store fetched profile metadata and user display preferences
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

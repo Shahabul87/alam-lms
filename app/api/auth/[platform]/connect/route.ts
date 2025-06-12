@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 
 // Platform OAuth configurations
 const PLATFORM_CONFIGS = {
@@ -76,7 +75,7 @@ export async function GET(
 ) {
   try {
     // Check if user is authenticated
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.redirect(new URL('/auth/signin', request.url));
     }

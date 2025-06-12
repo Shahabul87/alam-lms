@@ -134,46 +134,8 @@ export function EnhancedAnimatedHeader({ userId, initialData }: EnhancedAnimated
         console.error('Error fetching user data:', error);
         toast.error(`Failed to load profile data: ${error instanceof Error ? error.message : 'Unknown error'}`);
         
-        // Set mock data for development/testing
-        setUserData({
-          id: 'mock-user',
-          name: 'Demo User',
-          email: 'demo@example.com',
-          image: undefined,
-          createdAt: new Date().toISOString(),
-          stats: {
-            followers: 1250,
-            following: 890,
-            likes: 3420,
-            posts: 156,
-            comments: 89,
-            subscriptions: 3,
-            monthlySpending: 47.99,
-            content: 42,
-            ideas: 23,
-            courses: 5
-          },
-          socialMediaAccounts: [
-            {
-              id: '1',
-              platform: 'TWITTER',
-              username: 'demo_user',
-              displayName: 'Demo User',
-              followerCount: 850,
-              isActive: true
-            },
-            {
-              id: '2',
-              platform: 'INSTAGRAM',
-              username: 'demo.user',
-              displayName: 'Demo User',
-              followerCount: 400,
-              isActive: true
-            }
-          ],
-          userSubscriptions: [],
-          profileLinks: []
-        });
+        // Don't set mock data - let it show empty states
+        setUserData(null);
       } finally {
         setLoading(false);
       }

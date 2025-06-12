@@ -31,7 +31,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const { userId, links } = await req.json();
+    const body = await req.json();
+    const { userId, links, metadata, metadataSelection } = body;
+    
+    console.log("[PROFILE_LINKS_POST] Request body:", body);
     
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -71,14 +74,36 @@ export async function POST(req: Request) {
     
     // Process each link (create new ones, update existing)
     const updatedLinks = await Promise.all(
-      links.map(async (link) => {
+      links.map(async (link, index) => {
+        const linkMetadata = metadata && metadata[index] ? metadata[index] : null;
+        const linkSelection = metadataSelection && metadataSelection[index] ? metadataSelection[index] : null;
+        
+        // Prepare metadata object for storage
+        const metadataForStorage = linkMetadata ? {
+          username: linkMetadata.username,
+          displayName: linkMetadata.displayName,
+          bio: linkMetadata.bio,
+          profileImage: linkMetadata.profileImage,
+          followerCount: linkMetadata.followerCount,
+          followingCount: linkMetadata.followingCount,
+          postsCount: linkMetadata.postsCount,
+          isVerified: linkMetadata.isVerified,
+          location: linkMetadata.location,
+          website: linkMetadata.website,
+          joinDate: linkMetadata.joinDate,
+          lastUpdated: new Date().toISOString(),
+          // User selections for what to display
+          selections: linkSelection || {}
+        } : null;
+        
         // For temporary IDs, create new records
         if (link.id.startsWith('temp-')) {
           return db.profileLink.create({
             data: {
               platform: link.platform,
               url: link.url,
-              userId
+              userId,
+              metadata: metadataForStorage
             }
           });
         } 
@@ -90,13 +115,15 @@ export async function POST(req: Request) {
             },
             data: {
               platform: link.platform,
-              url: link.url
+              url: link.url,
+              metadata: metadataForStorage
             }
           });
         }
       })
     );
     
+    console.log("[PROFILE_LINKS_POST] Updated links:", updatedLinks);
     return NextResponse.json(updatedLinks, { status: 200 });
   } catch (error) {
     console.error("[PROFILE_LINKS_POST]", error);
