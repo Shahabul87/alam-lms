@@ -236,8 +236,8 @@ export default function PersonalizedRecommendations({
                         
                         <div className="flex items-center justify-between">
                           <div className="flex flex-wrap gap-1">
-                            {course.tags?.slice(0, 3).map((tag: string) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
+                            {course.tags?.slice(0, 3).map((tag: string, tagIndex: number) => (
+                              <Badge key={`${course.id}-tag-${tagIndex}`} variant="secondary" className="text-xs">
                                 {tag}
                               </Badge>
                             ))}

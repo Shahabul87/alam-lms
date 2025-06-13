@@ -32,7 +32,7 @@ interface CourseCardProps {
   isEnrolled?: boolean;
 }
 
-export const CourseCard = ({ course, userId, isEnrolled = false }: CourseCardProps) => {
+const CourseCard = ({ course, userId, isEnrolled = false }: CourseCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllObjectives, setShowAllObjectives] = useState(false);

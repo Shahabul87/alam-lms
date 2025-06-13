@@ -43,10 +43,10 @@ export default function SmartGoalsTracker({
       targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
       milestones: [
-        { title: "Complete Hooks Module", completed: true },
-        { title: "Build Todo App", completed: true },
-        { title: "Advanced Patterns", completed: false },
-        { title: "Final Project", completed: false }
+        { id: "m1-1", title: "Complete Hooks Module", completed: true },
+        { id: "m1-2", title: "Build Todo App", completed: true },
+        { id: "m1-3", title: "Advanced Patterns", completed: false },
+        { id: "m1-4", title: "Final Project", completed: false }
       ]
     },
     {
@@ -59,10 +59,10 @@ export default function SmartGoalsTracker({
       targetDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
       createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
       milestones: [
-        { title: "Research Topics", completed: true },
-        { title: "Write 5 Posts", completed: true },
-        { title: "Write 5 More Posts", completed: false },
-        { title: "Promote Content", completed: false }
+        { id: "m2-1", title: "Research Topics", completed: true },
+        { id: "m2-2", title: "Write 5 Posts", completed: true },
+        { id: "m2-3", title: "Write 5 More Posts", completed: false },
+        { id: "m2-4", title: "Promote Content", completed: false }
       ]
     },
     {
@@ -75,10 +75,10 @@ export default function SmartGoalsTracker({
       targetDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
       createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
       milestones: [
-        { title: "Set up LinkedIn", completed: true },
-        { title: "Connect with 25 people", completed: false },
-        { title: "Connect with 50 people", completed: false },
-        { title: "Connect with 100 people", completed: false }
+        { id: "m3-1", title: "Set up LinkedIn", completed: true },
+        { id: "m3-2", title: "Connect with 25 people", completed: false },
+        { id: "m3-3", title: "Connect with 50 people", completed: false },
+        { id: "m3-4", title: "Connect with 100 people", completed: false }
       ]
     }
   ];
