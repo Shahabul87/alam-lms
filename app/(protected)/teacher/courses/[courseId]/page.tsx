@@ -14,7 +14,7 @@ import { IconBadge } from "@/components/icon-badge";
 
 import { cn } from "@/lib/utils";
 import { CourseImageUpload } from "./_components/course-image-upload";
-import { WhatYouWillLearnForm } from "./_components/what-you-will-learn-form";
+import { CourseLearningOutcomeForm } from "./_components/course-learning-outcome-form";
 
 
 
@@ -226,8 +226,10 @@ const CourseIdPage = async (props:{params: Promise<{courseId:string}>}) => {
                             </span>
                           )}
                         </h3>
-                        <WhatYouWillLearnForm
-                          initialData={course}
+                        <CourseLearningOutcomeForm
+                          initialData={{ 
+                            whatYouWillLearn: course.whatYouWillLearn || [] 
+                          }}
                           courseId={course.id}
                         />
                       </div>
