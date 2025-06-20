@@ -129,7 +129,7 @@ export default function AIInsightsPanel({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {primaryInsights.slice(0, 4).map((insight: any, index: number) => (
                   <motion.div
-                    key={index}
+                    key={`insight-${insight.title || index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
@@ -164,7 +164,7 @@ export default function AIInsightsPanel({
               <div className="space-y-2">
                 {learningRecommendations.slice(0, 3).map((recommendation: any, index: number) => (
                   <motion.div
-                    key={index}
+                    key={`recommendation-${recommendation.title || index}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 + index * 0.1 }}
@@ -206,7 +206,7 @@ export default function AIInsightsPanel({
               <div className="flex flex-wrap gap-2">
                 {nextActions.slice(0, 3).map((action: any, index: number) => (
                   <Badge 
-                    key={index}
+                    key={`action-${action.title || index}`}
                     variant="secondary" 
                     className="bg-white/60 dark:bg-gray-800/60 text-gray-700 dark:text-gray-300"
                   >

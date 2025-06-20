@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,30 +34,48 @@ export default function LearningProgressHub({
   enrollments, 
   progress 
 }: LearningProgressHubProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const calculateCourseProgress = (enrollment: any) => {
     // Since we removed deep nesting, use mock progress calculation
     // In a real app, you'd fetch progress data separately
-    const mockProgress = Math.abs(enrollment.course.id.charCodeAt(0) + enrollment.course.id.charCodeAt(1)) % 100;
-    return mockProgress;
+    // Use deterministic calculation to prevent hydration mismatch
+    const id = enrollment.course.id || '';
+    const hashCode = id.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const mockProgress = Math.abs(hashCode) % 100;
+    return Math.max(mockProgress, 10); // Ensure minimum 10% progress
   };
 
   const getNextLesson = (enrollment: any) => {
     // Mock next lesson data since we removed deep nesting
     const mockLessons = [
       "Introduction to React Hooks",
-      "State Management with Redux",
+      "State Management with Redux", 
       "Building REST APIs",
       "Database Design Principles",
       "Advanced TypeScript Patterns"
     ];
     
-    const randomLesson = mockLessons[Math.floor(Math.random() * mockLessons.length)];
+    // Use deterministic selection to prevent hydration mismatch
+    const id = enrollment.course.id || '';
+    const hashCode = id.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const lessonIndex = Math.abs(hashCode) % mockLessons.length;
+    const selectedLesson = mockLessons[lessonIndex];
     
     return {
       chapterId: "mock-chapter-1",
       sectionId: "mock-section-1", 
       chapterTitle: "Chapter 1",
-      sectionTitle: randomLesson,
+      sectionTitle: selectedLesson,
       duration: 25 // Consistent duration
     };
   };
@@ -113,7 +132,7 @@ export default function LearningProgressHub({
             </div>
             <div className="space-y-1">
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {enrollments?.filter(e => calculateCourseProgress(e) >= 90).length || 0}
+                {isClient ? (enrollments?.filter(e => calculateCourseProgress(e) >= 90).length || 0) : 0}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
             </div>
@@ -160,8 +179,8 @@ export default function LearningProgressHub({
           {activeLearningPaths.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {activeLearningPaths.map((enrollment: any, index: number) => {
-                const courseProgress = calculateCourseProgress(enrollment);
-                const nextLesson = getNextLesson(enrollment);
+                const courseProgress = isClient ? calculateCourseProgress(enrollment) : 50;
+                const nextLesson = isClient ? getNextLesson(enrollment) : null;
                 const course = enrollment.course;
                 
                 return (
@@ -213,7 +232,7 @@ export default function LearningProgressHub({
                               <Progress value={courseProgress} className="h-2" />
                             </div>
                             
-                            {nextLesson && (
+                            {isClient && nextLesson && (
                               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                                   Next Lesson:
@@ -232,6 +251,27 @@ export default function LearningProgressHub({
                                       Continue
                                     </Button>
                                   </Link>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {!isClient && (
+                              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                  Next Lesson:
+                                </p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1">
+                                  Loading...
+                                </p>
+                                <div className="flex items-center justify-between mt-2">
+                                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                                    <Clock className="h-3 w-3" />
+                                    <span>25 min</span>
+                                  </div>
+                                  <Button size="sm" className="text-xs" disabled>
+                                    <PlayCircle className="h-3 w-3 mr-1" />
+                                    Continue
+                                  </Button>
                                 </div>
                               </div>
                             )}

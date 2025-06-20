@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { User } from "next-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +26,17 @@ export default function SmartDashboardHeader({
   userData, 
   aiInsights 
 }: SmartDashboardHeaderProps) {
+  const [isClient, setIsClient] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    setIsClient(true);
+    setCurrentTime(new Date());
+  }, []);
+
   const getTimeBasedGreeting = () => {
-    const hour = new Date().getHours();
+    if (!isClient) return "Hello"; // Fallback during SSR
+    const hour = currentTime.getHours();
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";
     return "Good evening";
@@ -39,12 +49,12 @@ export default function SmartDashboardHeader({
     return aiInsights.personalizedMessage;
   };
 
-  const todayDate = new Date().toLocaleDateString('en-US', {
+  const todayDate = isClient ? currentTime.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  });
+  }) : 'Loading...';
 
   return (
     <motion.div

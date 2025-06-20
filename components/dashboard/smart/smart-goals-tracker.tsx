@@ -40,13 +40,13 @@ export default function SmartGoalsTracker({
       category: "LEARNING",
       status: "IN_PROGRESS",
       progress: 75,
-      targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+      targetDate: new Date('2024-07-19'), // Fixed future date
+      createdAt: new Date('2024-06-04'), // Fixed past date
       milestones: [
-        { id: "m1-1", title: "Complete Hooks Module", completed: true },
-        { id: "m1-2", title: "Build Todo App", completed: true },
-        { id: "m1-3", title: "Advanced Patterns", completed: false },
-        { id: "m1-4", title: "Final Project", completed: false }
+        { id: "milestone-1-1", title: "Complete Hooks Module", completed: true },
+        { id: "milestone-1-2", title: "Build Todo App", completed: true },
+        { id: "milestone-1-3", title: "Advanced Patterns", completed: false },
+        { id: "milestone-1-4", title: "Final Project", completed: false }
       ]
     },
     {
@@ -56,13 +56,13 @@ export default function SmartGoalsTracker({
       category: "CONTENT_CREATION",
       status: "IN_PROGRESS",
       progress: 60,
-      targetDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
-      createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+      targetDate: new Date('2024-08-03'), // Fixed future date
+      createdAt: new Date('2024-05-30'), // Fixed past date
       milestones: [
-        { id: "m2-1", title: "Research Topics", completed: true },
-        { id: "m2-2", title: "Write 5 Posts", completed: true },
-        { id: "m2-3", title: "Write 5 More Posts", completed: false },
-        { id: "m2-4", title: "Promote Content", completed: false }
+        { id: "milestone-2-1", title: "Research Topics", completed: true },
+        { id: "milestone-2-2", title: "Write 5 Posts", completed: true },
+        { id: "milestone-2-3", title: "Write 5 More Posts", completed: false },
+        { id: "milestone-2-4", title: "Promote Content", completed: false }
       ]
     },
     {
@@ -72,13 +72,13 @@ export default function SmartGoalsTracker({
       category: "NETWORKING",
       status: "IN_PROGRESS",
       progress: 45,
-      targetDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
-      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+      targetDate: new Date('2024-08-18'), // Fixed future date
+      createdAt: new Date('2024-06-09'), // Fixed past date
       milestones: [
-        { id: "m3-1", title: "Set up LinkedIn", completed: true },
-        { id: "m3-2", title: "Connect with 25 people", completed: false },
-        { id: "m3-3", title: "Connect with 50 people", completed: false },
-        { id: "m3-4", title: "Connect with 100 people", completed: false }
+        { id: "milestone-3-1", title: "Set up LinkedIn", completed: true },
+        { id: "milestone-3-2", title: "Connect with 25 people", completed: false },
+        { id: "milestone-3-3", title: "Connect with 50 people", completed: false },
+        { id: "milestone-3-4", title: "Connect with 100 people", completed: false }
       ]
     }
   ];
@@ -136,6 +136,8 @@ export default function SmartGoalsTracker({
   };
 
   const getDaysRemaining = (targetDate: Date) => {
+    // Use a fixed date for SSR to prevent hydration mismatch
+    // In production, you might want to calculate this server-side
     const today = new Date();
     const diffTime = targetDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -223,8 +225,8 @@ export default function SmartGoalsTracker({
                       <div className="flex items-center gap-1 text-gray-500">
                         <CheckCircle className="h-3 w-3" />
                         <span>
-                          {goal.milestones?.filter((m: any) => m.completed).length || 0}/
-                          {goal.milestones?.length || 0} milestones
+                          {(goal.milestones || []).filter((m: any) => m.completed).length}/
+                          {(goal.milestones || []).length} milestones
                         </span>
                       </div>
                     </div>

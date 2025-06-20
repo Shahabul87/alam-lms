@@ -167,7 +167,7 @@ export default function QuickActionsPanel({
           <div className="space-y-2">
             {aiSuggestions.map((suggestion, index) => (
               <motion.div
-                key={index}
+                key={`suggestion-${suggestion.title}-${index}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -206,7 +206,7 @@ export default function QuickActionsPanel({
               
               return (
                 <motion.div
-                  key={index}
+                  key={`action-${action.title}-${index}`}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + index * 0.05 }}

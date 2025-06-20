@@ -165,7 +165,7 @@ export default function EnhancedProfileSummary({
         <div className="grid grid-cols-3 gap-4">
           {stats.map((stat, index) => (
             <motion.div
-              key={index}
+              key={`stat-${stat.label}-${index}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -192,7 +192,7 @@ export default function EnhancedProfileSummary({
           </h4>
           <div className="space-y-2">
             {socialPlatforms.map((platform, index) => (
-              <div key={index} className="flex items-center justify-between">
+              <div key={`social-${platform.name}-${index}`} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`p-1 rounded ${platform.color}`}>
                     <platform.icon className="h-3 w-3" />
@@ -225,7 +225,7 @@ export default function EnhancedProfileSummary({
           <div className="space-y-2">
             {recentAchievements.map((achievement, index) => (
               <motion.div
-                key={index}
+                key={`achievement-${achievement.title}-${index}`}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 + index * 0.1 }}

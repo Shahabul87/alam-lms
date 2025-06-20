@@ -177,7 +177,7 @@ export default function PerformanceAnalytics({
             
             return (
               <motion.div
-                key={index}
+                key={`metric-${metric.title}-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -225,7 +225,7 @@ export default function PerformanceAnalytics({
             <div className="space-y-4">
               {(displayTrends.weeklyProgress || []).map((week: any, index: number) => (
                 <motion.div
-                  key={index}
+                  key={`week-${week.week}-${index}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 + index * 0.05 }}
@@ -280,7 +280,7 @@ export default function PerformanceAnalytics({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(displayTrends.skillAcquisition || []).map((skill: any, index: number) => (
               <motion.div
-                key={index}
+                key={`skill-${skill.skill}-${index}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 + index * 0.1 }}

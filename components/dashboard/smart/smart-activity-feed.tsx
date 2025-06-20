@@ -95,7 +95,7 @@ export default function SmartActivityFeed({
       type: "lesson_completed",
       title: "Completed: Introduction to React Hooks",
       description: "Finished lesson in 'Modern React Development' course",
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      createdAt: new Date('2024-06-19T14:00:00'), // Fixed time
       metadata: { course: "Modern React Development", lesson: "Introduction to React Hooks" }
     },
     {
@@ -103,7 +103,7 @@ export default function SmartActivityFeed({
       type: "achievement",
       title: "Achievement Unlocked: Fast Learner",
       description: "Completed 3 lessons in a single day",
-      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+      createdAt: new Date('2024-06-19T11:00:00'), // Fixed time
       metadata: { badge: "Fast Learner", points: 50 }
     },
     {
@@ -111,7 +111,7 @@ export default function SmartActivityFeed({
       type: "post_created",
       title: "Created new post: JavaScript Best Practices",
       description: "Shared insights about clean code practices",
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+      createdAt: new Date('2024-06-18T16:00:00'), // Fixed time
       metadata: { postTitle: "JavaScript Best Practices", reactions: 12 }
     },
     {
@@ -119,7 +119,7 @@ export default function SmartActivityFeed({
       type: "course_progress",
       title: "Progress Update: Next.js Mastery",
       description: "Reached 75% completion",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      createdAt: new Date('2024-06-17T10:00:00'), // Fixed time
       metadata: { course: "Next.js Mastery", progress: 75 }
     },
     {
@@ -127,7 +127,7 @@ export default function SmartActivityFeed({
       type: "comment",
       title: "Commented on: TypeScript Guide",
       description: "Added helpful explanation about interfaces",
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      createdAt: new Date('2024-06-16T14:30:00'), // Fixed time
       metadata: { postTitle: "TypeScript Guide", engagement: "high" }
     }
   ];

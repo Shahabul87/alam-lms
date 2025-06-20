@@ -96,26 +96,15 @@ const verifyNobleHash = (plainPassword: string, hashedPassword: string): boolean
 };
 
 /**
- * Verify password against bcrypt format (backwards compatibility)
- * Only works in Node.js environment
+ * Legacy bcrypt format verification (backwards compatibility)
+ * Since bcryptjs is removed, this will always return false and log a migration warning
  */
 const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): Promise<boolean> => {
-  try {
-    // Check if we're in Edge Runtime
-    const isEdgeRuntime = typeof (globalThis as any).EdgeRuntime !== 'undefined';
-    
-    if (isEdgeRuntime) {
-      console.warn('Bcrypt verification skipped - Edge Runtime detected. Please rehash password with new format.');
-      return false;
-    }
-
-    // Only import bcryptjs in Node.js environment and when actually needed
-    const { default: bcrypt } = await import('bcryptjs');
-    return await bcrypt.compare(plainPassword, hashedPassword);
-  } catch (error) {
-    console.warn('Bcrypt verification failed - incompatible environment or missing bcryptjs:', error);
-    return false;
-  }
+  console.warn(
+    'Legacy bcrypt password detected. Please log in with your current password to automatically migrate to the new secure format.',
+    'Hash format:', hashedPassword.substring(0, 10) + '...'
+  );
+  return false;
 };
 
 /**
