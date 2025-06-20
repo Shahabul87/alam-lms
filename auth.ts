@@ -7,12 +7,18 @@ import authConfig from "@/auth.config";
 import { getUserById } from "@/data/user";
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
 import { getAccountByUserId } from "@/data/account";
+import { checkEnvironmentVariables } from "@/lib/env-check";
+
+// Check environment variables on startup
+checkEnvironmentVariables();
 
 export const { handlers: { GET, POST }, auth, signIn, signOut, } = NextAuth({
   pages: {
     signIn: "/auth/login",
     error: "/auth/error",
   },
+  trustHost: true,
+  secret: process.env.AUTH_SECRET,
   events: {
     async linkAccount({ user }) {
       await db.user.update({

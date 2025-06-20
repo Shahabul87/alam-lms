@@ -1,21 +1,59 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend with better error handling
+let resend: Resend | null = null;
+
+try {
+  if (process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  } else {
+    console.warn('RESEND_API_KEY not found. Email functionality will be disabled.');
+  }
+} catch (error) {
+  console.error('Failed to initialize Resend:', error);
+}
 
 // Helper function to get the appropriate domain
 const getDomain = () => {
+  // Check for explicit URL environment variable first
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  
+  // Check for Vercel deployment URL
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  // Check for production environment
   const isProd = process.env.NODE_ENV === 'production';
-  return isProd ? 'https://bdgenai.com' : 'http://localhost:3000';
+  if (isProd) {
+    return 'https://bdgenai.com';
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:3000';
 };
 
-const domain = process.env.NEXT_PUBLIC_APP_URL || getDomain();
+const domain = getDomain();
+
+// Helper function to check if email is configured
+const isEmailConfigured = () => {
+  return resend !== null && process.env.RESEND_API_KEY;
+};
 
 export const sendTwoFactorTokenEmail = async (
   email: string,
   token: string
 ) => {
+  // Check if email is configured
+  if (!isEmailConfigured()) {
+    console.warn('Email not configured. 2FA token would be:', token);
+    return;
+  }
+
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await resend!.emails.send({
       from: "mail@bdgenai.com",
       to: email,
       subject: "2FA Code for Login",
@@ -51,8 +89,15 @@ export const sendPasswordResetEmail = async (
 ) => {
   const resetLink = `${domain}/auth/new-password?token=${token}`;
   
+  // Check if email is configured
+  if (!isEmailConfigured()) {
+    console.warn('Email not configured. Reset link would be:', resetLink);
+    console.warn('In development, you can manually visit this URL to reset password.');
+    return;
+  }
+  
   try {
-    await resend.emails.send({
+    const { data, error } = await resend!.emails.send({
       from: "mail@bdgenai.com",
       to: email,
       subject: "Reset Your Password - bdGenAI",
@@ -77,8 +122,17 @@ export const sendPasswordResetEmail = async (
         </div>
       `
     });
+
+    if (error) {
+      console.error("Resend API Error:", error);
+      throw new Error(`Failed to send reset email: ${error.message}`);
+    }
+
+    console.log('Password reset email sent successfully:', data);
+    return data;
   } catch (error) {
     console.error("Reset email error:", error);
+    throw error;
   }
 };
 
@@ -88,8 +142,15 @@ export const sendVerificationEmail = async (
 ) => {
   const confirmLink = `${domain}/auth/new-verification?token=${token}`;
 
+  // Check if email is configured
+  if (!isEmailConfigured()) {
+    console.warn('Email not configured. Verification link would be:', confirmLink);
+    console.warn('In development, you can manually visit this URL to verify email.');
+    return;
+  }
+
   try {
-    await resend.emails.send({
+    const { data, error } = await resend!.emails.send({
       from: "mail@bdgenai.com",
       to: email,
       subject: "Verify Your Email - bdGenAI",
@@ -111,7 +172,16 @@ export const sendVerificationEmail = async (
         </div>
       `
     });
+
+    if (error) {
+      console.error("Resend API Error:", error);
+      throw new Error(`Failed to send verification email: ${error.message}`);
+    }
+
+    console.log('Verification email sent successfully:', data);
+    return data;
   } catch (error) {
     console.error("Verification email error:", error);
+    throw error;
   }
 };
