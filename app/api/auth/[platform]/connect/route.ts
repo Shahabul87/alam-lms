@@ -113,7 +113,7 @@ export async function GET(
       response_type: config.responseType,
       scope: config.scope,
       state,
-      ...(config.codeChallenge && { 
+      ...('codeChallenge' in config && config.codeChallenge && { 
         code_challenge: config.codeChallenge,
         code_challenge_method: 'S256'
       })
