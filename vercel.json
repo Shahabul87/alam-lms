@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/auth/[...nextauth]/route.ts": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
+    }
+  ]
+} 
