@@ -143,18 +143,7 @@ const nextConfig = {
   // CRITICAL: Updated experimental settings for better dynamic route handling
   experimental: {
     serverActions: {
-      allowedOrigins: [
-        // Development origins
-        ...(process.env.NODE_ENV === 'development' ? ['localhost:3000', 'http://localhost:3000'] : []),
-        // Production origins
-        'bdgenai.com', 
-        'https://bdgenai.com',
-        'https://www.bdgenai.com',
-        // Add wildcard for any subdomain of bdgenai.com
-        '*.bdgenai.com',
-        // Allow any origin in development
-        ...(process.env.NODE_ENV === 'development' ? ['*'] : [])
-      ]
+      allowedOrigins: ['localhost:3000', 'www.bdgenai.com', 'bdgenai.com']
     },
   },
 
@@ -210,6 +199,10 @@ const nextConfig = {
         source: '/api/test-course-route/:courseId*',
         destination: '/api/test-course-route/:courseId*',
       },
+      {
+        source: '/api/auth/:path*',
+        destination: '/api/auth/:path*'
+      }
     ];
   },
 };
