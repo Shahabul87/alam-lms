@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getPostsForHomepage } from "@/actions/get-all-posts";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -69,5 +70,32 @@ export async function POST(
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
+  }
+}
+
+export async function GET() {
+  try {
+    console.log("🔄 [API] /api/posts - Starting to fetch posts...");
+    
+    const posts = await getPostsForHomepage();
+    
+    console.log(`✅ [API] /api/posts - Successfully fetched ${posts.length} posts`);
+    
+    return NextResponse.json({
+      success: true,
+      posts,
+      count: posts.length
+    });
+  } catch (error) {
+    console.error("💥 [API] /api/posts - Error fetching posts:", error);
+    
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch posts",
+        message: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500 }
+    );
   }
 }
