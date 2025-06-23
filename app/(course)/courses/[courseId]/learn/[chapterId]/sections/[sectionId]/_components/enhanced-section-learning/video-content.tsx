@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Play, Clock, Eye, Grid3X3, List, ExternalLink } from "lucide-react";
+import { Play, Clock, Eye, Star, ExternalLink, Filter, SortAsc, SortDesc } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface VideoContentProps {
@@ -14,11 +15,16 @@ interface VideoContentProps {
     duration?: number | null;
     thumbnail?: string | null;
     views?: number;
+    rating?: number;
+    platform?: string;
   }>;
 }
 
 export const VideoContent = ({ videos }: VideoContentProps) => {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [sortBy, setSortBy] = useState<'title' | 'rating' | 'duration' | 'views'>('title');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterPlatform, setFilterPlatform] = useState<string>('all');
+  const [filterRating, setFilterRating] = useState<string>('all');
 
   const formatDuration = (seconds?: number | null) => {
     if (!seconds) return "0:00";
@@ -38,16 +44,77 @@ export const VideoContent = ({ videos }: VideoContentProps) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  const renderStars = (rating?: number) => {
+    if (!rating) return null;
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(
+          <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+        );
+      } else if (i === fullStars && hasHalfStar) {
+        stars.push(
+          <Star key={i} className="w-3 h-3 fill-yellow-400/50 text-yellow-400" />
+        );
+      } else {
+        stars.push(
+          <Star key={i} className="w-3 h-3 text-gray-300" />
+        );
+      }
+    }
+    return stars;
+  };
+
+  // Get unique platforms from videos and add common platforms
+  const videoPlatforms = Array.from(new Set(videos.map(v => v.platform).filter((p): p is string => Boolean(p))));
+  const commonPlatforms = ['YouTube', 'Vimeo', 'Wistia', 'JW Player', 'Brightcove', 'Kaltura', 'Twitch', 'Facebook', 'Instagram'];
+  const allPlatforms = [...videoPlatforms, ...commonPlatforms];
+  const platforms = Array.from(new Set(allPlatforms)).sort();
+
+  // Filter and sort videos
+  const filteredAndSortedVideos = videos
+    .filter(video => {
+      if (filterPlatform !== 'all' && video.platform !== filterPlatform) return false;
+      if (filterRating !== 'all') {
+        const minRating = parseFloat(filterRating);
+        if (!video.rating || video.rating < minRating) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'title':
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case 'rating':
+          comparison = (a.rating || 0) - (b.rating || 0);
+          break;
+        case 'duration':
+          comparison = (a.duration || 0) - (b.duration || 0);
+          break;
+        case 'views':
+          comparison = (a.views || 0) - (b.views || 0);
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
   if (videos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-          <Play className="w-8 h-8 text-slate-400" />
+        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+          <Play className="w-8 h-8 text-gray-400" />
         </div>
-        <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
           No Videos Available
         </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Video content will appear here when available.
         </p>
       </div>
@@ -56,194 +123,153 @@ export const VideoContent = ({ videos }: VideoContentProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Video Lessons ({videos.length})
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Video Lessons ({filteredAndSortedVideos.length})
         </h3>
-        <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-            <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="h-8 w-8 p-0"
-            >
-              <List className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === "grid" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="h-8 w-8 p-0"
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </Button>
-          </div>
-          <Badge variant="secondary" className="bg-red-50 text-red-700 border-red-200">
-            <Play className="w-3 h-3 mr-1" />
-            Videos
-          </Badge>
-        </div>
+        <Badge variant="secondary" className="bg-red-50 text-red-700 border-red-200">
+          <Play className="w-3 h-3 mr-1" />
+          Videos
+        </Badge>
       </div>
 
-      {/* Video Grid/List */}
-      <div className={cn(
-        viewMode === "grid" 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
-          : "grid gap-4"
-      )}>
-        {videos.map((video, index) => (
-          <Card 
-            key={video.id} 
-            className="group hover:shadow-lg transition-all duration-200 border-slate-200 dark:border-slate-700 cursor-pointer"
+      {/* Filters and Sorting */}
+      <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
+        </div>
+
+        {/* Platform Filter */}
+        <Select value={filterPlatform} onValueChange={setFilterPlatform}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All Platforms" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Platforms</SelectItem>
+            {platforms.map(platform => (
+              <SelectItem key={platform} value={platform}>
+                {platform}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Rating Filter */}
+        <Select value={filterRating} onValueChange={setFilterRating}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="Rating" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Ratings</SelectItem>
+            <SelectItem value="4">4+ Stars</SelectItem>
+            <SelectItem value="3">3+ Stars</SelectItem>
+            <SelectItem value="2">2+ Stars</SelectItem>
+            <SelectItem value="1">1+ Stars</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Sort By */}
+        <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="title">Title</SelectItem>
+            <SelectItem value="rating">Rating</SelectItem>
+            <SelectItem value="duration">Duration</SelectItem>
+            <SelectItem value="views">Views</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Sort Order */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+          className="flex items-center gap-1"
+        >
+          {sortOrder === 'asc' ? (
+            <SortAsc className="w-4 h-4" />
+          ) : (
+            <SortDesc className="w-4 h-4" />
+          )}
+          {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+        </Button>
+      </div>
+
+      {/* Video List */}
+      <div className="space-y-2">
+        {filteredAndSortedVideos.map((video, index) => (
+          <div
+            key={video.id}
+            className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all duration-200 cursor-pointer group"
             onClick={() => handleVideoClick(video.url, video.title)}
           >
-            <CardContent className="p-0">
-              {viewMode === "grid" ? (
-                /* Grid View */
-                <div className="space-y-3">
-                  {/* Video Thumbnail */}
-                  <div className="relative aspect-video">
-                    <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-t-lg overflow-hidden">
-                      {video.thumbnail ? (
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Play className="w-12 h-12 text-slate-400" />
-                        </div>
-                      )}
-                      {/* Play Button Overlay */}
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <div className="w-12 h-12 bg-white/90 dark:bg-slate-800/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Play className="w-5 h-5 text-slate-700 dark:text-slate-300 ml-0.5" />
-                        </div>
-                      </div>
-                      {/* Duration Badge */}
-                      {video.duration && (
-                        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                          {formatDuration(video.duration)}
-                        </div>
-                      )}
-                      {/* External Link Icon */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="w-6 h-6 bg-white/90 dark:bg-slate-800/90 rounded-full flex items-center justify-center">
-                          <ExternalLink className="w-3 h-3 text-slate-700 dark:text-slate-300" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            <div className="flex items-center gap-4 flex-1">
+              {/* Video Number */}
+              <div className="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-400">
+                {index + 1}
+              </div>
 
-                  {/* Video Info */}
-                  <div className="p-4 pt-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h4 className="font-medium text-slate-900 dark:text-slate-100 line-clamp-2 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
-                        {video.title}
-                      </h4>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">
-                        #{index + 1}
-                      </span>
+              {/* Video Title */}
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                  {video.title}
+                </h4>
+                <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {video.platform && (
+                    <span className="capitalize">{video.platform}</span>
+                  )}
+                  {video.duration && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDuration(video.duration)}</span>
                     </div>
-                    
-                    {video.description && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
-                        {video.description}
-                      </p>
-                    )}
-
-                    {/* Video Metadata */}
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                      {video.duration && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDuration(video.duration)}</span>
-                        </div>
-                      )}
-                      {video.views !== undefined && (
-                        <div className="flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          <span>{formatViews(video.views)}</span>
-                        </div>
-                      )}
+                  )}
+                  {video.views !== undefined && (
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-3 h-3" />
+                      <span>{formatViews(video.views)} views</span>
                     </div>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                /* List View */
-                <div className="flex gap-4 p-4">
-                  {/* Video Thumbnail */}
-                  <div className="relative flex-shrink-0">
-                    <div className="w-32 h-20 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-lg overflow-hidden">
-                      {video.thumbnail ? (
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Play className="w-8 h-8 text-slate-400" />
-                        </div>
-                      )}
-                      {/* Play Button Overlay */}
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <div className="w-10 h-10 bg-white/90 dark:bg-slate-800/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Play className="w-4 h-4 text-slate-700 dark:text-slate-300 ml-0.5" />
-                        </div>
-                      </div>
-                      {/* Duration Badge */}
-                      {video.duration && (
-                        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                          {formatDuration(video.duration)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+              </div>
 
-                  {/* Video Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h4 className="font-medium text-slate-900 dark:text-slate-100 line-clamp-2 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors flex items-center gap-2">
-                        {video.title}
-                        <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </h4>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">
-                        Video {index + 1}
-                      </span>
-                    </div>
-                    
-                    {video.description && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
-                        {video.description}
-                      </p>
-                    )}
-
-                    {/* Video Metadata */}
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                      {video.duration && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDuration(video.duration)}</span>
-                        </div>
-                      )}
-                      {video.views !== undefined && (
-                        <div className="flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          <span>{formatViews(video.views)} views</span>
-                        </div>
-                      )}
-                    </div>
+              {/* Rating */}
+              {video.rating && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    {renderStars(video.rating)}
                   </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {video.rating.toFixed(1)}
+                  </span>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* External Link Icon */}
+            <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+          </div>
         ))}
       </div>
+
+      {/* No Results Message */}
+      {filteredAndSortedVideos.length === 0 && videos.length > 0 && (
+        <div className="text-center py-8">
+          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Filter className="w-6 h-6 text-gray-400" />
+          </div>
+          <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+            No videos match your filters
+          </h4>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Try adjusting your filter criteria to see more results.
+          </p>
+        </div>
+      )}
     </div>
   );
 }; 

@@ -128,7 +128,7 @@ const SectionPage = async (props: SectionPageProps) => {
 
   return (
     <EnhancedSectionLearning
-      user={user}
+      user={user as any}
       course={courseData}
       currentChapter={currentChapter}
       currentSection={currentSection}

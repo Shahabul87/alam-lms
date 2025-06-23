@@ -47,7 +47,7 @@ export const ChapterNavigation = ({
           animate={{ x: 0 }}
           exit={{ x: -320 }}
           transition={{ type: "spring", damping: 20, stiffness: 100 }}
-          className="fixed lg:sticky top-0 left-0 z-30 w-80 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 overflow-y-auto"
+          className="fixed lg:sticky top-0 left-0 z-30 w-80 h-screen bg-white/98 dark:bg-slate-900/98 border-r border-gray-200/80 dark:border-slate-700/80 overflow-y-auto backdrop-blur-sm shadow-lg"
         >
           <div className="p-6 space-y-6">
             {/* Course Info */}
@@ -59,18 +59,18 @@ export const ChapterNavigation = ({
                     alt={course.title}
                     width={40}
                     height={40}
-                    className="w-10 h-10 rounded-lg object-cover"
+                    className="w-10 h-10 rounded-lg object-cover shadow-sm"
                   />
                 ) : (
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center shadow-sm">
                     <BookOpen className="w-5 h-5 text-white" />
                   </div>
                 )}
                 <div>
-                  <h2 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+                  <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
                     {course.title}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {course.chapters.length} chapters
                   </p>
                 </div>
@@ -78,8 +78,8 @@ export const ChapterNavigation = ({
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">Course Progress</span>
-                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                  <span className="text-gray-600 dark:text-gray-400">Course Progress</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
                     {Math.round(progressPercentage)}%
                   </span>
                 </div>
@@ -87,11 +87,11 @@ export const ChapterNavigation = ({
               </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-gray-200 dark:bg-slate-700" />
 
             {/* Chapter Navigation */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
                 Course Content
               </h3>
               
@@ -104,7 +104,7 @@ export const ChapterNavigation = ({
                         "flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer",
                         chapter.isCurrentChapter 
                           ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800" 
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                          : "hover:bg-gray-50 dark:hover:bg-slate-800"
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ export const ChapterNavigation = ({
                           "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
                           chapter.progressPercentage === 100
                             ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                            : "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-400"
                         )}>
                           {chapter.progressPercentage === 100 ? (
                             <CheckCircle2 className="w-4 h-4" />
@@ -125,17 +125,17 @@ export const ChapterNavigation = ({
                             "text-sm font-medium",
                             chapter.isCurrentChapter 
                               ? "text-blue-900 dark:text-blue-100" 
-                              : "text-slate-900 dark:text-slate-100"
+                              : "text-gray-900 dark:text-gray-100"
                           )}>
                             {chapter.title}
                           </h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {chapter.completedSections}/{chapter.sections.length} sections
                           </p>
                         </div>
                       </div>
                       <ChevronDown className={cn(
-                        "w-4 h-4 transition-transform",
+                        "w-4 h-4 transition-transform text-gray-400 dark:text-gray-500",
                         expandedChapters.includes(chapter.id) ? "rotate-180" : ""
                       )} />
                     </div>
@@ -159,20 +159,20 @@ export const ChapterNavigation = ({
                                 "flex items-center gap-3 p-2 rounded-md transition-colors text-sm",
                                 isCurrentSection
                                   ? "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100"
-                                  : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                  : "hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300"
                               )}
                             >
                               <div className="flex items-center gap-2">
                                 {isCompleted ? (
                                   <CheckCircle2 className="w-4 h-4 text-green-500" />
                                 ) : (
-                                  <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600" />
+                                  <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-slate-600" />
                                 )}
                                 {getContentIcon(section.type)}
                               </div>
                               <span className="flex-1 truncate">{section.title}</span>
                               {section.duration && (
-                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {section.duration}m
                                 </span>
                               )}

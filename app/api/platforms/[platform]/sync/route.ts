@@ -48,7 +48,7 @@ const PLATFORM_APIS = {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { platform: string } }
+  { params }: { params: Promise<{ platform: string }> }
 ) {
   try {
     const session = await auth();
@@ -62,7 +62,8 @@ export async function POST(
       );
     }
 
-    const platform = params.platform.toLowerCase();
+    const { platform: platformParam } = await params;
+    const platform = platformParam.toLowerCase();
     
     // Get social account for the platform
     const socialAccount = await prisma.socialAccount.findUnique({

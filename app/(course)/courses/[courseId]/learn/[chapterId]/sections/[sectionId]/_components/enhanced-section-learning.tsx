@@ -134,9 +134,9 @@ export const EnhancedSectionLearning = ({
   }, [currentSection.videos.length, currentSection.blogs.length, currentSection.articles.length, currentSection.notes.length, currentSection.codeExplanations.length]);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-slate-800 dark:to-slate-900">
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+      <div className="sticky top-0 z-40 w-full bg-white/98 dark:bg-slate-900/98 backdrop-blur-md border-b border-gray-200/80 dark:border-slate-700/80 shadow-sm">
         <div className="flex items-center justify-between w-full px-6 py-4">
           {/* Left Section */}
           <div className="flex items-center gap-4">
@@ -144,30 +144,30 @@ export const EnhancedSectionLearning = ({
               variant="ghost"
               size="sm"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden"
+              className="lg:hidden hover:bg-gray-100 dark:hover:bg-slate-800"
             >
               {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </Button>
             
             <Link
               href={`/courses/${courseId}/learn`}
-              className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+              className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back to Course</span>
             </Link>
             
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 bg-gray-300 dark:bg-slate-600" />
             
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center shadow-sm">
                 <BookOpen className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h1 className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[200px] lg:max-w-[400px]">
+                <h1 className="font-semibold text-gray-900 dark:text-gray-100 truncate max-w-[200px] lg:max-w-[400px]">
                   {currentSection.title}
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {currentChapter.title}
                 </p>
               </div>
@@ -176,7 +176,7 @@ export const EnhancedSectionLearning = ({
 
           {/* Right Section */}
           <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+            <div className="hidden md:flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 <span>{getEstimatedReadTime} min</span>
@@ -192,14 +192,14 @@ export const EnhancedSectionLearning = ({
               size="sm"
               onClick={() => setIsBookmarked(!isBookmarked)}
               className={cn(
-                "transition-colors",
+                "transition-colors hover:bg-gray-100 dark:hover:bg-slate-800",
                 isBookmarked && "text-yellow-500 hover:text-yellow-600"
               )}
             >
               <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-current")} />
             </Button>
             
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="hover:bg-gray-100 dark:hover:bg-slate-800">
               <Share2 className="w-4 h-4" />
             </Button>
             
@@ -207,6 +207,7 @@ export const EnhancedSectionLearning = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowSettings(!showSettings)}
+              className="hover:bg-gray-100 dark:hover:bg-slate-800"
             >
               <Settings className="w-4 h-4" />
             </Button>
@@ -214,10 +215,10 @@ export const EnhancedSectionLearning = ({
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full px-6 pb-2">
+        <div className="w-full px-6 pb-3">
           <div className="flex items-center gap-4 w-full">
             <Progress value={progressPercentage} className="flex-1 h-2" />
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
               {Math.round(progressPercentage)}%
             </span>
           </div>
@@ -296,7 +297,7 @@ export const EnhancedSectionLearning = ({
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          className="fixed inset-0 bg-gray-900/30 dark:bg-black/40 z-20 lg:hidden backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}

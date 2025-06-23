@@ -45,7 +45,7 @@ const TOKEN_CONFIGS = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { platform: string } }
+  { params }: { params: Promise<{ platform: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
@@ -76,7 +76,8 @@ export async function GET(
       );
     }
 
-    const platform = params.platform.toLowerCase();
+    const { platform: platformParam } = await params;
+    const platform = platformParam.toLowerCase();
     const config = TOKEN_CONFIGS[platform as keyof typeof TOKEN_CONFIGS];
     
     if (!config) {

@@ -12,6 +12,7 @@ import { CourseReviews } from "./_components/course-reviews";
 import { EnrollButton } from "./_components/enroll-button";
 import { Metadata } from "next";
 import { CourseOutcomes } from "./_components/course-outcomes";
+import { CoursePageTabs } from "./_components/course-page-tabs";
 
 type CourseReview = {
   id: string;
@@ -129,50 +130,15 @@ const CourseIdPage = async (props: {params: Promise<{ courseId: string; }>}) => 
         userId={user?.id}
         isEnrolled={!!enrollment}
       />
-      <div className="mb-10">
-        <GradientHeading 
-          text="Course Breakdown"
-          gradientFrom="from-purple-400"
-          gradientVia="via-cyan-400"
-          gradientTo="to-emerald-400"
-          iconColor="text-purple-400"
-        />
-        
-        <div className="">
-          <div className="w-full overflow-hidden">
-            <div className="relative">
-              <CourseCardsCarousel chapters={chapters}/>
-            </div>
-          </div>
-        </div>
-      </div>
       
-      <div className="mx-auto mt-20 mb-5">
-        <GradientHeading 
-          text="Course Contents"
-          gradientFrom="from-emerald-400"
-          gradientVia="via-blue-400"
-          gradientTo="to-purple-400"
-          iconColor="text-emerald-400"
+      <div className="mt-12">
+        <CoursePageTabs 
+          chapters={chapters}
+          courseId={courseId}
+          initialReviews={reviews}
+          isEnrolled={!!enrollment}
+          userId={user?.id}
         />
-      
-        <div className="px-2 md:px-8">
-          <CourseContent chapters={chapters} />
-        </div>
-      </div>
-
-      <div className="mt-10">
-        <GradientHeading 
-          text="Course Reviews"
-          gradientFrom="from-blue-400"
-          gradientVia="via-indigo-400"
-          gradientTo="to-violet-400"
-          iconColor="text-blue-400"
-        />
-        
-        <div className="mt-8">
-          <CourseReviews courseId={courseId} initialReviews={reviews} />
-        </div>
       </div>
       
       <Footer />

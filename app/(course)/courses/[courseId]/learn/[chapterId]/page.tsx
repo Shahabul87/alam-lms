@@ -56,7 +56,7 @@ const ChapterIdPage = async (props: ChapterPageProps) => {
 
   return (
     <>
-      <ConditionalHeader user={user} />
+      <ConditionalHeader user={user as any} />
       <div className="h-full">
         <div className="hidden md:flex h-full w-80 flex-col fixed inset-y-0 z-50 mt-[70px]">
           <CourseSidebar

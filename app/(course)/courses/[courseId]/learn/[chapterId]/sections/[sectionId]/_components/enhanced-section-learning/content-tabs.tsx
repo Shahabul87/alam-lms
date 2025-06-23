@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -80,21 +80,21 @@ export const ContentTabs = ({
   ].filter(item => item.count > 0);
 
   // Set first available content type as default
-  useState(() => {
+  useEffect(() => {
     if (availableContent.length > 0) {
       setActiveContentTab(availableContent[0].id as ContentSubTab);
     }
-  });
+  }, [availableContent.length]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+      className="bg-white/98 dark:bg-slate-900/98 rounded-2xl shadow-lg border border-gray-200/80 dark:border-slate-700/80 overflow-hidden backdrop-blur-sm"
     >
       {/* Tab Navigation */}
-      <div className="border-b border-slate-200 dark:border-slate-700">
+      <div className="border-b border-gray-200/80 dark:border-slate-700/80">
         <div className="flex">
           {[
             { id: "content", label: "Learning Materials", icon: BookOpen },
@@ -109,7 +109,7 @@ export const ContentTabs = ({
                 "flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors border-b-2",
                 activeTab === tab.id
                   ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                  : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-slate-800"
               )}
             >
               <tab.icon className="w-4 h-4" />
@@ -132,7 +132,7 @@ export const ContentTabs = ({
               {availableContent.length > 0 ? (
                 <div className="space-y-6">
                   {/* Content Sub-Tabs */}
-                  <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700 pb-4">
+                  <div className="flex flex-wrap gap-2 border-b border-gray-200/80 dark:border-slate-700/80 pb-4">
                     {availableContent.map((contentType) => (
                       <button
                         key={contentType.id}
@@ -141,7 +141,7 @@ export const ContentTabs = ({
                           "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
                           activeContentTab === contentType.id
                             ? `${contentType.bgColor} shadow-sm`
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800"
                         )}
                       >
                         <contentType.icon className={cn("w-4 h-4", 
@@ -168,7 +168,15 @@ export const ContentTabs = ({
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <VideoContent videos={currentSection.videos} />
+                        <VideoContent videos={currentSection.videos.map(item => ({
+                          id: item.id,
+                          title: item.title,
+                          url: '#', // Placeholder URL
+                          duration: item.duration,
+                          description: '',
+                          thumbnail: null,
+                          views: 0
+                        }))} />
                       </motion.div>
                     )}
 
@@ -204,18 +212,22 @@ export const ContentTabs = ({
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <CodeContent codeExplanations={currentSection.codeExplanations} />
+                        <CodeContent codeExplanations={currentSection.codeExplanations.map(item => ({
+                          ...item,
+                          title: item.heading,
+                          description: item.explanation
+                        }))} />
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <Lightbulb className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  <Lightbulb className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                     Content Coming Soon
                   </h3>
-                  <p className="text-slate-600 dark:text-slate-400">
+                  <p className="text-gray-600 dark:text-gray-400">
                     Additional learning materials will be added to this section.
                   </p>
                 </div>
@@ -257,11 +269,11 @@ export const ContentTabs = ({
               exit={{ opacity: 0, x: -20 }}
               className="text-center py-12"
             >
-              <MessageCircle className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Join the Discussion
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-4">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Ask questions and collaborate with other learners.
               </p>
               <Button>

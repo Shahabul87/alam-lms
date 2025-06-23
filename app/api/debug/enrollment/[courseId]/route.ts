@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const courseId = params.courseId;
+    const { courseId } = await params;
 
     // Check enrollment
     const enrollment = await db.enrollment.findUnique({
@@ -124,7 +124,7 @@ export async function GET(
 // POST endpoint to manually create enrollment for testing
 export async function POST(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -133,7 +133,7 @@ export async function POST(
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const courseId = params.courseId;
+    const { courseId } = await params;
 
     // Check if enrollment already exists
     const existingEnrollment = await db.enrollment.findUnique({

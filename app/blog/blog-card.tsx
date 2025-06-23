@@ -94,7 +94,7 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
       'opinion': { bg: 'bg-neutral-100/90 dark:bg-neutral-800/90', text: 'text-neutral-700 dark:text-neutral-300', border: 'border-neutral-200/50 dark:border-neutral-700/50' },
       'review': { bg: 'bg-yellow-100/90 dark:bg-yellow-900/70', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200/50 dark:border-yellow-700/50' }
     };
-
+    
     // Check for exact matches first
     if (colorMap[categoryLower]) {
       return colorMap[categoryLower];
@@ -176,8 +176,8 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
 
           {/* Description */}
           <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 flex-1 mb-5 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-300">
-            {getCleanDescription(post.description)}
-          </p>
+                {getCleanDescription(post.description)}
+              </p>
 
           {/* Meta Information */}
           <div className="mt-auto space-y-3">
@@ -199,7 +199,7 @@ const MyPostCard: React.FC<MyPostCardProps> = ({ post }) => {
                 <span className="font-medium">{formatDate(post.createdAt)}</span>
               </div>
             </div>
-
+            
             {/* Elegant Divider */}
             <div className="border-t border-gray-100 dark:border-gray-800 group-hover:border-gray-200 dark:group-hover:border-gray-700 transition-colors duration-300" />
 

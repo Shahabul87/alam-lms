@@ -305,12 +305,12 @@ const BlogPage = () => {
               {error}
             </p>
             <div className="space-x-2">
-              <button
+            <button
                 onClick={() => fetchPosts(true)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                Try Again
-              </button>
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Try Again
+            </button>
               <button
                 onClick={handleForceRefresh}
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -506,7 +506,7 @@ const BlogPage = () => {
         {/* Posts Grid/List */}
         <div className="mt-8">
 
-          
+
           {filteredPosts.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -525,14 +525,14 @@ const BlogPage = () => {
                   : "No articles have been published yet"}
               </p>
               <div className="space-x-2">
-                {(searchQuery || selectedCategory !== "all") && (
-                  <button
+              {(searchQuery || selectedCategory !== "all") && (
+                <button
                     onClick={resetFilters}
-                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    Clear Filters
-                  </button>
-                )}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
                 <button
                   onClick={handleForceRefresh}
                   className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"

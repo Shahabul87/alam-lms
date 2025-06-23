@@ -8,6 +8,41 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, BookOpen, Clock, ChevronRight, Layers, PlayCircle, CheckCircle2 } from "lucide-react";
 import parse from 'html-react-parser';
 
+// Utility function to clean and format HTML content
+const cleanHtmlContent = (htmlString: string | null): string => {
+  if (!htmlString) return '';
+  
+  return htmlString
+    .replace(/<br\s*\/?>/gi, '\n')           // Convert <br> tags to line breaks
+    .replace(/<\/p>/gi, '\n\n')              // Convert </p> to double line breaks
+    .replace(/<p[^>]*>/gi, '')               // Remove <p> opening tags
+    .replace(/<[^>]*>/g, '')                 // Remove all other HTML tags
+    .replace(/&nbsp;/g, ' ')                 // Replace &nbsp; with regular spaces
+    .replace(/&amp;/g, '&')                  // Replace &amp; with &
+    .replace(/&lt;/g, '<')                   // Replace &lt; with <
+    .replace(/&gt;/g, '>')                   // Replace &gt; with >
+    .replace(/&quot;/g, '"')                 // Replace &quot; with "
+    .replace(/&#39;/g, "'")                  // Replace &#39; with '
+    .replace(/\n\s*\n\s*\n/g, '\n\n')        // Replace multiple line breaks with double
+    .trim();                                 // Remove leading/trailing whitespace
+};
+
+// Enhanced HTML parser for rich content
+const parseHtmlContent = (htmlString: string | null) => {
+  if (!htmlString) return null;
+  
+  // Clean up common HTML entities and formatting
+  const cleanedHtml = htmlString
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  
+  return parse(cleanedHtml);
+};
+
 interface CourseContentProps {
   chapters: (Chapter & {
     sections: Section[];
@@ -97,7 +132,7 @@ const ChapterModal = ({ chapter, onClose }: {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {chapter.title}
+                  {cleanHtmlContent(chapter.title)}
                 </h3>
               </div>
             </div>
@@ -127,7 +162,7 @@ const ChapterPreview: React.FC<{
   colorIndex: number;
 }> = ({ title, description, sectionCount, colorIndex }) => {
   const cleanDescription = description
-    ? description.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")
+    ? cleanHtmlContent(description)
     : "No description available.";
 
   const colors = [
@@ -202,29 +237,33 @@ const DummyContent: React.FC<DummyContentProps> = ({ description, sections, chap
   return (
     <div>
       {/* Display the chapter description */}
-      <div className="bg-[#F5F5F7] dark:bg-neutral-800 p-4 md:p-6 rounded-3xl mb-4">
-        <div className="text-neutral-600 dark:text-neutral-400 text-base md:text-lg font-sans max-w-3xl mx-auto space-y-4">
-          <span className="font-bold text-neutral-700 dark:text-neutral-200 block mb-2">
+      <div className="bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-purple-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-slate-800/80 border border-blue-100/50 dark:border-slate-600/30 p-4 md:p-6 rounded-2xl mb-6 shadow-sm">
+        <div className="text-slate-700 dark:text-slate-300 text-base md:text-lg font-sans max-w-3xl mx-auto space-y-4">
+          <span className="font-bold text-slate-800 dark:text-slate-200 block mb-3 flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             Description:
           </span>
           {description ? (
-            <div className="prose dark:prose-invert max-w-none">
-              {parse(description)}
+            <div className="prose dark:prose-invert max-w-none prose-slate prose-headings:text-slate-800 dark:prose-headings:text-slate-200 prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-strong:text-slate-800 dark:prose-strong:text-slate-200 prose-em:text-slate-600 dark:prose-em:text-slate-400">
+              {parseHtmlContent(description)}
             </div>
           ) : (
-            "No description available for this chapter."
+            <p className="text-slate-600 dark:text-slate-400 italic">No description available for this chapter.</p>
           )}
         </div>
       </div>
 
       {/* Display list of sections as bullet points without duration */}
-      <div className="bg-[#EDEDED] dark:bg-neutral-700 p-4 md:p-6 rounded-3xl">
-        <h3 className="text-neutral-800 dark:text-neutral-100 text-lg font-semibold mb-3">Sections:</h3>
-        <ul className="list-disc pl-5 text-neutral-600 dark:text-neutral-400">
+      <div className="bg-gradient-to-br from-emerald-50/80 via-teal-50/60 to-cyan-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-emerald-900/20 border border-emerald-100/50 dark:border-slate-600/30 p-4 md:p-6 rounded-2xl mb-6 shadow-sm">
+        <h3 className="text-slate-800 dark:text-slate-100 text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+          Sections:
+        </h3>
+        <ul className="list-disc pl-5 text-slate-700 dark:text-slate-300 space-y-2">
           {sections.map((section) => (
             <li key={section.id} className="mb-2">
-              <span className="text-neutral-800 dark:text-neutral-100 font-semibold lg:text-[17px]">
-                {section.title}
+              <span className="text-slate-800 dark:text-slate-100 font-semibold lg:text-[17px] leading-relaxed">
+                {cleanHtmlContent(section.title)}
               </span>
             </li>
           ))}
@@ -233,8 +272,8 @@ const DummyContent: React.FC<DummyContentProps> = ({ description, sections, chap
 
       {/* New Learning Outcomes Section */}
       {chapter.learningOutcomes && (
-        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
-          <div className="bg-gradient-to-r from-purple-50/50 to-rose-50/50 dark:from-purple-900/10 dark:to-rose-900/10 rounded-2xl p-6">
+        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+          <div className="bg-gradient-to-br from-violet-50/80 via-purple-50/60 to-fuchsia-50/80 dark:from-slate-800/80 dark:via-violet-900/20 dark:to-purple-900/20 border border-violet-100/50 dark:border-slate-600/30 rounded-2xl p-6 shadow-sm">
             <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
                 <CheckCircle2 className="h-5 w-5 lg:h-6 lg:w-6 text-purple-500" />
@@ -250,9 +289,11 @@ const DummyContent: React.FC<DummyContentProps> = ({ description, sections, chap
                 .map((outcome: string, idx: number) => (
                   <li
                     key={idx}
-                    className="text-[15px] leading-[1.8] tracking-wide lg:text-[17px] text-gray-700 dark:text-gray-200 marker:text-purple-500 pl-2 py-2 break-normal hyphens-none prose dark:prose-invert"
+                    className="text-[15px] leading-[1.8] tracking-wide lg:text-[17px] text-slate-700 dark:text-slate-200 marker:text-purple-500 pl-2 py-2 break-normal hyphens-none"
                   >
-                    {parse(outcome.trim())}
+                    <div className="prose dark:prose-invert prose-sm prose-slate prose-p:mb-2 prose-strong:text-slate-800 dark:prose-strong:text-slate-100">
+                      {parseHtmlContent(outcome.trim())}
+                    </div>
                   </li>
                 ))}
             </ul>

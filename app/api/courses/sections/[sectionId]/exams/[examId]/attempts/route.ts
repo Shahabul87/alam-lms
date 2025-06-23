@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sectionId: string; examId: string } }
+  { params }: { params: Promise<{ sectionId: string; examId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -13,7 +13,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { examId } = params;
+    const { examId } = await params;
 
     if (!examId) {
       return new NextResponse("Exam ID is required", { status: 400 });
@@ -68,7 +68,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { sectionId: string; examId: string } }
+  { params }: { params: Promise<{ sectionId: string; examId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -77,7 +77,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { examId } = params;
+    const { examId } = await params;
 
     if (!examId) {
       return new NextResponse("Exam ID is required", { status: 400 });

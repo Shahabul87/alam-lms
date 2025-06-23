@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -17,7 +17,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { sectionId } = params;
+    const { sectionId } = await params;
 
     if (!sectionId) {
       return new NextResponse("Section ID is required", { status: 400 });
@@ -66,7 +66,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   return new NextResponse("Feature temporarily disabled during migration", { status: 503 });
 } 

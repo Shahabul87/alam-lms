@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 // UPDATE a calendar event
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -17,7 +17,8 @@ export async function PUT(
       );
     }
 
-    const eventId = params.id;
+    const { id } = await params;
+    const eventId = id;
     const body = await req.json();
     
     // Verify the event belongs to the current user
@@ -68,7 +69,7 @@ export async function PUT(
 // DELETE a calendar event
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -80,7 +81,8 @@ export async function DELETE(
       );
     }
 
-    const eventId = params.id;
+    const { id } = await params;
+    const eventId = id;
     
     // Verify the event belongs to the current user
     const existingEvent = await db.calendarEvent.findFirst({

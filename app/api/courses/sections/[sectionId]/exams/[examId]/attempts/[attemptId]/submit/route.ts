@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { sectionId: string; examId: string; attemptId: string } }
+  { params }: { params: Promise<{ sectionId: string; examId: string; attemptId: string }> }
 ) {
   try {
     const user = await currentUser();
@@ -13,7 +13,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { attemptId } = params;
+    const { attemptId } = await params;
     const { answers, timeSpent } = await req.json();
 
     if (!attemptId) {

@@ -71,7 +71,7 @@ const PLATFORM_CONFIGS = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { platform: string } }
+  { params }: { params: Promise<{ platform: string }> }
 ) {
   try {
     // Check if user is authenticated
@@ -80,7 +80,8 @@ export async function GET(
       return NextResponse.redirect(new URL('/auth/signin', request.url));
     }
 
-    const platform = params.platform.toLowerCase();
+    const { platform: platformParam } = await params;
+    const platform = platformParam.toLowerCase();
     const config = PLATFORM_CONFIGS[platform as keyof typeof PLATFORM_CONFIGS];
     
     if (!config) {
